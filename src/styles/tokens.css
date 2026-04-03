@@ -1,0 +1,67 @@
+/* =====================================================
+   MMD Flowchart Editor — Design Tokens
+   Dark mode is canonical; light mode via [data-theme="light"]
+   ===================================================== */
+
+:root {
+  /* --- Background surfaces (dark mode defaults) --- */
+  --bg-app:     #1e1e1e;
+  --bg-panel:   #181818;
+  --bg-sidebar: #141414;
+  --bg-canvas:  #111111;
+  --bg-hover:   #252525;
+  --bg-active:  #2d2d2d;
+  --bg-input:   #1c1c1c;
+  --bg-dialog:  #1a1a1a;
+
+  /* --- Borders --- */
+  --border:    #272727;
+  --border-hi: #3c3c3c;
+
+  /* --- Typography --- */
+  --text:       #e2e2e2;
+  --text-muted: #7a7a7a;
+  --text-dim:   #4a4a4a;
+
+  /* --- Accent & semantic (shared) --- */
+  --accent:  #4da3ff;
+  --accent2: #a78bfa;
+  --green:   #4ade80;
+  --red:     #f87171;
+  --yellow:  #fbbf24;
+  --orange:  #fb923c;
+  --teal:    #2dd4bf;
+}
+
+/* =====================================================
+   Light mode overrides
+   ===================================================== */
+[data-theme="light"] {
+  --bg-app:     #f5f5f5;
+  --bg-panel:   #ebebeb;
+  --bg-sidebar: #e2e2e2;
+  --bg-canvas:  #ffffff;
+  --bg-hover:   #e8e8e8;
+  --bg-active:  #dcdcdc;
+  --bg-input:   #f0f0f0;
+  --bg-dialog:  #ffffff;
+
+  --border:    #d4d4d4;
+  --border-hi: #b8b8b8;
+
+  --text:       #1a1a1a;
+  --text-muted: #5a5a5a;
+  --text-dim:   #9a9a9a;
+}
+
+/* =====================================================
+   Smooth theme transitions
+   ===================================================== */
+*,
+*::before,
+*::after {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
