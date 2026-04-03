@@ -159,6 +159,7 @@ export function DiagramCanvas() {
     setCanvasViewport,
     addConnection,
     deleteConnection,
+    setSelectedConnectionId,
   } = useAppStore()
 
   const rfInstance = useRef<ReactFlowInstance | null>(null)
@@ -226,8 +227,11 @@ export function DiagramCanvas() {
     ({ nodes: selNodes, edges: selEdges }: OnSelectionChangeParams) => {
       setSelection(new Set(selNodes.map((n) => n.id)))
       setSelectedEdgeIds(new Set(selEdges.map((e) => e.id)))
+      // Sync to store so right panel can show connection properties
+      const singleEdge = selEdges.length === 1 ? selEdges[0].id : null
+      setSelectedConnectionId(singleEdge)
     },
-    [setSelection],
+    [setSelection, setSelectedConnectionId],
   )
 
   // ── Keyboard: Delete/Backspace deletes selected blocks and/or edges ───────
@@ -359,7 +363,8 @@ export function DiagramCanvas() {
   // ── Click on canvas pane background → deselect all ────────────────────────
   const handlePaneClick = useCallback(() => {
     setSelection(new Set())
-  }, [setSelection])
+    setSelectedConnectionId(null)
+  }, [setSelection, setSelectedConnectionId])
 
   // ── Viewport change → update store ───────────────────────────────────────
   const handleMoveEnd = useCallback(

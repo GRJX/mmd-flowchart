@@ -1,6 +1,7 @@
 import type { NodeProps } from '@xyflow/react'
 import { useInlineEdit } from './StartNode'
 import { ConnectionHandles } from './ConnectionHandles'
+import { CommentDot } from './CommentDot'
 
 /**
  * Decision block rendered as a diamond.
@@ -10,8 +11,9 @@ import { ConnectionHandles } from './ConnectionHandles'
  * Orange border variant when Y or N path is missing (spec §9.4).
  */
 export function DecisionNode({ id, data, selected }: NodeProps) {
-  const d = data as { label: string; hasYConnection?: boolean; hasNConnection?: boolean }
+  const d = data as { label: string; hasYConnection?: boolean; hasNConnection?: boolean; comments?: unknown[] }
   const label = d.label
+  const comments = d.comments ?? []
   const incomplete = !d.hasYConnection || !d.hasNConnection
   const { editing, draft, setDraft, startEdit, commitEdit, cancelEdit, inputRef } =
     useInlineEdit({ id, initialLabel: label })
@@ -47,6 +49,7 @@ export function DecisionNode({ id, data, selected }: NodeProps) {
       </div>
 
       <ConnectionHandles />
+      <CommentDot blockId={id} count={comments.length} />
     </div>
   )
 }

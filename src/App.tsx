@@ -6,7 +6,7 @@ import { FileTree } from './components/sidebar/FileTree'
 import { NewDiagramDialog } from './components/dialogs/NewDiagramDialog'
 import { Toast } from './components/ui/Toast'
 import { DiagramCanvas } from './components/canvas/DiagramCanvas'
-import { BlockPalette } from './components/palette/BlockPalette'
+import { RightPanel } from './components/panels/RightPanel'
 import { useAppStore } from './store/useAppStore'
 import { useFileOpen } from './hooks/useFileOpen'
 import { useDirectoryInit } from './hooks/useDirectoryInit'
@@ -111,7 +111,7 @@ function AppContent() {
         }
         canvas={<DiagramCanvas />}
         panel={
-          <BlockPalette
+          <RightPanel
             onClickAdd={handlePaletteClickAdd}
           />
         }

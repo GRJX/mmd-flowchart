@@ -1,5 +1,4 @@
 import { useCallback } from 'react'
-import { ArrowLeft } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import type { BlockType } from '../../types/diagram'
 import { PaletteEntry } from './PaletteEntry'
@@ -22,12 +21,7 @@ interface BlockPaletteProps {
 }
 
 export function BlockPalette({ onDragStart, onClickAdd }: BlockPaletteProps) {
-  const { selection, diagram } = useAppStore()
-
-  // Determine which block type is selected (for properties header)
-  const selectedIds = Array.from(selection)
-  const firstSelectedBlock =
-    selectedIds.length === 1 ? diagram?.blocks.get(selectedIds[0]) : null
+  const { diagram } = useAppStore()
 
   const hasStart = diagram
     ? Array.from(diagram.blocks.values()).some((b) => b.type === 'start')
@@ -49,35 +43,6 @@ export function BlockPalette({ onDragStart, onClickAdd }: BlockPaletteProps) {
     [onClickAdd],
   )
 
-  const handleBackTopalette = useCallback(() => {
-    useAppStore.getState().setSelection(new Set())
-  }, [])
-
-  // Properties mode: single block selected
-  if (firstSelectedBlock) {
-    const typeName = BLOCK_TYPE_LABELS[firstSelectedBlock.type]
-    return (
-      <div className="right-panel">
-        <div className="panel-header panel-header--properties">
-          <button
-            className="panel-back-btn"
-            onClick={handleBackTopalette}
-            aria-label="Back to palette"
-          >
-            <ArrowLeft size={14} strokeWidth={2} />
-          </button>
-          <span className="panel-header-title">{typeName} Block</span>
-        </div>
-        <div className="panel-properties-placeholder">
-          <span className="panel-properties-hint">
-            Properties panel coming in Epic #6
-          </span>
-        </div>
-      </div>
-    )
-  }
-
-  // Palette mode (default)
   return (
     <div className="right-panel">
       <div className="panel-header panel-header--palette">
@@ -98,3 +63,4 @@ export function BlockPalette({ onDragStart, onClickAdd }: BlockPaletteProps) {
     </div>
   )
 }
+
