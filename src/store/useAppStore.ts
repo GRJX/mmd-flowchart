@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import type {
   BlockType,
+  Connection,
+  ConnectionType,
   DiagramFile,
   FileTreeNode,
   UndoEntry,
@@ -93,6 +95,19 @@ interface AppStore {
   updateBlockPosition: (id: string, position: { x: number; y: number }) => void;
   moveBlocks: (
     moves: Array<{ id: string; position: { x: number; y: number } }>,
+  ) => void;
+
+  // ── Connection mutations ──────────────────────────────────────────────────
+  addConnection: (
+    sourceId: string,
+    targetId: string,
+    type: ConnectionType,
+  ) => string | null;
+  deleteConnection: (id: string) => void;
+  updateConnectionType: (id: string, type: ConnectionType) => void;
+  updateConnectionWaypoints: (
+    id: string,
+    waypoints: Array<{ x: number; y: number }>,
   ) => void;
 }
 
@@ -268,5 +283,51 @@ export const useAppStore = create<AppStore>((set, get) => ({
       if (block) blocks.set(id, { ...block, position });
     }
     set({ diagram: { ...diagram, blocks, isDirty: true } });
+  },
+
+  // ── Connection mutations ───────────────────────────────────────────────────
+  addConnection: (sourceId, targetId, type) => {
+    const { diagram } = get();
+    if (!diagram) return null;
+    const id = crypto.randomUUID();
+    const connection: Connection = {
+      id,
+      sourceId,
+      targetId,
+      type,
+      waypoints: [],
+    };
+    const connections = new Map(diagram.connections);
+    connections.set(id, connection);
+    set({ diagram: { ...diagram, connections, isDirty: true } });
+    return id;
+  },
+
+  deleteConnection: (id) => {
+    const { diagram } = get();
+    if (!diagram) return;
+    const connections = new Map(diagram.connections);
+    connections.delete(id);
+    set({ diagram: { ...diagram, connections, isDirty: true } });
+  },
+
+  updateConnectionType: (id, type) => {
+    const { diagram } = get();
+    if (!diagram) return;
+    const conn = diagram.connections.get(id);
+    if (!conn) return;
+    const connections = new Map(diagram.connections);
+    connections.set(id, { ...conn, type });
+    set({ diagram: { ...diagram, connections, isDirty: true } });
+  },
+
+  updateConnectionWaypoints: (id, waypoints) => {
+    const { diagram } = get();
+    if (!diagram) return;
+    const conn = diagram.connections.get(id);
+    if (!conn) return;
+    const connections = new Map(diagram.connections);
+    connections.set(id, { ...conn, waypoints });
+    set({ diagram: { ...diagram, connections, isDirty: true } });
   },
 }));
