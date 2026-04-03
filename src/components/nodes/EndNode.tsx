@@ -1,5 +1,6 @@
 import type { NodeProps } from '@xyflow/react'
 import { useInlineEdit } from './StartNode'
+import { ConnectionHandles } from './ConnectionHandles'
 
 export function EndNode({ id, data, selected }: NodeProps) {
   const label = (data as { label: string }).label
@@ -29,6 +30,8 @@ export function EndNode({ id, data, selected }: NodeProps) {
       ) : (
         <span className="node-label">{label}</span>
       )}
+      {/* End can only be a target — never a connection source (§9.1) */}
+      <ConnectionHandles canBeSource={false} canBeTarget={true} />
     </div>
   )
 }

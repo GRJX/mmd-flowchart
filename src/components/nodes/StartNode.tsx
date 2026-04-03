@@ -1,12 +1,15 @@
 import { useState, useRef, useCallback } from 'react'
 import type { NodeProps } from '@xyflow/react'
 import { useAppStore } from '../../store/useAppStore'
+import { ConnectionHandles } from './ConnectionHandles'
 
 export function StartNode({ selected }: NodeProps) {
   // Start block label is always "Start" — non-editable per spec §7.1
   return (
     <div className={`node node--start ${selected ? 'node--selected' : ''}`}>
       <span className="node-label">Start</span>
+      {/* Start can only be a source — never a connection target (§9.1) */}
+      <ConnectionHandles canBeSource={true} canBeTarget={false} />
     </div>
   )
 }
