@@ -9,6 +9,7 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
   SelectionMode,
+  MarkerType,
   type Node as RFNode,
   type Edge as RFEdge,
   type NodeChange,
@@ -24,6 +25,8 @@ import { EndNode } from '../nodes/EndNode'
 import { ActionNode } from '../nodes/ActionNode'
 import { DecisionNode } from '../nodes/DecisionNode'
 import { ResultNode } from '../nodes/ResultNode'
+import { OrthogonalEdge } from '../edges/OrthogonalEdge'
+import { YNPicker } from './YNPicker'
 
 // ── Node type map (constant outside component to prevent re-registration) ─────
 
@@ -33,6 +36,12 @@ const NODE_TYPES = {
   action: ActionNode,
   decision: DecisionNode,
   result: ResultNode,
+} as const
+
+// ── Edge type map ─────────────────────────────────────────────────────────────
+
+const EDGE_TYPES = {
+  orthogonal: OrthogonalEdge,
 } as const
 
 // ── Node / edge converters ────────────────────────────────────────────────────
@@ -63,7 +72,27 @@ function blockToRFNode(block: Block): RFNode {
 }
 
 function diagramToRFNodes(diagram: DiagramFile): RFNode[] {
-  return Array.from(diagram.blocks.values()).map(blockToRFNode)
+  // Pre-compute which Y/N paths each Decision block currently has
+  const decisionConns = new Map<string, { yes: boolean; no: boolean }>()
+  for (const block of diagram.blocks.values()) {
+    if (block.type === 'decision') decisionConns.set(block.id, { yes: false, no: false })
+  }
+  for (const conn of diagram.connections.values()) {
+    const info = decisionConns.get(conn.sourceId)
+    if (info) {
+      if (conn.type === 'yes') info.yes = true
+      if (conn.type === 'no')  info.no  = true
+    }
+  }
+
+  return Array.from(diagram.blocks.values()).map((block) => {
+    const node = blockToRFNode(block)
+    if (block.type === 'decision') {
+      const info = decisionConns.get(block.id)!
+      node.data = { ...node.data, hasYConnection: info.yes, hasNConnection: info.no }
+    }
+    return node
+  })
 }
 
 function diagramToRFEdges(diagram: DiagramFile): RFEdge[] {
@@ -71,9 +100,9 @@ function diagramToRFEdges(diagram: DiagramFile): RFEdge[] {
     id: conn.id,
     source: conn.sourceId,
     target: conn.targetId,
-    label: conn.type === 'yes' ? 'Y' : conn.type === 'no' ? 'N' : undefined,
-    type: 'default',
-    data: { connectionType: conn.type },
+    type: 'orthogonal',
+    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: 'var(--border-hi)' },
+    data: { connectionType: conn.type, waypoints: conn.waypoints },
   }))
 }
 
@@ -128,11 +157,25 @@ export function DiagramCanvas() {
     deleteBlocks,
     moveBlocks,
     setCanvasViewport,
+    addConnection,
+    deleteConnection,
   } = useAppStore()
 
   const rfInstance = useRef<ReactFlowInstance | null>(null)
   const syncingFromRF = useRef(false)
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
+
+  // ── Connection state ─────────────────────────────────────────────────────
+  interface PendingConn {
+    source: string
+    target: string
+    existingYId: string | null
+    existingNId: string | null
+  }
+  const [pendingConnection, setPendingConnection] = useState<PendingConn | null>(null)
+
+  // ── Edge selection (local RF state — not synced to store) ─────────────────
+  const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(new Set())
 
   const [nodes, setNodes] = useNodesState<RFNode>([])
   const [edges, setEdges] = useEdgesState<RFEdge>([])
@@ -180,21 +223,31 @@ export function DiagramCanvas() {
 
   // ── Selection sync ────────────────────────────────────────────────────────
   const handleSelectionChange = useCallback(
-    ({ nodes: selNodes }: OnSelectionChangeParams) => {
+    ({ nodes: selNodes, edges: selEdges }: OnSelectionChangeParams) => {
       setSelection(new Set(selNodes.map((n) => n.id)))
+      setSelectedEdgeIds(new Set(selEdges.map((e) => e.id)))
     },
     [setSelection],
   )
 
-  // ── Keyboard: Delete/Backspace deletes selected blocks ────────────────────
+  // ── Keyboard: Delete/Backspace deletes selected blocks and/or edges ───────
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key !== 'Delete' && e.key !== 'Backspace') return
-      if (!diagram || selection.size === 0) return
 
       // Check if an input/contenteditable is focused — skip delete in that case
       const tagName = (document.activeElement as HTMLElement)?.tagName
       if (tagName === 'INPUT' || tagName === 'TEXTAREA') return
+
+      // Delete selected edges
+      if (selectedEdgeIds.size > 0) {
+        for (const eid of selectedEdgeIds) deleteConnection(eid)
+        setSelectedEdgeIds(new Set())
+        if (selection.size === 0) return
+      }
+
+      // Delete selected blocks
+      if (!diagram || selection.size === 0) return
 
       const ids = Array.from(selection)
       const blocksWithComments = ids.filter((id) => {
@@ -211,7 +264,7 @@ export function DiagramCanvas() {
         deleteBlocks(ids)
       }
     },
-    [diagram, selection, deleteBlocks],
+    [diagram, selection, deleteBlocks, selectedEdgeIds, deleteConnection],
   )
 
   // ── Ctrl+A: select all ────────────────────────────────────────────────────
@@ -230,6 +283,61 @@ export function DiagramCanvas() {
 
   // ── Drop from palette ─────────────────────────────────────────────────────
   const { screenToFlowPosition } = useReactFlow()
+
+  // ── Connection validation ─────────────────────────────────────────────────
+  const isValidConnection = useCallback(
+    (connection: { source: string | null; target: string | null }) => {
+      const { source, target } = connection
+      if (!source || !target || !diagram) return false
+      if (source === target) return false                          // no self-loops
+      const src = diagram.blocks.get(source)
+      const tgt = diagram.blocks.get(target)
+      if (!src || !tgt) return false
+      if (tgt.type === 'start') return false                       // start can't be target
+      if (src.type === 'end')   return false                       // end can't be source
+      return true
+    },
+    [diagram],
+  )
+
+  // ── Connection creation ───────────────────────────────────────────────────
+  const handleConnect = useCallback(
+    (connection: { source: string | null; target: string | null }) => {
+      const { source, target } = connection
+      if (!source || !target || !diagram) return
+      const srcBlock = diagram.blocks.get(source)
+      if (!srcBlock) return
+
+      if (srcBlock.type === 'decision') {
+        // Find existing Y/N connections from this Decision block
+        let existingYId: string | null = null
+        let existingNId: string | null = null
+        for (const conn of diagram.connections.values()) {
+          if (conn.sourceId === source) {
+            if (conn.type === 'yes') existingYId = conn.id
+            if (conn.type === 'no')  existingNId = conn.id
+          }
+        }
+        setPendingConnection({ source, target, existingYId, existingNId })
+      } else {
+        addConnection(source, target, 'default')
+      }
+    },
+    [diagram, addConnection],
+  )
+
+  // ── Y/N picker confirm ────────────────────────────────────────────────────
+  const handleYNSelect = useCallback(
+    (type: 'yes' | 'no') => {
+      if (!pendingConnection) return
+      const { source, target, existingYId, existingNId } = pendingConnection
+      const existingId = type === 'yes' ? existingYId : existingNId
+      if (existingId) deleteConnection(existingId)
+      addConnection(source, target, type)
+      setPendingConnection(null)
+    },
+    [pendingConnection, addConnection, deleteConnection],
+  )
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -293,6 +401,7 @@ export function DiagramCanvas() {
         nodes={nodes}
         edges={edges}
         nodeTypes={NODE_TYPES}
+        edgeTypes={EDGE_TYPES}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onNodeDragStop={handleNodeDragStop}
@@ -301,6 +410,8 @@ export function DiagramCanvas() {
         onMoveEnd={handleMoveEnd}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
+        onConnect={handleConnect}
+        isValidConnection={isValidConnection}
         onInit={(instance) => { rfInstance.current = instance }}
         // Zoom: 10% – 400%
         minZoom={0.1}
@@ -336,6 +447,16 @@ export function DiagramCanvas() {
             setPendingDelete(null)
           }}
           onCancel={() => setPendingDelete(null)}
+        />
+      )}
+
+      {pendingConnection && diagram && (
+        <YNPicker
+          sourceLabel={diagram.blocks.get(pendingConnection.source)?.label ?? 'Decision'}
+          hasY={!!pendingConnection.existingYId}
+          hasN={!!pendingConnection.existingNId}
+          onSelect={handleYNSelect}
+          onCancel={() => setPendingConnection(null)}
         />
       )}
     </div>

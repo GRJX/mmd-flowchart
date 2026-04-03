@@ -1,5 +1,6 @@
 import type { NodeProps } from '@xyflow/react'
 import { useInlineEdit } from './StartNode'
+import { ConnectionHandles } from './ConnectionHandles'
 
 export function ActionNode({ id, data, selected }: NodeProps) {
   const label = (data as { label: string }).label
@@ -29,6 +30,7 @@ export function ActionNode({ id, data, selected }: NodeProps) {
       ) : (
         <span className="node-label">{label}</span>
       )}
+      <ConnectionHandles />
     </div>
   )
 }
