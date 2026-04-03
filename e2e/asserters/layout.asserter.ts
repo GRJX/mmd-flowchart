@@ -43,10 +43,7 @@ export async function assertStatusBarHeight(
   const height = await shell.statusBar.evaluate(
     (el) => el.getBoundingClientRect().height,
   );
-  expect(
-    height,
-    `Status bar height should be 24 px, got ${height}`,
-  ).toBe(24);
+  expect(height, `Status bar height should be 24 px, got ${height}`).toBe(24);
 
   // Status bar bottom edge should be at the viewport bottom
   const { bottom: barBottom } = await shell.statusBar.evaluate((el) =>

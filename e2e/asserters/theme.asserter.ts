@@ -32,9 +32,7 @@ export async function assertThemePersisted(
   page: Page,
   expectedTheme: Theme,
 ): Promise<void> {
-  const stored = await page.evaluate(
-    () => localStorage.getItem("mmd-theme"),
-  );
+  const stored = await page.evaluate(() => localStorage.getItem("mmd-theme"));
   expect(
     stored,
     `localStorage["mmd-theme"] should be "${expectedTheme}", got "${stored}"`,

@@ -11,7 +11,10 @@ import { ShellPage } from "../pages/shell.page";
 import { ToolbarPage } from "../pages/toolbar.page";
 import { loadApp } from "../steppers/navigation.stepper";
 import { toggleTheme } from "../steppers/theme.stepper";
-import { assertPanelWidths, assertStatusBarHeight } from "../asserters/layout.asserter";
+import {
+  assertPanelWidths,
+  assertStatusBarHeight,
+} from "../asserters/layout.asserter";
 import {
   assertDarkModeActive,
   assertLightModeActive,
@@ -180,7 +183,9 @@ test.describe("S2.3 — Dark mode & CSS tokens", () => {
     ).toBeVisible();
   });
 
-  test("theme toggle button shows moon icon in light mode", async ({ page }) => {
+  test("theme toggle button shows moon icon in light mode", async ({
+    page,
+  }) => {
     await loadApp(page);
     await toggleTheme(page); // dark → light
     // In light mode the button's label is "Switch to Dark Mode" (shows moon)
