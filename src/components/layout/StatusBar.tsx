@@ -1,9 +1,12 @@
+import { useAppStore } from '../../store/useAppStore'
+
 export function StatusBar() {
-  // Placeholder state — will be wired to AppStore in later stories
-  const saveState: 'saved' | 'unsaved' | 'error' = 'saved'
-  const filename: string | null = null
-  const nodeCount = 0
-  const connectionCount = 0
+  const diagram = useAppStore((s) => s.diagram)
+
+  const saveState: 'saved' | 'unsaved' | 'error' = diagram?.isDirty ? 'unsaved' : 'saved'
+  const filename: string | null = diagram?.name ?? null
+  const nodeCount = diagram ? diagram.blocks.size : 0
+  const connectionCount = diagram ? diagram.connections.size : 0
   const selection: string | null = null
 
   const dotColor =
