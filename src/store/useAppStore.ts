@@ -1,13 +1,12 @@
 import { create } from "zustand";
 import type {
-  Block,
-  BlockType,
   Comment,
-  Connection,
   ConnectionType,
   DiagramFile,
   FileTreeNode,
   UndoEntry,
+  BlockType,
+  Connection,
 } from "../types/diagram";
 import { readDirectoryEntries } from "../lib/fileSystem";
 import { saveDirectoryHandle } from "../lib/indexedDb";
