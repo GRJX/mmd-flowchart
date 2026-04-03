@@ -15,7 +15,12 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 
-export function Toolbar() {
+interface ToolbarProps {
+  onOpenFolder?: () => void
+  onNewDiagram?: () => void
+}
+
+export function Toolbar({ onOpenFolder, onNewDiagram }: ToolbarProps) {
   const { theme, toggleTheme } = useAppStore()
 
   // Zoom state — will be wired to canvas store in later story
@@ -41,7 +46,7 @@ export function Toolbar() {
       <div className="toolbar-divider" />
 
       {/* Open Folder */}
-      <button className="toolbar-btn" title="Open Folder" aria-label="Open Folder">
+      <button className="toolbar-btn" title="Open Folder" aria-label="Open Folder" onClick={onOpenFolder}>
         <FolderOpen size={16} strokeWidth={1.75} />
         <span className="toolbar-btn-label">Open Folder</span>
       </button>
@@ -57,7 +62,7 @@ export function Toolbar() {
       </button>
 
       {/* New Diagram */}
-      <button className="toolbar-btn" title="New Diagram" aria-label="New Diagram">
+      <button className="toolbar-btn" title="New Diagram" aria-label="New Diagram" onClick={onNewDiagram}>
         <FilePlus size={16} strokeWidth={1.75} />
       </button>
 
