@@ -26,11 +26,11 @@ interface ToolbarProps {
 }
 
 export function Toolbar({ onOpenFolder, onNewDiagram, onSave, onZoomIn, onZoomOut, onFitView, onResetZoom }: ToolbarProps) {
-  const { theme, toggleTheme, canvasViewport, diagram } = useAppStore()
+  const { theme, toggleTheme, canvasViewport, diagram, undoStack, redoStack, undo, redo } = useAppStore()
 
   const zoom = Math.round((canvasViewport?.zoom ?? 1) * 100)
-  const canUndo = false
-  const canRedo = false
+  const canUndo = undoStack.length > 0
+  const canRedo = redoStack.length > 0
   const hasOpenFile = diagram !== null
 
   function handleZoomPercentDoubleClick() {
@@ -144,6 +144,7 @@ export function Toolbar({ onOpenFolder, onNewDiagram, onSave, onZoomIn, onZoomOu
         disabled={!canUndo}
         title="Undo (Ctrl+Z)"
         aria-label="Undo"
+        onClick={undo}
       >
         <Undo2 size={16} strokeWidth={1.75} />
       </button>
@@ -154,6 +155,7 @@ export function Toolbar({ onOpenFolder, onNewDiagram, onSave, onZoomIn, onZoomOu
         disabled={!canRedo}
         title="Redo (Ctrl+Y)"
         aria-label="Redo"
+        onClick={redo}
       >
         <Redo2 size={16} strokeWidth={1.75} />
       </button>

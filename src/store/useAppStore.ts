@@ -3,14 +3,31 @@ import type {
   Comment,
   ConnectionType,
   DiagramFile,
+  DiagramSnapshot,
   FileTreeNode,
   UndoEntry,
+  UndoableAction,
   BlockType,
   Connection,
 } from "../types/diagram";
 import { readDirectoryEntries } from "../lib/fileSystem";
 import { saveDirectoryHandle } from "../lib/indexedDb";
 import { createBlock } from "../lib/blockFactory";
+
+// ── Undo/redo helpers (module-level) ─────────────────────────────────────────
+
+function takeSnapshot(diagram: DiagramFile): DiagramSnapshot {
+  return {
+    blocks: structuredClone(diagram.blocks),
+    connections: structuredClone(diagram.connections),
+  };
+}
+
+const MAX_UNDO = 100;
+
+// Nudge coalesce state — module-level so timer survives renders
+let _nudgeTimer: ReturnType<typeof setTimeout> | null = null;
+let _nudgeBefore: DiagramSnapshot | null = null;
 
 // ── Toast ──────────────────────────────────────────────────────────────────────
 
@@ -76,6 +93,15 @@ interface AppStore {
   // ── Undo/redo ─────────────────────────────────────────────────────────────
   undoStack: UndoEntry[];
   redoStack: UndoEntry[];
+  pushUndo: (
+    action: import("../types/diagram").UndoableAction,
+    before: import("../types/diagram").DiagramSnapshot,
+    after: import("../types/diagram").DiagramSnapshot,
+  ) => void;
+  undo: () => void;
+  redo: () => void;
+  /** Nudge selected blocks by dx/dy px; coalesces entries within 300 ms. */
+  nudgeSelectedBlocks: (dx: number, dy: number) => void;
 
   // ── Canvas ────────────────────────────────────────────────────────────────
   canvasViewport: { x: number; y: number; zoom: number };
@@ -212,6 +238,80 @@ export const useAppStore = create<AppStore>((set, get) => ({
   undoStack: [],
   redoStack: [],
 
+  pushUndo: (action: UndoableAction, before: DiagramSnapshot, after: DiagramSnapshot) => {
+    const { undoStack } = get();
+    const entry: UndoEntry = { id: crypto.randomUUID(), action, before, after };
+    const newStack = [...undoStack, entry];
+    if (newStack.length > MAX_UNDO) newStack.shift();
+    set({ undoStack: newStack, redoStack: [] });
+  },
+
+  undo: () => {
+    const { undoStack, redoStack, diagram } = get();
+    if (!diagram || undoStack.length === 0) return;
+    const entry = undoStack[undoStack.length - 1];
+    set({
+      diagram: {
+        ...diagram,
+        blocks: structuredClone(entry.before.blocks),
+        connections: structuredClone(entry.before.connections),
+        isDirty: true,
+      },
+      undoStack: undoStack.slice(0, -1),
+      redoStack: [...redoStack, entry],
+    });
+  },
+
+  redo: () => {
+    const { undoStack, redoStack, diagram } = get();
+    if (!diagram || redoStack.length === 0) return;
+    const entry = redoStack[redoStack.length - 1];
+    set({
+      diagram: {
+        ...diagram,
+        blocks: structuredClone(entry.after.blocks),
+        connections: structuredClone(entry.after.connections),
+        isDirty: true,
+      },
+      undoStack: [...undoStack, entry],
+      redoStack: redoStack.slice(0, -1),
+    });
+  },
+
+  nudgeSelectedBlocks: (dx: number, dy: number) => {
+    const { diagram, selection } = get();
+    if (!diagram || selection.size === 0) return;
+
+    // Capture the before-snapshot on first keypress in the coalesce window
+    if (!_nudgeBefore) {
+      _nudgeBefore = takeSnapshot(diagram);
+    }
+
+    // Apply nudge
+    const blocks = new Map(diagram.blocks);
+    for (const id of selection) {
+      const block = blocks.get(id);
+      if (block) {
+        blocks.set(id, {
+          ...block,
+          position: { x: block.position.x + dx, y: block.position.y + dy },
+        });
+      }
+    }
+    set({ diagram: { ...diagram, blocks, isDirty: true } });
+
+    // Reset 300 ms coalesce timer
+    if (_nudgeTimer) clearTimeout(_nudgeTimer);
+    _nudgeTimer = setTimeout(() => {
+      const currentDiagram = get().diagram;
+      if (_nudgeBefore && currentDiagram) {
+        get().pushUndo("moveBlock", _nudgeBefore, takeSnapshot(currentDiagram));
+      }
+      _nudgeBefore = null;
+      _nudgeTimer = null;
+    }, 300);
+  },
+
   // ── Canvas ────────────────────────────────────────────────────────────────
   canvasViewport: { x: 0, y: 0, zoom: 1 },
   setCanvasViewport: (vp) => set({ canvasViewport: vp }),
@@ -237,16 +337,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
   addBlock: (type, position) => {
     const { diagram } = get();
     if (!diagram) return null;
+    const before = takeSnapshot(diagram);
     const block = createBlock(type, position, diagram.blocks);
     const blocks = new Map(diagram.blocks);
     blocks.set(block.id, block);
     set({ diagram: { ...diagram, blocks, isDirty: true } });
+    get().pushUndo("addBlock", before, takeSnapshot(get().diagram!));
     return block.id;
   },
 
   deleteBlock: (id) => {
     const { diagram } = get();
     if (!diagram) return;
+    const before = takeSnapshot(diagram);
     const blocks = new Map(diagram.blocks);
     blocks.delete(id);
     // Drop all connections referencing this block
@@ -260,11 +363,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
       diagram: { ...diagram, blocks, connections, isDirty: true },
       selection,
     });
+    get().pushUndo("deleteBlock", before, takeSnapshot(get().diagram!));
   },
 
   deleteBlocks: (ids) => {
     const { diagram } = get();
     if (!diagram) return;
+    const before = takeSnapshot(diagram);
     const idSet = new Set(ids);
     const blocks = new Map(diagram.blocks);
     const connections = new Map(diagram.connections);
@@ -279,6 +384,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       diagram: { ...diagram, blocks, connections, isDirty: true },
       selection,
     });
+    get().pushUndo("deleteBlock", before, takeSnapshot(get().diagram!));
   },
 
   updateBlockLabel: (id, label) => {
@@ -286,9 +392,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!diagram) return;
     const block = diagram.blocks.get(id);
     if (!block) return;
+    const before = takeSnapshot(diagram);
     const blocks = new Map(diagram.blocks);
     blocks.set(id, { ...block, label });
     set({ diagram: { ...diagram, blocks, isDirty: true } });
+    get().pushUndo("editLabel", before, takeSnapshot(get().diagram!));
   },
 
   updateBlockPosition: (id, position) => {
@@ -304,12 +412,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
   moveBlocks: (moves) => {
     const { diagram } = get();
     if (!diagram) return;
+    const before = takeSnapshot(diagram);
     const blocks = new Map(diagram.blocks);
     for (const { id, position } of moves) {
       const block = blocks.get(id);
       if (block) blocks.set(id, { ...block, position });
     }
     set({ diagram: { ...diagram, blocks, isDirty: true } });
+    get().pushUndo("moveBlock", before, takeSnapshot(get().diagram!));
   },
 
   updateBlockDataField: (id, value) => {
@@ -317,9 +427,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!diagram) return;
     const block = diagram.blocks.get(id);
     if (!block) return;
+    const before = takeSnapshot(diagram);
     const blocks = new Map(diagram.blocks);
     blocks.set(id, { ...block, dataField: value });
     set({ diagram: { ...diagram, blocks, isDirty: true } });
+    get().pushUndo("editDataField", before, takeSnapshot(get().diagram!));
   },
 
   updateBlockExpectedOutcome: (id, value) => {
@@ -327,9 +439,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!diagram) return;
     const block = diagram.blocks.get(id);
     if (!block) return;
+    const before = takeSnapshot(diagram);
     const blocks = new Map(diagram.blocks);
     blocks.set(id, { ...block, expectedOutcome: value });
     set({ diagram: { ...diagram, blocks, isDirty: true } });
+    get().pushUndo("editExpectedOutcome", before, takeSnapshot(get().diagram!));
   },
 
   addComment: (blockId, text) => {
@@ -337,6 +451,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!diagram) return;
     const block = diagram.blocks.get(blockId);
     if (!block) return;
+    const before = takeSnapshot(diagram);
     const comment: Comment = {
       id: crypto.randomUUID(),
       text: text.trim(),
@@ -345,6 +460,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const blocks = new Map(diagram.blocks);
     blocks.set(blockId, { ...block, comments: [...block.comments, comment] });
     set({ diagram: { ...diagram, blocks, isDirty: true } });
+    get().pushUndo("addComment", before, takeSnapshot(get().diagram!));
   },
 
   deleteComment: (blockId, commentId) => {
@@ -352,18 +468,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!diagram) return;
     const block = diagram.blocks.get(blockId);
     if (!block) return;
+    const before = takeSnapshot(diagram);
     const blocks = new Map(diagram.blocks);
     blocks.set(blockId, {
       ...block,
       comments: block.comments.filter((c) => c.id !== commentId),
     });
     set({ diagram: { ...diagram, blocks, isDirty: true } });
+    get().pushUndo("deleteComment", before, takeSnapshot(get().diagram!));
   },
 
   // ── Connection mutations ───────────────────────────────────────────────────
   addConnection: (sourceId, targetId, type) => {
     const { diagram } = get();
     if (!diagram) return null;
+    const before = takeSnapshot(diagram);
     const id = crypto.randomUUID();
     const connection: Connection = {
       id,
@@ -375,15 +494,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const connections = new Map(diagram.connections);
     connections.set(id, connection);
     set({ diagram: { ...diagram, connections, isDirty: true } });
+    get().pushUndo("addConnection", before, takeSnapshot(get().diagram!));
     return id;
   },
 
   deleteConnection: (id) => {
     const { diagram } = get();
     if (!diagram) return;
+    const before = takeSnapshot(diagram);
     const connections = new Map(diagram.connections);
     connections.delete(id);
     set({ diagram: { ...diagram, connections, isDirty: true } });
+    get().pushUndo("deleteConnection", before, takeSnapshot(get().diagram!));
   },
 
   updateConnectionType: (id, type) => {
@@ -391,9 +513,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!diagram) return;
     const conn = diagram.connections.get(id);
     if (!conn) return;
+    const before = takeSnapshot(diagram);
     const connections = new Map(diagram.connections);
     connections.set(id, { ...conn, type });
     set({ diagram: { ...diagram, connections, isDirty: true } });
+    get().pushUndo("changeConnectionType", before, takeSnapshot(get().diagram!));
   },
 
   updateConnectionWaypoints: (id, waypoints) => {
