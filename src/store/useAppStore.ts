@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import type {
+  Block,
   BlockType,
+  Comment,
   Connection,
   ConnectionType,
   DiagramFile,
@@ -84,6 +86,15 @@ interface AppStore {
   selection: Set<string>;
   setSelection: (ids: Set<string>) => void;
 
+  // ── Connection selection (from RF edge selection) ─────────────────────────
+  selectedConnectionId: string | null;
+  setSelectedConnectionId: (id: string | null) => void;
+
+  // ── Comment panel ─────────────────────────────────────────────────────────
+  commentPanelBlockId: string | null;
+  openCommentPanel: (blockId: string) => void;
+  closeCommentPanel: () => void;
+
   // ── Block mutations ───────────────────────────────────────────────────────
   addBlock: (
     type: BlockType,
@@ -96,6 +107,10 @@ interface AppStore {
   moveBlocks: (
     moves: Array<{ id: string; position: { x: number; y: number } }>,
   ) => void;
+  updateBlockDataField: (id: string, value: string | null) => void;
+  updateBlockExpectedOutcome: (id: string, value: string | null) => void;
+  addComment: (blockId: string, text: string) => void;
+  deleteComment: (blockId: string, commentId: string) => void;
 
   // ── Connection mutations ──────────────────────────────────────────────────
   addConnection: (
@@ -204,7 +219,20 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   // ── Selection ─────────────────────────────────────────────────────────────
   selection: new Set(),
-  setSelection: (ids) => set({ selection: ids }),
+  setSelection: (ids) => {
+    const update: Partial<AppStore> = { selection: ids }
+    if (ids.size === 0) update.commentPanelBlockId = null
+    set(update)
+  },
+
+  // ── Connection selection ────────────────────────────────────────────
+  selectedConnectionId: null,
+  setSelectedConnectionId: (id) => set({ selectedConnectionId: id }),
+
+  // ── Comment panel ─────────────────────────────────────────────────
+  commentPanelBlockId: null,
+  openCommentPanel: (blockId) => set({ commentPanelBlockId: blockId }),
+  closeCommentPanel: () => set({ commentPanelBlockId: null }),
 
   // ── Block mutations ───────────────────────────────────────────────────────
   addBlock: (type, position) => {
@@ -282,6 +310,54 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const block = blocks.get(id);
       if (block) blocks.set(id, { ...block, position });
     }
+    set({ diagram: { ...diagram, blocks, isDirty: true } });
+  },
+
+  updateBlockDataField: (id, value) => {
+    const { diagram } = get();
+    if (!diagram) return;
+    const block = diagram.blocks.get(id);
+    if (!block) return;
+    const blocks = new Map(diagram.blocks);
+    blocks.set(id, { ...block, dataField: value });
+    set({ diagram: { ...diagram, blocks, isDirty: true } });
+  },
+
+  updateBlockExpectedOutcome: (id, value) => {
+    const { diagram } = get();
+    if (!diagram) return;
+    const block = diagram.blocks.get(id);
+    if (!block) return;
+    const blocks = new Map(diagram.blocks);
+    blocks.set(id, { ...block, expectedOutcome: value });
+    set({ diagram: { ...diagram, blocks, isDirty: true } });
+  },
+
+  addComment: (blockId, text) => {
+    const { diagram } = get();
+    if (!diagram) return;
+    const block = diagram.blocks.get(blockId);
+    if (!block) return;
+    const comment: Comment = {
+      id: crypto.randomUUID(),
+      text: text.trim(),
+      timestamp: new Date().toISOString(),
+    };
+    const blocks = new Map(diagram.blocks);
+    blocks.set(blockId, { ...block, comments: [...block.comments, comment] });
+    set({ diagram: { ...diagram, blocks, isDirty: true } });
+  },
+
+  deleteComment: (blockId, commentId) => {
+    const { diagram } = get();
+    if (!diagram) return;
+    const block = diagram.blocks.get(blockId);
+    if (!block) return;
+    const blocks = new Map(diagram.blocks);
+    blocks.set(blockId, {
+      ...block,
+      comments: block.comments.filter((c) => c.id !== commentId),
+    });
     set({ diagram: { ...diagram, blocks, isDirty: true } });
   },
 
