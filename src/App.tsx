@@ -6,17 +6,20 @@ import { FileTree } from './components/sidebar/FileTree'
 import { NewDiagramDialog } from './components/dialogs/NewDiagramDialog'
 import { Toast } from './components/ui/Toast'
 import { DiagramCanvas } from './components/canvas/DiagramCanvas'
+import { ReadOnlyPreview } from './components/canvas/ReadOnlyPreview'
 import { RightPanel } from './components/panels/RightPanel'
 import { useAppStore } from './store/useAppStore'
 import { useFileOpen } from './hooks/useFileOpen'
 import { useDirectoryInit } from './hooks/useDirectoryInit'
+import { useSave } from './hooks/useSave'
+import { serializeDiagram } from './lib/serializer'
 import type { BlockType, FileTreeNode } from './types/diagram'
 
 /**
  * Inner app content — must be inside ReactFlowProvider to use useReactFlow().
  */
 function AppContent() {
-  const { addToast, setDirectoryHandle, addBlock } = useAppStore()
+  const { addToast, setDirectoryHandle, addBlock, diagram } = useAppStore()
   const { openFile, createNewDiagram } = useFileOpen()
   const [newDiagramDir, setNewDiagramDir] = useState<FileSystemDirectoryHandle | undefined>(
     undefined,
@@ -27,6 +30,17 @@ function AppContent() {
 
   // Restore last opened directory from IndexedDB on mount
   useDirectoryInit()
+
+  // ── Serializer + save hook ─────────────────────────────────────────────────
+
+  const serialize = useCallback(() => {
+    if (!diagram) throw new Error('No diagram open.')
+    const result = serializeDiagram(diagram)
+    if (!result.ok) throw new Error(result.error)
+    return result.content
+  }, [diagram])
+
+  const { save: handleSave } = useSave(diagram ? serialize : null)
 
   const handleOpenFolder = useCallback(async () => {
     try {
@@ -96,6 +110,7 @@ function AppContent() {
           <Toolbar
             onOpenFolder={handleOpenFolder}
             onNewDiagram={() => handleNewDiagram(undefined)}
+            onSave={handleSave}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             onFitView={handleFitView}
@@ -109,7 +124,20 @@ function AppContent() {
             onOpenFolder={handleOpenFolder}
           />
         }
-        canvas={<DiagramCanvas />}
+        canvas={
+          diagram?.isReadOnly ? (
+            <ReadOnlyPreview
+              mmd={diagram.rawMmd ?? ''}
+              reason={
+                diagram.rawMmd && diagram.blocks.size === 0
+                  ? undefined
+                  : `This diagram has more than 200 blocks and is shown in read-only preview mode.`
+              }
+            />
+          ) : (
+            <DiagramCanvas />
+          )
+        }
         panel={
           <RightPanel
             onClickAdd={handlePaletteClickAdd}

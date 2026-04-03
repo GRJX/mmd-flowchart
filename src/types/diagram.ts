@@ -44,6 +44,10 @@ export interface DiagramFile {
   lastSavedAt: Date | null
   fileHandle: FileSystemFileHandle
   metadataVersion: '1' | null
+  /** True when the file cannot be edited (unsupported diagram type, or >200 blocks). */
+  isReadOnly?: boolean
+  /** Raw .mmd text preserved for read-only preview rendering. */
+  rawMmd?: string
 }
 
 // ── Snapshot (for undo/redo — no fileHandle / isDirty / lastSavedAt) ──────────

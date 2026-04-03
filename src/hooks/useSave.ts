@@ -34,7 +34,14 @@ export function useSave(serialize: (() => string) | null) {
   const save = useCallback(async () => {
     if (!diagram || !serialize) return
 
-    const content = serialize()
+    // Run serializer — may throw on integrity violations (§9.1 fatal errors)
+    let content: string
+    try {
+      content = serialize()
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : 'Save failed.', 'error')
+      return
+    }
 
     try {
       // External-change detection: compare lastSavedAt vs file.lastModified
