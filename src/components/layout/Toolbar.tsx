@@ -18,19 +18,22 @@ import { useAppStore } from '../../store/useAppStore'
 interface ToolbarProps {
   onOpenFolder?: () => void
   onNewDiagram?: () => void
+  onZoomIn?: () => void
+  onZoomOut?: () => void
+  onFitView?: () => void
+  onResetZoom?: () => void
 }
 
-export function Toolbar({ onOpenFolder, onNewDiagram }: ToolbarProps) {
-  const { theme, toggleTheme } = useAppStore()
+export function Toolbar({ onOpenFolder, onNewDiagram, onZoomIn, onZoomOut, onFitView, onResetZoom }: ToolbarProps) {
+  const { theme, toggleTheme, canvasViewport, diagram } = useAppStore()
 
-  // Zoom state — will be wired to canvas store in later story
-  const zoom = 100
+  const zoom = Math.round((canvasViewport?.zoom ?? 1) * 100)
   const canUndo = false
   const canRedo = false
-  const hasOpenFile = false
+  const hasOpenFile = diagram !== null
 
   function handleZoomPercentDoubleClick() {
-    // Will reset canvas zoom to 100% in S4 (canvas story)
+    onResetZoom?.()
   }
 
   return (
@@ -93,6 +96,7 @@ export function Toolbar({ onOpenFolder, onNewDiagram }: ToolbarProps) {
         disabled={!hasOpenFile}
         title="Fit to Screen (Ctrl+Shift+F)"
         aria-label="Fit to Screen"
+        onClick={onFitView}
       >
         <Maximize2 size={16} strokeWidth={1.75} />
       </button>
@@ -103,6 +107,7 @@ export function Toolbar({ onOpenFolder, onNewDiagram }: ToolbarProps) {
         disabled={!hasOpenFile}
         title="Zoom Out"
         aria-label="Zoom Out"
+        onClick={onZoomOut}
       >
         <ZoomOut size={16} strokeWidth={1.75} />
       </button>
@@ -124,6 +129,7 @@ export function Toolbar({ onOpenFolder, onNewDiagram }: ToolbarProps) {
         disabled={!hasOpenFile}
         title="Zoom In"
         aria-label="Zoom In"
+        onClick={onZoomIn}
       >
         <ZoomIn size={16} strokeWidth={1.75} />
       </button>

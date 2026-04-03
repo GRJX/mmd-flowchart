@@ -1,38 +1,29 @@
 import { useState, useCallback } from 'react'
+import { ReactFlowProvider, useReactFlow } from '@xyflow/react'
 import { AppShell } from './components/layout/AppShell'
 import { Toolbar } from './components/layout/Toolbar'
 import { FileTree } from './components/sidebar/FileTree'
 import { NewDiagramDialog } from './components/dialogs/NewDiagramDialog'
 import { Toast } from './components/ui/Toast'
+import { DiagramCanvas } from './components/canvas/DiagramCanvas'
+import { BlockPalette } from './components/palette/BlockPalette'
 import { useAppStore } from './store/useAppStore'
 import { useFileOpen } from './hooks/useFileOpen'
 import { useDirectoryInit } from './hooks/useDirectoryInit'
-import type { FileTreeNode } from './types/diagram'
+import type { BlockType, FileTreeNode } from './types/diagram'
 
-function CanvasPlaceholder() {
-  return (
-    <div className="canvas-empty">
-      <span className="canvas-empty-title">No diagram open</span>
-      <span className="canvas-empty-hint">Open a folder and select a .mmd file</span>
-    </div>
-  )
-}
-
-function PanelPlaceholder() {
-  return (
-    <div className="panel-empty">
-      <span>Blocks</span>
-    </div>
-  )
-}
-
-function App() {
-  const { addToast, setDirectoryHandle } = useAppStore()
+/**
+ * Inner app content — must be inside ReactFlowProvider to use useReactFlow().
+ */
+function AppContent() {
+  const { addToast, setDirectoryHandle, addBlock } = useAppStore()
   const { openFile, createNewDiagram } = useFileOpen()
   const [newDiagramDir, setNewDiagramDir] = useState<FileSystemDirectoryHandle | undefined>(
     undefined,
   )
   const [showNewDiagram, setShowNewDiagram] = useState(false)
+
+  const { zoomIn, zoomOut, fitView, getViewport, setViewport } = useReactFlow()
 
   // Restore last opened directory from IndexedDB on mount
   useDirectoryInit()
@@ -44,7 +35,6 @@ function App() {
       }).showDirectoryPicker()
       await setDirectoryHandle(handle)
     } catch (err: unknown) {
-      // User cancelled the picker — DOMException name 'AbortError'
       if (err instanceof DOMException && err.name === 'AbortError') return
       addToast('Could not open folder.', 'error')
       console.error(err)
@@ -52,9 +42,7 @@ function App() {
   }, [setDirectoryHandle, addToast])
 
   const handleFileClick = useCallback(
-    (node: FileTreeNode) => {
-      openFile(node)
-    },
+    (node: FileTreeNode) => { openFile(node) },
     [openFile],
   )
 
@@ -74,6 +62,33 @@ function App() {
     [createNewDiagram, newDiagramDir],
   )
 
+  // ── Palette callbacks ─────────────────────────────────────────────────────
+
+  /** Click in palette → add block at canvas center */
+  const handlePaletteClickAdd = useCallback(
+    (type: BlockType) => {
+      const vp = getViewport()
+      const el = document.querySelector('.react-flow__pane') as HTMLElement | null
+      const rect = el?.getBoundingClientRect()
+      if (!rect) return
+      const position = {
+        x: (-vp.x + rect.width / 2) / vp.zoom,
+        y: (-vp.y + rect.height / 2) / vp.zoom,
+      }
+      addBlock(type, position)
+    },
+    [addBlock, getViewport],
+  )
+
+  // ── Toolbar zoom helpers ──────────────────────────────────────────────────
+  const handleZoomIn = useCallback(() => zoomIn(), [zoomIn])
+  const handleZoomOut = useCallback(() => zoomOut(), [zoomOut])
+  const handleFitView = useCallback(() => fitView({ padding: 0.08 }), [fitView])
+  const handleResetZoom = useCallback(() => {
+    const vp = getViewport()
+    setViewport({ x: vp.x, y: vp.y, zoom: 1 }, { duration: 200 })
+  }, [getViewport, setViewport])
+
   return (
     <>
       <AppShell
@@ -81,6 +96,10 @@ function App() {
           <Toolbar
             onOpenFolder={handleOpenFolder}
             onNewDiagram={() => handleNewDiagram(undefined)}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onFitView={handleFitView}
+            onResetZoom={handleResetZoom}
           />
         }
         sidebar={
@@ -90,8 +109,12 @@ function App() {
             onOpenFolder={handleOpenFolder}
           />
         }
-        canvas={<CanvasPlaceholder />}
-        panel={<PanelPlaceholder />}
+        canvas={<DiagramCanvas />}
+        panel={
+          <BlockPalette
+            onClickAdd={handlePaletteClickAdd}
+          />
+        }
       />
 
       {showNewDiagram && (
@@ -106,5 +129,13 @@ function App() {
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <ReactFlowProvider>
+      <AppContent />
+    </ReactFlowProvider>
+  )
+}
+
+
 
