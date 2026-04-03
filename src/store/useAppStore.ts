@@ -1,7 +1,13 @@
 import { create } from "zustand";
-import type { DiagramFile, FileTreeNode, UndoEntry } from "../types/diagram";
+import type {
+  BlockType,
+  DiagramFile,
+  FileTreeNode,
+  UndoEntry,
+} from "../types/diagram";
 import { readDirectoryEntries } from "../lib/fileSystem";
 import { saveDirectoryHandle } from "../lib/indexedDb";
+import { createBlock } from "../lib/blockFactory";
 
 // ── Toast ──────────────────────────────────────────────────────────────────────
 
@@ -75,6 +81,19 @@ interface AppStore {
   // ── Selection ─────────────────────────────────────────────────────────────
   selection: Set<string>;
   setSelection: (ids: Set<string>) => void;
+
+  // ── Block mutations ───────────────────────────────────────────────────────
+  addBlock: (
+    type: BlockType,
+    position: { x: number; y: number },
+  ) => string | null;
+  deleteBlock: (id: string) => void;
+  deleteBlocks: (ids: string[]) => void;
+  updateBlockLabel: (id: string, label: string) => void;
+  updateBlockPosition: (id: string, position: { x: number; y: number }) => void;
+  moveBlocks: (
+    moves: Array<{ id: string; position: { x: number; y: number } }>,
+  ) => void;
 }
 
 // ── Store implementation ───────────────────────────────────────────────────────
@@ -171,4 +190,83 @@ export const useAppStore = create<AppStore>((set, get) => ({
   // ── Selection ─────────────────────────────────────────────────────────────
   selection: new Set(),
   setSelection: (ids) => set({ selection: ids }),
+
+  // ── Block mutations ───────────────────────────────────────────────────────
+  addBlock: (type, position) => {
+    const { diagram } = get();
+    if (!diagram) return null;
+    const block = createBlock(type, position, diagram.blocks);
+    const blocks = new Map(diagram.blocks);
+    blocks.set(block.id, block);
+    set({ diagram: { ...diagram, blocks, isDirty: true } });
+    return block.id;
+  },
+
+  deleteBlock: (id) => {
+    const { diagram } = get();
+    if (!diagram) return;
+    const blocks = new Map(diagram.blocks);
+    blocks.delete(id);
+    // Drop all connections referencing this block
+    const connections = new Map(diagram.connections);
+    for (const [cid, conn] of connections) {
+      if (conn.sourceId === id || conn.targetId === id) connections.delete(cid);
+    }
+    const selection = new Set(get().selection);
+    selection.delete(id);
+    set({
+      diagram: { ...diagram, blocks, connections, isDirty: true },
+      selection,
+    });
+  },
+
+  deleteBlocks: (ids) => {
+    const { diagram } = get();
+    if (!diagram) return;
+    const idSet = new Set(ids);
+    const blocks = new Map(diagram.blocks);
+    const connections = new Map(diagram.connections);
+    for (const id of idSet) blocks.delete(id);
+    for (const [cid, conn] of connections) {
+      if (idSet.has(conn.sourceId) || idSet.has(conn.targetId))
+        connections.delete(cid);
+    }
+    const selection = new Set(get().selection);
+    for (const id of idSet) selection.delete(id);
+    set({
+      diagram: { ...diagram, blocks, connections, isDirty: true },
+      selection,
+    });
+  },
+
+  updateBlockLabel: (id, label) => {
+    const { diagram } = get();
+    if (!diagram) return;
+    const block = diagram.blocks.get(id);
+    if (!block) return;
+    const blocks = new Map(diagram.blocks);
+    blocks.set(id, { ...block, label });
+    set({ diagram: { ...diagram, blocks, isDirty: true } });
+  },
+
+  updateBlockPosition: (id, position) => {
+    const { diagram } = get();
+    if (!diagram) return;
+    const block = diagram.blocks.get(id);
+    if (!block) return;
+    const blocks = new Map(diagram.blocks);
+    blocks.set(id, { ...block, position });
+    set({ diagram: { ...diagram, blocks, isDirty: true } });
+  },
+
+  moveBlocks: (moves) => {
+    const { diagram } = get();
+    if (!diagram) return;
+    const blocks = new Map(diagram.blocks);
+    for (const { id, position } of moves) {
+      const block = blocks.get(id);
+      if (block) blocks.set(id, { ...block, position });
+    }
+    set({ diagram: { ...diagram, blocks, isDirty: true } });
+  },
 }));
