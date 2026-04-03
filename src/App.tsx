@@ -1,11 +1,39 @@
+import { AppShell } from './components/layout/AppShell'
+import { Toolbar } from './components/layout/Toolbar'
+
+function SidebarPlaceholder() {
+  return (
+    <div className="sidebar-empty">
+      <span className="sidebar-empty-label">Open a folder to get started</span>
+    </div>
+  )
+}
+
+function CanvasPlaceholder() {
+  return (
+    <div className="canvas-empty">
+      <span className="canvas-empty-title">No diagram open</span>
+      <span className="canvas-empty-hint">Open a folder and select a .mmd file</span>
+    </div>
+  )
+}
+
+function PanelPlaceholder() {
+  return (
+    <div className="panel-empty">
+      <span>Blocks</span>
+    </div>
+  )
+}
+
 function App() {
   return (
-    <div className="h-screen w-screen flex items-center justify-center bg-gray-950 text-white">
-      <div className="text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">MMD Flowchart Editor</h1>
-        <p className="mt-2 text-gray-400 text-sm">Scaffold ready · Open a folder to get started</p>
-      </div>
-    </div>
+    <AppShell
+      toolbar={<Toolbar />}
+      sidebar={<SidebarPlaceholder />}
+      canvas={<CanvasPlaceholder />}
+      panel={<PanelPlaceholder />}
+    />
   )
 }
 
