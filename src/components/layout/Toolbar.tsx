@@ -18,13 +18,14 @@ import { useAppStore } from '../../store/useAppStore'
 interface ToolbarProps {
   onOpenFolder?: () => void
   onNewDiagram?: () => void
+  onSave?: () => void
   onZoomIn?: () => void
   onZoomOut?: () => void
   onFitView?: () => void
   onResetZoom?: () => void
 }
 
-export function Toolbar({ onOpenFolder, onNewDiagram, onZoomIn, onZoomOut, onFitView, onResetZoom }: ToolbarProps) {
+export function Toolbar({ onOpenFolder, onNewDiagram, onSave, onZoomIn, onZoomOut, onFitView, onResetZoom }: ToolbarProps) {
   const { theme, toggleTheme, canvasViewport, diagram } = useAppStore()
 
   const zoom = Math.round((canvasViewport?.zoom ?? 1) * 100)
@@ -60,6 +61,7 @@ export function Toolbar({ onOpenFolder, onNewDiagram, onZoomIn, onZoomOut, onFit
         disabled={!hasOpenFile}
         title="Save (Ctrl+S)"
         aria-label="Save"
+        onClick={onSave}
       >
         <Save size={16} strokeWidth={1.75} />
       </button>

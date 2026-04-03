@@ -264,6 +264,61 @@ body {
   font-size: 12px;
 }
 
+/* ── Read-only preview ────────────────────────────── */
+
+.readonly-preview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-canvas);
+  overflow: hidden;
+}
+
+.readonly-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: var(--color-warning-subtle, rgba(234, 179, 8, 0.15));
+  border-bottom: 1px solid var(--color-warning, #ca8a04);
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.readonly-banner__icon {
+  font-style: normal;
+  flex-shrink: 0;
+}
+
+.readonly-banner__text {
+  flex: 1;
+}
+
+.readonly-diagram {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.readonly-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.readonly-error {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--text-dim);
+  padding: 24px;
+}
+
 /* ── Sidebar placeholder ──────────────────────────── */
 
 .sidebar-empty {

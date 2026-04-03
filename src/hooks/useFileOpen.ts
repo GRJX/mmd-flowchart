@@ -1,7 +1,10 @@
 import { useCallback } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import { readFileText, getFileLastModified, createMmdFile } from '../lib/fileSystem'
+import { parseMmd } from '../lib/parser'
 import type { FileTreeNode, DiagramFile, Block } from '../types/diagram'
+
+const MAX_EDITABLE_BLOCKS = 200
 
 // Initial .mmd content for a new diagram (single Start block)
 const INITIAL_MMD = `%% MMD_META_START
@@ -41,21 +44,65 @@ function buildNewDiagram(
 function buildDiagramFromText(
   handle: FileSystemFileHandle,
   name: string,
-  _text: string,
+  text: string,
   lastModified: number,
+  addToast: (msg: string, type: 'info' | 'warning' | 'error' | 'success') => void,
 ): DiagramFile {
-  // Parsing is implemented in S7.3 — stub returns an empty diagram shell
-  // that marks the file as loaded with the correct handle
+  const result = parseMmd(text)
+
+  if (!result.ok) {
+    // Non-flowchart/graph type — read-only Mermaid.js preview (§9.2 rule 4)
+    return {
+      path: name,
+      name,
+      directionHint: 'TD',
+      blocks: new Map(),
+      connections: new Map(),
+      isDirty: false,
+      lastSavedAt: new Date(lastModified),
+      fileHandle: handle,
+      metadataVersion: null,
+      isReadOnly: true,
+      rawMmd: text,
+    }
+  }
+
+  // Issue warnings surfaced by the parser (§9.2 rules 1, 2, 5)
+  for (const warning of result.warnings) {
+    addToast(warning, 'warning')
+  }
+
+  // Too many blocks → read-only preview (§12.3)
+  if (result.blocks.size > MAX_EDITABLE_BLOCKS) {
+    addToast(
+      `This diagram has ${result.blocks.size} blocks (limit ${MAX_EDITABLE_BLOCKS}). Opening in read-only preview.`,
+      'warning',
+    )
+    return {
+      path: name,
+      name,
+      directionHint: result.directionHint,
+      blocks: new Map(),
+      connections: new Map(),
+      isDirty: false,
+      lastSavedAt: new Date(lastModified),
+      fileHandle: handle,
+      metadataVersion: null,
+      isReadOnly: true,
+      rawMmd: text,
+    }
+  }
+
   return {
     path: name,
     name,
-    directionHint: 'TD',
-    blocks: new Map(),
-    connections: new Map(),
+    directionHint: result.directionHint,
+    blocks: result.blocks,
+    connections: result.connections,
     isDirty: false,
     lastSavedAt: new Date(lastModified),
     fileHandle: handle,
-    metadataVersion: null,
+    metadataVersion: result.metadataVersion,
   }
 }
 
@@ -83,7 +130,7 @@ export function useFileOpen() {
             lastModified > currentDiagram.lastSavedAt.getTime()
           ) {
             const text = await readFileText(handle)
-            const updated = buildDiagramFromText(handle, node.name, text, lastModified)
+            const updated = buildDiagramFromText(handle, node.name, text, lastModified, addToast)
             setDiagram(updated)
             addToast('File changed on disk. Reloaded.', 'info')
             return
@@ -92,7 +139,7 @@ export function useFileOpen() {
         }
 
         const text = await readFileText(handle)
-        const diagram = buildDiagramFromText(handle, node.name, text, lastModified)
+        const diagram = buildDiagramFromText(handle, node.name, text, lastModified, addToast)
         setDiagram(diagram)
       } catch (err) {
         addToast('Failed to open file.', 'error')
