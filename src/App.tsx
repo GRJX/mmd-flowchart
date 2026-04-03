@@ -14,20 +14,21 @@ import { useDirectoryInit } from './hooks/useDirectoryInit'
 import { useSave } from './hooks/useSave'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { serializeDiagram } from './lib/serializer'
+import { exportAsPng, exportAsSvg } from './lib/export'
 import type { BlockType, FileTreeNode } from './types/diagram'
 
 /**
  * Inner app content — must be inside ReactFlowProvider to use useReactFlow().
  */
 function AppContent() {
-  const { addToast, setDirectoryHandle, addBlock, diagram } = useAppStore()
+  const { addToast, setDirectoryHandle, addBlock, diagram, theme } = useAppStore()
   const { openFile, createNewDiagram } = useFileOpen()
   const [newDiagramDir, setNewDiagramDir] = useState<FileSystemDirectoryHandle | undefined>(
     undefined,
   )
   const [showNewDiagram, setShowNewDiagram] = useState(false)
 
-  const { zoomIn, zoomOut, fitView, getViewport, setViewport } = useReactFlow()
+  const { zoomIn, zoomOut, fitView, getViewport, setViewport, getNodes } = useReactFlow()
 
   // Restore last opened directory from IndexedDB on mount
   useDirectoryInit()
@@ -107,6 +108,25 @@ function AppContent() {
     setViewport({ x: vp.x, y: vp.y, zoom: 1 }, { duration: 200 })
   }, [getViewport, setViewport])
 
+  // ── Export helpers ────────────────────────────────────────────────────────
+  const handleExportPng = useCallback(async () => {
+    if (!diagram) return
+    try {
+      await exportAsPng(getNodes(), diagram.name, theme)
+    } catch {
+      addToast('PNG export failed.', 'error')
+    }
+  }, [diagram, getNodes, theme, addToast])
+
+  const handleExportSvg = useCallback(async () => {
+    if (!diagram) return
+    try {
+      await exportAsSvg(getNodes(), diagram.name)
+    } catch {
+      addToast('SVG export failed.', 'error')
+    }
+  }, [diagram, getNodes, addToast])
+
   return (
     <>
       <AppShell
@@ -119,6 +139,8 @@ function AppContent() {
             onZoomOut={handleZoomOut}
             onFitView={handleFitView}
             onResetZoom={handleResetZoom}
+            onExportPng={handleExportPng}
+            onExportSvg={handleExportSvg}
           />
         }
         sidebar={
