@@ -207,10 +207,46 @@ body {
 .toolbar-chevron {
   opacity: 0.6;
   margin-left: 1px;
+  transition: transform 0.15s ease;
+}
+
+.toolbar-chevron--open {
+  transform: rotate(180deg);
 }
 
 .toolbar-dropdown-wrap {
   position: relative;
+}
+
+.toolbar-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 152px;
+  background: var(--bg-dialog);
+  border: 1px solid var(--border-hi);
+  border-radius: 6px;
+  padding: 4px;
+  z-index: 200;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.toolbar-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.1s ease;
+}
+
+.toolbar-dropdown-item:hover {
+  background-color: var(--bg-hover);
 }
 
 .toolbar-zoom-pct {

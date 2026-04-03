@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import {
   FolderOpen,
   Save,
@@ -23,10 +24,25 @@ interface ToolbarProps {
   onZoomOut?: () => void
   onFitView?: () => void
   onResetZoom?: () => void
+  onExportPng?: () => void
+  onExportSvg?: () => void
 }
 
-export function Toolbar({ onOpenFolder, onNewDiagram, onSave, onZoomIn, onZoomOut, onFitView, onResetZoom }: ToolbarProps) {
+export function Toolbar({ onOpenFolder, onNewDiagram, onSave, onZoomIn, onZoomOut, onFitView, onResetZoom, onExportPng, onExportSvg }: ToolbarProps) {
   const { theme, toggleTheme, canvasViewport, diagram, undoStack, redoStack, undo, redo } = useAppStore()
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const exportWrapRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showExportMenu) return
+    function handleClickOutside(e: MouseEvent) {
+      if (exportWrapRef.current && !exportWrapRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showExportMenu])
 
   const zoom = Math.round((canvasViewport?.zoom ?? 1) * 100)
   const canUndo = undoStack.length > 0
@@ -72,19 +88,38 @@ export function Toolbar({ onOpenFolder, onNewDiagram, onSave, onZoomIn, onZoomOu
       </button>
 
       {/* Export dropdown */}
-      <div className="toolbar-dropdown-wrap">
+      <div className="toolbar-dropdown-wrap" ref={exportWrapRef}>
         <button
           className="toolbar-btn toolbar-btn--dropdown"
           disabled={!hasOpenFile}
           title="Export"
           aria-label="Export"
           aria-haspopup="menu"
+          aria-expanded={showExportMenu}
+          onClick={() => setShowExportMenu(s => !s)}
         >
           <Download size={16} strokeWidth={1.75} />
           <span className="toolbar-btn-label">Export</span>
-          <ChevronDown size={12} strokeWidth={2} className="toolbar-chevron" />
+          <ChevronDown size={12} strokeWidth={2} className={`toolbar-chevron${showExportMenu ? ' toolbar-chevron--open' : ''}`} />
         </button>
-        {/* Export menu rendered in later story (S9.1) */}
+        {showExportMenu && (
+          <div className="toolbar-dropdown-menu" role="menu">
+            <button
+              className="toolbar-dropdown-item"
+              role="menuitem"
+              onClick={() => { onExportPng?.(); setShowExportMenu(false) }}
+            >
+              Export as PNG
+            </button>
+            <button
+              className="toolbar-dropdown-item"
+              role="menuitem"
+              onClick={() => { onExportSvg?.(); setShowExportMenu(false) }}
+            >
+              Export as SVG
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Flexible spacer ────────────────────────────── */}

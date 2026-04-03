@@ -238,7 +238,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
   undoStack: [],
   redoStack: [],
 
-  pushUndo: (action: UndoableAction, before: DiagramSnapshot, after: DiagramSnapshot) => {
+  pushUndo: (
+    action: UndoableAction,
+    before: DiagramSnapshot,
+    after: DiagramSnapshot,
+  ) => {
     const { undoStack } = get();
     const entry: UndoEntry = { id: crypto.randomUUID(), action, before, after };
     const newStack = [...undoStack, entry];
@@ -319,9 +323,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
   // ── Selection ─────────────────────────────────────────────────────────────
   selection: new Set(),
   setSelection: (ids) => {
-    const update: Partial<AppStore> = { selection: ids }
-    if (ids.size === 0) update.commentPanelBlockId = null
-    set(update)
+    const update: Partial<AppStore> = { selection: ids };
+    if (ids.size === 0) update.commentPanelBlockId = null;
+    set(update);
   },
 
   // ── Connection selection ────────────────────────────────────────────
@@ -517,7 +521,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const connections = new Map(diagram.connections);
     connections.set(id, { ...conn, type });
     set({ diagram: { ...diagram, connections, isDirty: true } });
-    get().pushUndo("changeConnectionType", before, takeSnapshot(get().diagram!));
+    get().pushUndo(
+      "changeConnectionType",
+      before,
+      takeSnapshot(get().diagram!),
+    );
   },
 
   updateConnectionWaypoints: (id, waypoints) => {
