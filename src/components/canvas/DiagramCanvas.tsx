@@ -164,6 +164,8 @@ export function DiagramCanvas() {
 
   const rfInstance = useRef<ReactFlowInstance | null>(null)
   const syncingFromRF = useRef(false)
+  /** Track last-loaded diagram name so fitView only fires on true load-in. */
+  const loadedDiagramName = useRef<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
 
   // ── Connection state ─────────────────────────────────────────────────────
@@ -190,9 +192,13 @@ export function DiagramCanvas() {
     if (diagram) {
       setNodes(diagramToRFNodes(diagram))
       setEdges(diagramToRFEdges(diagram))
-      // Fit view after new diagram loads — small delay for layout
-      setTimeout(() => rfInstance.current?.fitView({ padding: 0.08 }), 50)
+      // Only fit view when a different file is loaded, not on every state mutation
+      if (diagram.name !== loadedDiagramName.current) {
+        loadedDiagramName.current = diagram.name
+        setTimeout(() => rfInstance.current?.fitView({ padding: 0.08 }), 50)
+      }
     } else {
+      loadedDiagramName.current = null
       setNodes([])
       setEdges([])
     }

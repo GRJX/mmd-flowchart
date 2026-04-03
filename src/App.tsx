@@ -12,6 +12,7 @@ import { useAppStore } from './store/useAppStore'
 import { useFileOpen } from './hooks/useFileOpen'
 import { useDirectoryInit } from './hooks/useDirectoryInit'
 import { useSave } from './hooks/useSave'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { serializeDiagram } from './lib/serializer'
 import type { BlockType, FileTreeNode } from './types/diagram'
 
@@ -41,6 +42,9 @@ function AppContent() {
   }, [diagram])
 
   const { save: handleSave } = useSave(diagram ? serialize : null)
+
+  // ── Global keyboard shortcuts (undo/redo, arrow nudge) ────────────────────
+  useKeyboardShortcuts()
 
   const handleOpenFolder = useCallback(async () => {
     try {
