@@ -62,6 +62,21 @@ const MAX_OUTPUTS: Record<BlockType, number> = {
   decision: 2,
 }
 
+// ── Grid snapping ────────────────────────────────────────────────────────────
+
+/** Grid size in logical canvas pixels — always on, no toggle (spec §8.0). */
+export const GRID_SIZE = 16
+
+/** Snap a value to the nearest GRID_SIZE multiple. */
+function snap(v: number): number {
+  return Math.round(v / GRID_SIZE) * GRID_SIZE
+}
+
+/** Returns a position aligned to the 16px grid. */
+function snapToGrid(pos: { x: number; y: number }): { x: number; y: number } {
+  return { x: snap(pos.x), y: snap(pos.y) }
+}
+
 // ── Node / edge converters ────────────────────────────────────────────────────
 
 /** Convert Block dimensions per type, used for React Flow width/height hints */
@@ -260,7 +275,7 @@ export function DiagramCanvas() {
   const handleNodeDragStop = useCallback(
     (_e: React.MouseEvent, _node: RFNode, movedNodes: RFNode[]) => {
       syncingFromRF.current = true
-      moveBlocks(movedNodes.map((n) => ({ id: n.id, position: n.position })))
+      moveBlocks(movedNodes.map((n) => ({ id: n.id, position: snapToGrid(n.position) })))
     },
     [moveBlocks],
   )
@@ -405,8 +420,8 @@ export function DiagramCanvas() {
       const type = e.dataTransfer.getData('application/block-type') as BlockType
       if (!type || !diagram) return
 
-      const position = screenToFlowPosition({ x: e.clientX, y: e.clientY })
-      addBlock(type, position)
+      const rawPosition = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      addBlock(type, snapToGrid(rawPosition))
     },
     [diagram, addBlock, screenToFlowPosition],
   )
@@ -485,6 +500,8 @@ export function DiagramCanvas() {
         selectionKeyCode={null}
         fitView={false}
         nodeOrigin={[0, 0]}
+        snapToGrid={true}
+        snapGrid={[GRID_SIZE, GRID_SIZE]}
         proOptions={{ hideAttribution: true }}
       >
         <Background
