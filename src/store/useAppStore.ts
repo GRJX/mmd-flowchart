@@ -146,6 +146,7 @@ interface AppStore {
   ) => string | null;
   deleteConnection: (id: string) => void;
   updateConnectionType: (id: string, type: ConnectionType) => void;
+  updateConnectionDataField: (id: string, value: string | null) => void;
   updateConnectionWaypoints: (
     id: string,
     waypoints: Array<{ x: number; y: number }>,
@@ -517,6 +518,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       targetId,
       type,
       waypoints: [],
+      dataField: null,
     };
     const connections = new Map(diagram.connections);
     connections.set(id, connection);
@@ -546,6 +548,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ diagram: { ...diagram, connections, isDirty: true } });
     get().pushUndo(
       "changeConnectionType",
+      before,
+      takeSnapshot(get().diagram!),
+    );
+  },
+
+  updateConnectionDataField: (id, value) => {
+    const { diagram } = get();
+    if (!diagram) return;
+    const conn = diagram.connections.get(id);
+    if (!conn) return;
+    const before = takeSnapshot(diagram);
+    const connections = new Map(diagram.connections);
+    connections.set(id, { ...conn, dataField: value });
+    set({ diagram: { ...diagram, connections, isDirty: true } });
+    get().pushUndo(
+      "editConnectionDataField",
       before,
       takeSnapshot(get().diagram!),
     );

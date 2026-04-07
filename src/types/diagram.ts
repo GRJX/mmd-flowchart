@@ -30,6 +30,7 @@ export interface Connection {
   targetId: string;
   type: ConnectionType;
   waypoints: Array<{ x: number; y: number }>;
+  dataField: string | null; // test data / preconditions for this path
 }
 
 // ── Diagram file ──────────────────────────────────────────────────────────────
@@ -73,6 +74,7 @@ export type UndoableAction =
   | "addComment"
   | "deleteComment"
   | "editDataField"
+  | "editConnectionDataField"
   | "editExpectedOutcome";
 
 export interface UndoEntry {

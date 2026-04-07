@@ -49,7 +49,7 @@ const EDGE_TYPES = {
 
 const MAX_INPUTS: Record<BlockType, number> = {
   start:    0,
-  end:      1,
+  end:      Infinity,
   action:   1,
   result:   1,
   decision: 1,

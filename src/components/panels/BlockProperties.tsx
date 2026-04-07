@@ -72,8 +72,8 @@ export function BlockProperties({ block }: BlockPropertiesProps) {
         )}
       </div>
 
-      {/* Action: Data Field */}
-      {block.type === 'action' && (
+      {/* Action / Start / End: Data Field */}
+      {(block.type === 'action' || block.type === 'start' || block.type === 'end') && (
         <div className="prop-row prop-row--column">
           <span className="prop-label">Data Field</span>
           <textarea

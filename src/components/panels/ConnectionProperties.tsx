@@ -11,7 +11,7 @@ interface ConnectionPropertiesProps {
 const TYPE_LABELS = { yes: 'Y (Yes)', no: 'N (No)', default: 'Default' }
 
 export function ConnectionProperties({ connection, diagram }: ConnectionPropertiesProps) {
-  const { updateConnectionType, deleteConnection, setSelectedConnectionId } = useAppStore()
+  const { updateConnectionType, updateConnectionDataField, deleteConnection, setSelectedConnectionId } = useAppStore()
 
   const sourceBlock = diagram.blocks.get(connection.sourceId)
   const targetBlock = diagram.blocks.get(connection.targetId)
@@ -70,6 +70,20 @@ export function ConnectionProperties({ connection, diagram }: ConnectionProperti
           {connection.targetId}
           {targetBlock ? ` · ${targetBlock.label}` : ''}
         </span>
+      </div>
+
+      {/* Data Field */}
+      <div className="prop-row prop-row--column">
+        <span className="prop-label">Data Field</span>
+        <textarea
+          className="prop-textarea"
+          value={connection.dataField ?? ''}
+          onChange={(e) =>
+            updateConnectionDataField(connection.id, e.target.value || null)
+          }
+          placeholder="Test data or conditions for this path…"
+          rows={3}
+        />
       </div>
 
       {/* Actions */}

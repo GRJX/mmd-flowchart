@@ -35,7 +35,7 @@ interface MetadataV1BlockMeta {
 interface MetadataV1 {
   version: "1";
   meta: Record<string, MetadataV1BlockMeta>;
-  connections: Record<string, { waypoints: Array<{ x: number; y: number }> }>;
+  connections: Record<string, { waypoints: Array<{ x: number; y: number }>; dataField?: string | null }>;
 }
 
 // ── Label escaping ─────────────────────────────────────────────────────────────
@@ -244,7 +244,10 @@ export function serializeDiagram(diagram: DiagramFile): SerializeResult {
   const metaConns: MetadataV1["connections"] = {};
   for (const conn of validConns) {
     const key = `${conn.sourceId}-${conn.targetId}-${conn.type}`;
-    metaConns[key] = { waypoints: conn.waypoints };
+    metaConns[key] = {
+      waypoints: conn.waypoints,
+      ...(conn.dataField != null ? { dataField: conn.dataField } : {}),
+    };
   }
 
   const metadata: MetadataV1 = {

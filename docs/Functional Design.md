@@ -286,7 +286,7 @@ There are five block types. Each is visually distinct.
 | Label          | "End" (editable — user can rename, e.g., "End - Pass", "End - Fail")                                                                   |
 | Mermaid syntax | `Z([End])`                                                                                                                             |
 | Constraint     | Multiple allowed                                                                                                                       |
-| Connections    | **Exactly one input.** Cannot have outgoing connections. The connection handle is hidden/disabled once one incoming connection exists. |
+| Connections    | **Unlimited inputs.** Cannot have outgoing connections. Multiple blocks (e.g., several Result blocks) may connect to the same End block. |
 
 ### 7.3 State / Action Block
 
@@ -304,7 +304,7 @@ The **Data Field** is a free-text field for additional context (e.g., test data,
 
 | Property       | Value                                                                                                                       |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Shape          | Diamond (default 120×120 px, 1:1 ratio)                                                                                                                                         |
+| Shape          | Diamond (default 120×120 px, 1:1 ratio)                                                                                     |
 | Label          | Editable condition — default "Condition?"                                                                                   |
 | Mermaid syntax | `C{Condition?}`                                                                                                             |
 | Fields         | Condition description, Comments                                                                                             |
