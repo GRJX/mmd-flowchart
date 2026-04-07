@@ -452,7 +452,7 @@ Comments are attached to individual blocks, not to connections or the diagram le
 ### 10.1 Comment Indicator
 
 - Each block that has **one or more comments** displays a small **red dot icon** in its **top-right corner**.
-- If the block has **more than one comment**, the dot shows a **numeric badge** (e.g., `3`).
+- The dot **always shows a numeric badge** with the comment count (e.g., `1`, `3`) — including when there is only a single comment.
 - Blocks with no comments show no indicator.
 
 **Rendering requirements:**

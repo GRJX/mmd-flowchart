@@ -10,7 +10,7 @@ interface CommentDotProps {
  * Red dot indicator for blocks with comments (spec §10.1).
  * - 18×18px minimum; centered on the top-right corner of the block
  * - Solid #f87171 background with 2px canvas-background border (halo)
- * - Shows numeric badge when count > 1
+ * - Always shows a numeric badge (even for a single comment)
  * - Click selects the block and opens the comment panel
  */
 export function CommentDot({ blockId, count }: CommentDotProps) {
@@ -43,7 +43,7 @@ export function CommentDot({ blockId, count }: CommentDotProps) {
         }
       }}
     >
-      {count > 1 && <span className="comment-dot-badge">{count}</span>}
+      {count > 0 && <span className="comment-dot-badge">{count}</span>}
     </div>
   )
 }
