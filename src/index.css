@@ -1324,6 +1324,13 @@ body {
   stroke-width: 2 !important;
 }
 
+/* In-progress connection drag line — must be visible in both themes */
+.react-flow__connection-path {
+  stroke: var(--teal) !important;
+  stroke-width: 2 !important;
+  fill: none;
+}
+
 .react-flow__edge.selected .react-flow__edge-path {
   stroke: var(--accent) !important;
   stroke-width: 2.5 !important;

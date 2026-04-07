@@ -249,12 +249,12 @@ A fixed 24px bar at the very bottom of the application window. Displays contextu
 
 **Items, left to right:**
 
-| Item                                                     | Condition                | Style                                                     |
-| -------------------------------------------------------- | ------------------------ | --------------------------------------------------------- |
-| Save state (`● Saved` / `● Unsaved changes` / `⚠ Error`) | Always                   | Colored dot: green = saved, yellow = unsaved, red = error |
-| Active filename (e.g. `happy-path.mmd`)                  | When a file is open      | **Bold**, full filename including extension               |
-| Diagram stats (e.g. `6 nodes · 5 connections`)           | When a file is open      | Muted, lower weight                                       |
-| Selection info (e.g. `B1 selected`)                      | When a block is selected | Muted, rightmost                                          |
+| Item                                                  | Condition                | Style                                                               |
+| ----------------------------------------------------- | ------------------------ | ------------------------------------------------------------------- |
+| Save state (`● Saved` / `● Auto-saving…` / `⚠ Error`) | Always                   | Colored dot: green = saved, yellow = auto-save pending, red = error |
+| Active filename (e.g. `happy-path.mmd`)               | When a file is open      | **Bold**, full filename including extension                         |
+| Diagram stats (e.g. `6 nodes · 5 connections`)        | When a file is open      | Muted, lower weight                                                 |
+| Selection info (e.g. `B1 selected`)                   | When a block is selected | Muted, rightmost                                                    |
 
 **Visual hierarchy rules:**
 
@@ -427,7 +427,7 @@ Selected blocks can be moved as a group. Connections between selected blocks mov
 
 **Step 2:** Hover over a connection point. The point **changes colour** to indicate it is active (e.g., from muted grey to the accent colour). The icon does **not** grow or scale on hover — size must remain constant. This prevents visual clutter and avoids unintentional layout shifts when the cursor approaches multiple nearby handles.
 
-**Step 3:** Click the connection point and **drag** toward the target block (or simply **click** the source point and then **click** the target point — both interaction modes are supported). A preview line follows the cursor during drag.
+**Step 3:** Click the connection point and **drag** toward the target block (or simply **click** the source point and then **click** the target point — both interaction modes are supported). A **teal** preview line follows the cursor during drag, matching the colour of committed connection lines.
 
 **Step 4:** Release (or click) over a target block or its connection point. A connection is created.
 
@@ -582,9 +582,10 @@ When a connection is selected:
 
 ### 12.3 Saving Files
 
-- **Save (Ctrl/Cmd+S):** Writes the current diagram state to the open `.mmd` file using `FileSystemWritableFileStream`.
-- **Auto-save:** Not implemented in v1. Users save manually.
-- If the file has been modified externally since it was loaded, the app shows a dialog: _"This file has been modified on disk. Overwrite with your changes, or discard and reload?"_
+- **Save (Ctrl/Cmd+S):** Writes the current diagram state to the open `.mmd` file using `FileSystemWritableFileStream`. Cancels any pending auto-save timer and performs an external-change check before writing.
+- **Auto-save:** Fires automatically **2 seconds** after the last change that sets `isDirty = true`. The write is silent (no success toast). The external-change conflict dialog is skipped during auto-save to avoid interrupting the editing flow — it is only shown on manual save.
+- **Status bar indicator:** While `isDirty = true` the status dot shows yellow and the label reads `Auto-saving…`; after the write completes it returns to green `Saved`.
+- If the file has been modified externally since it was loaded and the user manually saves, the app shows a dialog: _"This file has been modified on disk. Overwrite with your changes, or discard and reload?"_
 - **Unsaved changes on tab close:** When `diagram.isDirty` is `true`, the app registers a `beforeunload` event handler to trigger the browser's native "Leave site?" confirmation dialog. The handler is removed immediately after a successful save. This is a last-resort safeguard supplementing the dirty-state indicator in the status bar.
 
 ### 12.4 Creating New Files
@@ -832,17 +833,17 @@ The UI is implemented with CSS custom properties. Dark-mode values are the canon
 
 **Color scheme guidance:**
 
-| Element           | Light Mode               | Dark Mode                 |
-| ----------------- | ------------------------ | ------------------------- |
-| Canvas background | `#F5F5F5` (off-white)    | `#111111` (neutral dark)  |
-| Grid dots         | `#E0E0E0`                | `#252525`                 |
-| Start block       | Teal accent border       | Same                      |
-| End block         | Red accent border        | Same                      |
-| Action block      | White fill, grey border  | Dark fill, lighter border |
-| Decision block    | White fill, amber border | Dark fill, amber border   |
-| Results block     | Light teal fill          | Dark teal fill            |
-| Selected block    | Blue highlight border    | Same                      |
-| Connection lines  | `#555`                   | `#444444`                 |
+| Element           | Light Mode                 | Dark Mode                 |
+| ----------------- | -------------------------- | ------------------------- |
+| Canvas background | `#F5F5F5` (off-white)      | `#111111` (neutral dark)  |
+| Grid dots         | `#E0E0E0`                  | `#252525`                 |
+| Start block       | Teal accent border         | Same                      |
+| End block         | Red accent border          | Same                      |
+| Action block      | White fill, grey border    | Dark fill, lighter border |
+| Decision block    | White fill, amber border   | Dark fill, amber border   |
+| Results block     | Light teal fill            | Dark teal fill            |
+| Selected block    | Blue highlight border      | Same                      |
+| Connection lines  | Teal (`--teal`, `#2dd4bf`) | Same                      |
 
 ---
 

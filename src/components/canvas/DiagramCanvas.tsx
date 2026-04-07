@@ -164,7 +164,7 @@ function diagramToRFEdges(diagram: DiagramFile): RFEdge[] {
     source: conn.sourceId,
     target: conn.targetId,
     type: 'orthogonal',
-    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: 'var(--border-hi)' },
+    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: 'var(--teal)' },
     data: { connectionType: conn.type, waypoints: conn.waypoints },
   }))
 }

@@ -20,7 +20,7 @@ export function StatusBar() {
     saveState === 'saved'
       ? 'Saved'
       : saveState === 'unsaved'
-        ? 'Unsaved changes'
+        ? 'Auto-saving…'
         : 'Error'
 
   return (
