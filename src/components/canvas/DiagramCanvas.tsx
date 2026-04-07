@@ -80,15 +80,25 @@ function snapToGrid(pos: { x: number; y: number }): { x: number; y: number } {
 
 // ── Node / edge converters ────────────────────────────────────────────────────
 
+/** Default dimensions per block type. */
+const DEFAULT_NODE_DIMS: Record<BlockType, { width: number; height: number }> = {
+  start:    { width: 80,  height: 64  },
+  end:      { width: 80,  height: 64  },
+  action:   { width: 120, height: 88  },
+  result:   { width: 120, height: 88  },
+  decision: { width: 110, height: 110 },
+}
+
 /** Convert Block dimensions per type, used for React Flow width/height hints */
-function getNodeDimensions(type: BlockType): { width: number; height: number } {
-  if (type === 'start' || type === 'end') return { width: 140, height: 44 }
-  if (type === 'decision') return { width: 110, height: 110 }
-  return { width: 160, height: 52 }
+function getNodeDimensions(block: Block): { width: number; height: number } {
+  if (block.width != null && block.height != null) {
+    return { width: block.width, height: block.height }
+  }
+  return DEFAULT_NODE_DIMS[block.type]
 }
 
 function blockToRFNode(block: Block): RFNode {
-  const dims = getNodeDimensions(block.type)
+  const dims = getNodeDimensions(block)
   return {
     id: block.id,
     type: block.type,

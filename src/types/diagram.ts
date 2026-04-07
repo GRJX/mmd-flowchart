@@ -13,6 +13,8 @@ export interface Block {
   type: BlockType;
   label: string;
   position: { x: number; y: number };
+  width?: number; // custom size (undefined = use type default)
+  height?: number; // custom size (undefined = use type default)
   dataField: string | null; // action only, metadata-only
   expectedOutcome: string | null; // result only, metadata-only
   comments: Comment[];
@@ -63,6 +65,7 @@ export type UndoableAction =
   | "addBlock"
   | "deleteBlock"
   | "moveBlock"
+  | "resizeBlock"
   | "editLabel"
   | "addConnection"
   | "deleteConnection"

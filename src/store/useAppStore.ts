@@ -132,6 +132,7 @@ interface AppStore {
   moveBlocks: (
     moves: Array<{ id: string; position: { x: number; y: number } }>,
   ) => void;
+  resizeBlock: (id: string, width: number, height: number) => void;
   updateBlockDataField: (id: string, value: string | null) => void;
   updateBlockExpectedOutcome: (id: string, value: string | null) => void;
   addComment: (blockId: string, text: string) => void;
@@ -434,6 +435,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
     set({ diagram: { ...diagram, blocks, isDirty: true } });
     get().pushUndo("moveBlock", before, takeSnapshot(get().diagram!));
+  },
+
+  resizeBlock: (id, width, height) => {
+    const { diagram } = get();
+    if (!diagram) return;
+    const block = diagram.blocks.get(id);
+    if (!block) return;
+    const before = takeSnapshot(diagram);
+    const blocks = new Map(diagram.blocks);
+    blocks.set(id, { ...block, width, height });
+    set({ diagram: { ...diagram, blocks, isDirty: true } });
+    get().pushUndo("resizeBlock", before, takeSnapshot(get().diagram!));
   },
 
   updateBlockDataField: (id, value) => {

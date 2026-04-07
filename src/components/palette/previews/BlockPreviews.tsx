@@ -1,9 +1,9 @@
-/** Miniature inline SVG previews for the block palette — ~40×24px each */
+/** Miniature inline SVG previews for the block palette — ~40×32px each */
 
 export function StartPreview() {
   return (
-    <svg width="40" height="24" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1" y="1" width="38" height="22" rx="11" ry="11"
+    <svg width="36" height="28" viewBox="0 0 36 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="18" cy="14" rx="16" ry="12"
         stroke="var(--teal)" strokeWidth="2" fill="var(--bg-canvas)" />
     </svg>
   )
@@ -11,8 +11,8 @@ export function StartPreview() {
 
 export function EndPreview() {
   return (
-    <svg width="40" height="24" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1" y="1" width="38" height="22" rx="11" ry="11"
+    <svg width="36" height="28" viewBox="0 0 36 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="18" cy="14" rx="16" ry="12"
         stroke="var(--red)" strokeWidth="2" fill="var(--bg-canvas)" />
     </svg>
   )
@@ -20,8 +20,8 @@ export function EndPreview() {
 
 export function ActionPreview() {
   return (
-    <svg width="40" height="24" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1" y="1" width="38" height="22" rx="3"
+    <svg width="38" height="28" viewBox="0 0 38 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="36" height="26" rx="4"
         stroke="var(--border-hi)" strokeWidth="2" fill="var(--bg-canvas)" />
     </svg>
   )
@@ -41,11 +41,11 @@ export function DecisionPreview() {
 
 export function ResultPreview() {
   return (
-    <svg width="40" height="24" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1" y="1" width="38" height="22" rx="3"
+    <svg width="38" height="28" viewBox="0 0 38 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="36" height="26" rx="4"
         stroke="var(--border-hi)" strokeWidth="2" fill="var(--bg-canvas)" />
       {/* Thick left accent border */}
-      <rect x="1" y="1" width="4" height="22" rx="3"
+      <rect x="1" y="1" width="4" height="26" rx="3"
         fill="var(--teal)" />
     </svg>
   )

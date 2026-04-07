@@ -132,19 +132,20 @@ User opens `http://localhost:3000` in Chrome/Chromium.
 
 ## 6. Application Layout
 
-The interface is divided into three panels with a top toolbar. Layout is fixed (not resizable in v1).
+The interface is divided into three panels with a top toolbar. Both side panels are **collapsible** and **resizable** — users can drag the grip strip on the inner edge of each panel to adjust its width, and click the arrow toggle to collapse or restore it.
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │  Top Toolbar                                                        │
-├──────────────┬─────────────────────────────────┬───────────────────┤
-│              │                                  │                   │
-│  Left Panel  │         Canvas (center)          │   Right Panel     │
-│  File Tree   │                                  │   Block Palette   │
-│  (240px)     │                                  │   (or Properties) │
-│              │                                  │   (280px)         │
-│              │                                  │                   │
-└──────────────┴─────────────────────────────────┴───────────────────┘
+├──────────────┬╟┬─────────────────────────────────┬╟┬──────────────┤
+│              │◀│                                  │▶│              │
+│  Left Panel  │║│         Canvas (center)          │║│  Right Panel │
+│  File Tree   │║│                                  │║│  Block Pal.  │
+│  160–480px   │║│                                  │║│  200–500px   │
+│  (def 240px) │║│                                  │║│  (def 280px) │
+│              │◀│                                  │▶│              │
+└──────────────┴╟┴─────────────────────────────────┴╟┴──────────────┘
+                ║ = drag to resize   ◀▶ = collapse toggle
 ```
 
 ### 6.1 Top Toolbar
@@ -182,6 +183,12 @@ Contains, left to right:
 - If no directory is connected, the panel shows a prompt: _"Open a folder to get started"_ with an **Open Folder** button.
 - Files changed externally (outside the app) are detected when the user clicks them and reloaded with a toast notification: _"File changed on disk. Reloaded."_
 
+#### 6.2.1 Collapse and Resize
+
+- A **28px grip strip** on the right inner edge of the left panel contains a drag zone (cursor `col-resize`) and a chevron `◀ / ▶` toggle button.
+- **Resize:** Dragging the grip strip adjusts the panel width between **160px** (min) and **480px** (max). Default is 240px.
+- **Collapse:** Clicking the toggle collapses the panel to the grip-strip width only (28px), hiding all content. Clicking again restores the last width.
+
 ### 6.3 Canvas (Center Panel)
 
 - Infinite canvas with pan and zoom.
@@ -213,6 +220,12 @@ The right panel does **not** use a tab bar with clickable "Palette" and "Propert
 - In **Properties mode**: the header shows a `←` back-arrow button followed by the block type name (e.g., `← Action Block`). Clicking the back arrow explicitly deselects the block and returns to Palette mode — this is an alternative to clicking the canvas background.
 
 This makes the automatic switching behaviour obvious and removes the false affordance of user-controlled tab navigation.
+
+#### 6.4.3 Collapse and Resize
+
+- A **28px grip strip** on the left inner edge of the right panel contains a drag zone (cursor `col-resize`) and a chevron `▶ / ◀` toggle button.
+- **Resize:** Dragging the grip strip adjusts the panel width between **200px** (min) and **500px** (max). Default is 280px.
+- **Collapse:** Clicking the toggle collapses the panel to 28px (grip only), hiding all content. Clicking again restores the last width.
 
 #### 6.4.2 Palette Block Previews
 
@@ -259,7 +272,7 @@ There are five block types. Each is visually distinct.
 
 | Property       | Value                                                                                                                                                                                                      |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shape          | Rounded pill / stadium shape                                                                                                                                                                               |
+| Shape          | Near-circular ellipse (border-radius: 50%, default 80×64 px)                                                                                                                                               |
 | Label          | "Start" (non-editable label; user cannot rename this)                                                                                                                                                      |
 | Mermaid syntax | `A([Start])`                                                                                                                                                                                               |
 | Constraint     | **Exactly one** per diagram. If one already exists, the Start block in the palette is greyed out and disabled.                                                                                             |
@@ -269,7 +282,7 @@ There are five block types. Each is visually distinct.
 
 | Property       | Value                                                                                                                                  |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Shape          | Rounded pill / stadium shape (visually distinct from Start — e.g., red accent border)                                                  |
+| Shape          | Near-circular ellipse, visually distinct from Start via a red border (default 80×64 px)                                                |
 | Label          | "End" (editable — user can rename, e.g., "End - Pass", "End - Fail")                                                                   |
 | Mermaid syntax | `Z([End])`                                                                                                                             |
 | Constraint     | Multiple allowed                                                                                                                       |
@@ -279,7 +292,7 @@ There are five block types. Each is visually distinct.
 
 | Property       | Value                                                                                                                                                                                  |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shape          | Rectangle                                                                                                                                                                              |
+| Shape          | Rounded rectangle, more square than wide — aspect ratio ~4:3 (default 120×88 px)                                                                                                       |
 | Label          | Editable — default "Action"                                                                                                                                                            |
 | Mermaid syntax | `B[Action description]`                                                                                                                                                                |
 | Fields         | Description (inline editable), Data Field (in properties panel), Comments                                                                                                              |
@@ -310,7 +323,7 @@ Both paths can be reassigned by the user (see Section 9). A decision block witho
 
 | Property       | Value                                                                                                                                                                                  |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shape          | Rectangle with a double left border (or parallelogram — developer to choose most readable option)                                                                                      |
+| Shape          | Rounded rectangle with a teal left-border accent, more square than wide — aspect ratio ~4:3 (default 120×88 px)                                                                        |
 | Label          | Editable — default "Result"                                                                                                                                                            |
 | Mermaid syntax | `D[/Result description/]` (parallelogram) or custom                                                                                                                                    |
 | Fields         | Expected outcome description, Comments                                                                                                                                                 |
@@ -366,6 +379,22 @@ This is the fastest way to extend a workflow. It collapses the traditional 7-ste
 
 - **Single block:** Click and drag a selected block to reposition.
 - **Multiple blocks:** When multiple blocks are selected, dragging any one of them moves all selected blocks together, preserving their relative positions.
+
+### 8.3.1 Resizing Blocks
+
+All block types support resize via drag handles that appear on the corners when a block is selected.
+
+- **Aspect ratio is locked** — dragging any corner scales both width and height proportionally.
+- Resize is stored per-block and persisted to the `.mmd` file metadata.
+- Resize is undoable via Ctrl/Cmd+Z.
+- Default sizes per block type:
+
+| Block type  | Default size | Min size | Max size  |
+| ----------- | ------------ | -------- | --------- |
+| Start / End | 80 × 64 px   | 48 × 38  | 240 × 192 |
+| Action      | 120 × 88 px  | 64 × 48  | 320 × 240 |
+| Result      | 120 × 88 px  | 64 × 48  | 320 × 240 |
+| Decision    | 110 × 110 px | 60 × 60  | 240 × 240 |
 
 ### 8.4 Canvas Navigation
 
