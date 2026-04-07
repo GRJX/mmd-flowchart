@@ -74,10 +74,14 @@ test.describe("AC1 — Start block: source-only connection handles", () => {
         try {
           for (const rule of Array.from(sheet.cssRules ?? [])) {
             if ((rule as CSSStyleRule).selectorText === ".node--start") {
-              return (rule as CSSStyleRule).style.getPropertyValue("border-radius");
+              return (rule as CSSStyleRule).style.getPropertyValue(
+                "border-radius",
+              );
             }
           }
-        } catch { /* cross-origin */ }
+        } catch {
+          /* cross-origin */
+        }
       }
       return null;
     });
@@ -107,10 +111,14 @@ test.describe("AC2 — End block: target-only connection handles", () => {
         try {
           for (const rule of Array.from(sheet.cssRules ?? [])) {
             if ((rule as CSSStyleRule).selectorText === ".node--end") {
-              return (rule as CSSStyleRule).style.getPropertyValue("border-radius");
+              return (rule as CSSStyleRule).style.getPropertyValue(
+                "border-radius",
+              );
             }
           }
-        } catch { /* cross-origin */ }
+        } catch {
+          /* cross-origin */
+        }
       }
       return null;
     });
@@ -139,12 +147,20 @@ test.describe("AC2 — End block: target-only connection handles", () => {
                 "";
             }
           }
-        } catch { /* cross-origin */ }
+        } catch {
+          /* cross-origin */
+        }
       }
       return result;
     });
-    expect(borders[".node--start"], ".node--start must declare a border (teal)").toBeTruthy();
-    expect(borders[".node--end"], ".node--end must declare a border (red)").toBeTruthy();
+    expect(
+      borders[".node--start"],
+      ".node--start must declare a border (teal)",
+    ).toBeTruthy();
+    expect(
+      borders[".node--end"],
+      ".node--end must declare a border (red)",
+    ).toBeTruthy();
     expect(
       borders[".node--start"],
       "Start and End block borders must differ",
@@ -171,10 +187,14 @@ test.describe("AC3 — Action block CSS rule and handle structure", () => {
         try {
           for (const rule of Array.from(sheet.cssRules ?? [])) {
             if ((rule as CSSStyleRule).selectorText === ".node--action") {
-              return (rule as CSSStyleRule).style.getPropertyValue("border-radius");
+              return (rule as CSSStyleRule).style.getPropertyValue(
+                "border-radius",
+              );
             }
           }
-        } catch { /* cross-origin */ }
+        } catch {
+          /* cross-origin */
+        }
       }
       return null;
     });
@@ -201,10 +221,14 @@ test.describe("AC4 — Result block CSS rule and handle structure", () => {
         try {
           for (const rule of Array.from(sheet.cssRules ?? [])) {
             if ((rule as CSSStyleRule).selectorText === ".node--result") {
-              return (rule as CSSStyleRule).style.getPropertyValue("border-left");
+              return (rule as CSSStyleRule).style.getPropertyValue(
+                "border-left",
+              );
             }
           }
-        } catch { /* cross-origin */ }
+        } catch {
+          /* cross-origin */
+        }
       }
       return null;
     });
@@ -233,13 +257,19 @@ test.describe("AC5 — Decision block CSS rule and diamond shape", () => {
       for (const sheet of Array.from(document.styleSheets)) {
         try {
           for (const rule of Array.from(sheet.cssRules ?? [])) {
-            if ((rule as CSSStyleRule).selectorText === ".node-decision-shape") return true;
+            if ((rule as CSSStyleRule).selectorText === ".node-decision-shape")
+              return true;
           }
-        } catch { /* cross-origin */ }
+        } catch {
+          /* cross-origin */
+        }
       }
       return false;
     });
-    expect(found, ".node-decision-shape CSS rule must exist (diamond rendering)").toBe(true);
+    expect(
+      found,
+      ".node-decision-shape CSS rule must exist (diamond rendering)",
+    ).toBe(true);
   });
 
   test("AC5.3 — .node-decision-shape uses transform: rotate(45deg) to achieve diamond orientation", async ({
@@ -250,11 +280,15 @@ test.describe("AC5 — Decision block CSS rule and diamond shape", () => {
       for (const sheet of Array.from(document.styleSheets)) {
         try {
           for (const rule of Array.from(sheet.cssRules ?? [])) {
-            if ((rule as CSSStyleRule).selectorText === ".node-decision-shape") {
+            if (
+              (rule as CSSStyleRule).selectorText === ".node-decision-shape"
+            ) {
               return (rule as CSSStyleRule).style.getPropertyValue("transform");
             }
           }
-        } catch { /* cross-origin */ }
+        } catch {
+          /* cross-origin */
+        }
       }
       return null;
     });
@@ -291,7 +325,9 @@ test.describe("AC6 — Decision block incomplete warning (orange border)", () =>
               return true;
             }
           }
-        } catch { /* cross-origin */ }
+        } catch {
+          /* cross-origin */
+        }
       }
       return false;
     });
@@ -321,11 +357,16 @@ test.describe("AC7 — conn-handle--target CSS class for source/target distincti
         try {
           for (const rule of Array.from(sheet.cssRules ?? [])) {
             const sel = (rule as CSSStyleRule).selectorText ?? "";
-            if (sel.includes("react-flow--connectionline") && sel.includes("conn-handle--target")) {
+            if (
+              sel.includes("react-flow--connectionline") &&
+              sel.includes("conn-handle--target")
+            ) {
               return true;
             }
           }
-        } catch { /* cross-origin */ }
+        } catch {
+          /* cross-origin */
+        }
       }
       return false;
     });

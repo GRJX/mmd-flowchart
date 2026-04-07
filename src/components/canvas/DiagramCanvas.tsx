@@ -27,6 +27,7 @@ import { DecisionNode } from '../nodes/DecisionNode'
 import { ResultNode } from '../nodes/ResultNode'
 import { OrthogonalEdge } from '../edges/OrthogonalEdge'
 import { YNPicker } from './YNPicker'
+import { QuickAddMenu } from './QuickAddMenu'
 
 // ── Node type map (constant outside component to prevent re-registration) ─────
 
@@ -212,6 +213,9 @@ export function DiagramCanvas() {
     addConnection,
     deleteConnection,
     setSelectedConnectionId,
+    pendingQuickAdd,
+    setPendingQuickAdd,
+    quickAddAndConnect,
   } = useAppStore()
 
   const rfInstance = useRef<ReactFlowInstance | null>(null)
@@ -247,7 +251,7 @@ export function DiagramCanvas() {
       // Only fit view when a different file is loaded, not on every state mutation
       if (diagram.name !== loadedDiagramName.current) {
         loadedDiagramName.current = diagram.name
-        setTimeout(() => rfInstance.current?.fitView({ padding: 0.08 }), 50)
+        setTimeout(() => rfInstance.current?.fitView({ padding: 0.08, maxZoom: 1 }), 50)
       }
     } else {
       loadedDiagramName.current = null
@@ -499,6 +503,7 @@ export function DiagramCanvas() {
         // Select all via Ctrl+A (handled by our onKeyDown)
         selectionKeyCode={null}
         fitView={false}
+        connectOnClick={true}
         nodeOrigin={[0, 0]}
         snapToGrid={true}
         snapGrid={[GRID_SIZE, GRID_SIZE]}
@@ -530,6 +535,14 @@ export function DiagramCanvas() {
           hasN={!!pendingConnection.existingNId}
           onSelect={handleYNSelect}
           onCancel={() => setPendingConnection(null)}
+        />
+      )}
+
+      {pendingQuickAdd && (
+        <QuickAddMenu
+          screenPos={pendingQuickAdd.screenPos}
+          onSelect={(type) => quickAddAndConnect(type)}
+          onClose={() => setPendingQuickAdd(null)}
         />
       )}
     </div>

@@ -47,3 +47,29 @@ Open `http://localhost:3000` in Chrome.
 | Zustand | ^5 |
 | Lucide React | ^0.511 |
 | Mermaid | ^10.9.5 |
+
+```mermaid
+graph TD
+    %% Nodes
+    A([Start])
+    B[Initialize Workflow]
+    C{Check Condition}
+    D[Path A Action]
+    E[Path B Action]
+    F[Process Results]
+    G([End])
+
+    %% Assign styles
+    class A,G startend;
+    class B,D,E,F action;
+    class C decision;
+
+    %% Connections/Flow
+    A --> B
+    B --> C
+    C -- "Condition Met" --> D
+    C -- "Condition Not Met" --> E
+    D --> F
+    E --> F
+    F --> G
+```

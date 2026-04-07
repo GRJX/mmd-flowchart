@@ -1061,6 +1061,11 @@ body {
 
 /* ── Connection handles ─────────────────────────────────────── */
 
+.conn-handle-wrap {
+  position: absolute;
+  pointer-events: all;
+}
+
 .conn-handle {
   width: 10px !important;
   height: 10px !important;
@@ -1079,15 +1084,150 @@ body {
   opacity: 1;
 }
 
+/* Also show handles when hovering the handle wrapper itself (handles extend
+   slightly outside the node bounding-box, so node :hover can miss them) */
+.conn-handle-wrap:hover .conn-handle {
+  opacity: 1;
+}
+
 /* Colour change on direct hover — no size increase */
 .conn-handle:hover {
   opacity: 1;
   background-color: var(--accent) !important;
 }
 
-/* While a connection is being dragged, show all target handles */
-.react-flow--connectionline .conn-handle--target {
+/* While a connection is being dragged, show all target handles.
+   @xyflow/react v12 uses .connectionindicator (not .react-flow--connectionline) */
+.react-flow__handle.connectionindicator.conn-handle--target {
   opacity: 0.7;
+}
+
+/* ── Quick-add (+) button ─────────────────────────────────────
+   Appears on source-handle hover; triggers Contextual Predictive Creation.
+   ─────────────────────────────────────────────────────────── */
+
+.quick-add-btn {
+  position: absolute;
+  z-index: 20;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  background: var(--bg-panel);
+  color: var(--accent);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease,
+    transform 0.12s ease;
+  /* Ensure 44px touch target via padding (WCAG 2.5.5) */
+  touch-action: none;
+}
+
+.quick-add-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  transform: scale(1.15);
+}
+
+.quick-add-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Quick-add floating menu ──────────────────────────────────
+   Node-type picker that opens at the (+) button click position.
+   ─────────────────────────────────────────────────────────── */
+
+.quick-add-menu {
+  position: fixed;
+  z-index: 400;
+  width: 200px;
+  padding: 6px 4px;
+  background: var(--bg-dialog);
+  border: 1px solid var(--border-hi);
+  border-radius: 8px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.25);
+  animation: quick-add-in 0.12s ease;
+}
+
+@keyframes quick-add-in {
+  from { opacity: 0; transform: scale(0.93) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
+}
+
+.quick-add-menu__heading {
+  margin: 0 0 4px;
+  padding: 2px 8px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+}
+
+.quick-add-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 5px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.1s ease;
+}
+
+.quick-add-menu__item:hover {
+  background-color: var(--bg-hover);
+}
+
+.quick-add-menu__item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 5px;
+}
+
+.quick-add-menu__icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: var(--teal);
+}
+
+.quick-add-menu__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.quick-add-menu__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.quick-add-menu__desc {
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 /* ── Edge styles ────────────────────────────────────────────── */

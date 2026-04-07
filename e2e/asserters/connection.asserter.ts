@@ -269,7 +269,9 @@ export async function assertNodeTypeCSSRuleExists(
         for (const rule of Array.from(sheet.cssRules ?? [])) {
           if ((rule as CSSStyleRule).selectorText === sel) return true;
         }
-      } catch { /* cross-origin */ }
+      } catch {
+        /* cross-origin */
+      }
     }
     return false;
   }, selector);
@@ -291,7 +293,9 @@ export async function assertTargetHandleCSSClassExists(
           const sel = (rule as CSSStyleRule).selectorText ?? "";
           if (sel.includes("conn-handle--target")) return true;
         }
-      } catch { /* cross-origin */ }
+      } catch {
+        /* cross-origin */
+      }
     }
     return false;
   });
@@ -315,11 +319,15 @@ export async function assertDecisionIncompleteWarningCSS(
         for (const rule of Array.from(sheet.cssRules ?? [])) {
           const sel = (rule as CSSStyleRule).selectorText ?? "";
           if (sel.includes("node--incomplete")) {
-            const borderColor = (rule as CSSStyleRule).style.getPropertyValue("border-color");
+            const borderColor = (rule as CSSStyleRule).style.getPropertyValue(
+              "border-color",
+            );
             return { found: true, hasBorderColor: !!borderColor };
           }
         }
-      } catch { /* cross-origin */ }
+      } catch {
+        /* cross-origin */
+      }
     }
     return { found: false, hasBorderColor: false };
   });
@@ -342,7 +350,13 @@ export async function assertDecisionIncompleteWarningCSS(
 export async function assertConnectionLimitsCSSStructure(
   page: import("@playwright/test").Page,
 ): Promise<void> {
-  const nodeTypes: NodeTypeName[] = ["start", "end", "action", "result", "decision"];
+  const nodeTypes: NodeTypeName[] = [
+    "start",
+    "end",
+    "action",
+    "result",
+    "decision",
+  ];
   for (const t of nodeTypes) {
     await assertNodeTypeCSSRuleExists(page, t);
   }

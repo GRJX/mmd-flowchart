@@ -36,7 +36,7 @@ export function ResultNode({ id, data, selected }: NodeProps) {
       ) : (
         <span className="node-label">{label}</span>
       )}
-      <ConnectionHandles canBeSource={canBeSource} canBeTarget={canBeTarget} />
+      <ConnectionHandles canBeSource={canBeSource} canBeTarget={canBeTarget} sourceNodeId={id} />
       <CommentDot blockId={id} count={comments.length} />
     </div>
   )

@@ -3,7 +3,7 @@
 **Status:** Draft  
 **Author:** Alex (Product Manager)  
 **Date:** 3 April 2026  
-**Version:** 1.0  
+**Version:** 1.1  
 **License:** Open Source
 
 ---
@@ -191,7 +191,7 @@ Contains, left to right:
 
 #### 6.3.1 Default Viewport
 
-- When a diagram is opened, the canvas **centers the diagram** within the visible viewport with a minimum 60px padding on all sides.
+- When a diagram is opened, the canvas **centers the diagram** within the visible viewport with a minimum 60px padding on all sides and **always at 100 % zoom (1:1 pixel ratio)**. If the diagram is too large to fit at 100 %, it scales down just enough to fit, but never zooms in beyond 100 %.
 - New diagrams open with the canvas centered at the logical origin (0, 0). The first block placed via the palette is dropped at center-of-viewport.
 - Minimum vertical spacing between nodes after auto-layout hint: **72px** between the bottom edge of one node and the top edge of the next.
 - The diagram is never pinned to the top-left corner. If only one or two nodes exist, they are still centered.
@@ -257,45 +257,45 @@ There are five block types. Each is visually distinct.
 
 ### 7.1 Start Block
 
-| Property       | Value                                                                                                          |
-| -------------- | -------------------------------------------------------------------------------------------------------------- |
-| Shape          | Rounded pill / stadium shape                                                                                   |
-| Label          | "Start" (non-editable label; user cannot rename this)                                                          |
-| Mermaid syntax | `A([Start])`                                                                                                   |
-| Constraint     | **Exactly one** per diagram. If one already exists, the Start block in the palette is greyed out and disabled. |
-| Connections    | Output only (cannot receive incoming connections)                                                              |
+| Property       | Value                                                                                                                                                                                                      |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shape          | Rounded pill / stadium shape                                                                                                                                                                               |
+| Label          | "Start" (non-editable label; user cannot rename this)                                                                                                                                                      |
+| Mermaid syntax | `A([Start])`                                                                                                                                                                                               |
+| Constraint     | **Exactly one** per diagram. If one already exists, the Start block in the palette is greyed out and disabled.                                                                                             |
+| Connections    | **Exactly one output.** Cannot receive incoming connections. The palette must prevent the user from drawing a second outgoing connection; the connection handle is hidden/disabled once one output exists. |
 
 ### 7.2 End Block
 
-| Property       | Value                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------- |
-| Shape          | Rounded pill / stadium shape (visually distinct from Start — e.g., red accent border) |
-| Label          | "End" (editable — user can rename, e.g., "End - Pass", "End - Fail")                  |
-| Mermaid syntax | `Z([End])`                                                                            |
-| Constraint     | Multiple allowed                                                                      |
-| Connections    | Input only (cannot have outgoing connections)                                         |
+| Property       | Value                                                                                                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Shape          | Rounded pill / stadium shape (visually distinct from Start — e.g., red accent border)                                                  |
+| Label          | "End" (editable — user can rename, e.g., "End - Pass", "End - Fail")                                                                   |
+| Mermaid syntax | `Z([End])`                                                                                                                             |
+| Constraint     | Multiple allowed                                                                                                                       |
+| Connections    | **Exactly one input.** Cannot have outgoing connections. The connection handle is hidden/disabled once one incoming connection exists. |
 
 ### 7.3 State / Action Block
 
-| Property       | Value                                                                     |
-| -------------- | ------------------------------------------------------------------------- |
-| Shape          | Rectangle                                                                 |
-| Label          | Editable — default "Action"                                               |
-| Mermaid syntax | `B[Action description]`                                                   |
-| Fields         | Description (inline editable), Data Field (in properties panel), Comments |
-| Connections    | One or more inputs, one or more outputs                                   |
+| Property       | Value                                                                                                                                                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shape          | Rectangle                                                                                                                                                                              |
+| Label          | Editable — default "Action"                                                                                                                                                            |
+| Mermaid syntax | `B[Action description]`                                                                                                                                                                |
+| Fields         | Description (inline editable), Data Field (in properties panel), Comments                                                                                                              |
+| Connections    | **Exactly one input and one output.** Additional connection attempts beyond these limits must be blocked; the relevant connection handle is hidden/disabled once the limit is reached. |
 
 The **Data Field** is a free-text field for additional context (e.g., test data, preconditions). It is stored in metadata only (not rendered in Mermaid output).
 
 ### 7.4 Decision Block
 
-| Property       | Value                                                                |
-| -------------- | -------------------------------------------------------------------- |
-| Shape          | Diamond                                                              |
-| Label          | Editable condition — default "Condition?"                            |
-| Mermaid syntax | `C{Condition?}`                                                      |
-| Fields         | Condition description, Comments                                      |
-| Connections    | One or more inputs (typically one), **exactly two outputs**: Y and N |
+| Property       | Value                                                                                                                       |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Shape          | Diamond                                                                                                                     |
+| Label          | Editable condition — default "Condition?"                                                                                   |
+| Mermaid syntax | `C{Condition?}`                                                                                                             |
+| Fields         | Condition description, Comments                                                                                             |
+| Connections    | **Exactly one input and exactly two outputs**: Y and N. Additional incoming connection attempts beyond one must be blocked. |
 
 **Output path defaults:**
 
@@ -304,19 +304,35 @@ The **Data Field** is a free-text field for additional context (e.g., test data,
 
 Both paths can be reassigned by the user (see Section 9). A decision block without both a Y and N connection is shown with a visual warning indicator (orange border) to flag it as incomplete.
 
+**Y / N edge label placement:** The "Y" and "N" labels must be rendered **immediately adjacent to the exit point on the diamond edge** (within 8–12px of the connection handle). Labels must not drift toward the midpoint of the edge or the target block. This ensures the label is unambiguous — it is visually tied to the decision source, not to the path itself.
+
 ### 7.5 Results Block
 
-| Property       | Value                                                                                             |
-| -------------- | ------------------------------------------------------------------------------------------------- |
-| Shape          | Rectangle with a double left border (or parallelogram — developer to choose most readable option) |
-| Label          | Editable — default "Result"                                                                       |
-| Mermaid syntax | `D[/Result description/]` (parallelogram) or custom                                               |
-| Fields         | Expected outcome description, Comments                                                            |
-| Connections    | One or more inputs, one or more outputs                                                           |
+| Property       | Value                                                                                                                                                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shape          | Rectangle with a double left border (or parallelogram — developer to choose most readable option)                                                                                      |
+| Label          | Editable — default "Result"                                                                                                                                                            |
+| Mermaid syntax | `D[/Result description/]` (parallelogram) or custom                                                                                                                                    |
+| Fields         | Expected outcome description, Comments                                                                                                                                                 |
+| Connections    | **Exactly one input and one output.** Additional connection attempts beyond these limits must be blocked; the relevant connection handle is hidden/disabled once the limit is reached. |
 
 ---
 
 ## 8. Canvas Interactions
+
+### 8.0 Grid Snapping
+
+All blocks on the canvas **snap to a fixed grid** when moved or dropped. This ensures consistent alignment without the user needing to position blocks manually.
+
+| Setting      | Value                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Grid size    | **16px** — all block positions are rounded to the nearest 16px multiple on drop/move                               |
+| Snap-on-move | Snapping applies continuously while dragging (live snap), not only on release                                      |
+| Snap-on-drop | Blocks added from the palette are snapped to the grid immediately on placement                                     |
+| Multi-select | When multiple blocks are moved together, all snap independently to the nearest grid point                          |
+| Visual grid  | The existing dot-pattern canvas background serves as the visual grid reference; no additional grid lines are drawn |
+
+Grid snapping is **always on** in v1. There is no user toggle to disable it.
 
 ### 8.1 Adding Blocks
 
@@ -325,6 +341,19 @@ User drags a block type from the right panel onto the canvas. A ghost/preview of
 
 **Method 2 — Click in palette:**  
 User clicks a block in the palette. The block is added to the **center of the visible canvas area**. A connection dot immediately appears on the block to indicate it is ready to connect.
+
+**Method 3 — Contextual Predictive Creation (quick-add):**  
+This is the fastest way to extend a workflow. It collapses the traditional 7-step manual process (find → drag → drop → aim → click → drag → connect) into 3 clicks:
+
+1. **Intent detection** — Hover over any source-capable block. A small **`+` button** appears next to each active connection handle on the block's edge.
+2. **Modal injection** — Click the `+` button. A **Quick Add** menu opens inline at the click position, offering selectable block types (Action, Decision, Result, End) with a short description of each.
+3. **Automated bridging** — Select a block type. The system automatically:
+   - Computes a placement position 240 px to the right of the source block (snapped to the 16 px grid), shifting downward in 128 px increments if the slot is occupied by an existing block.
+   - Creates the new block at that position.
+   - Draws a `default` connection from the source block to the new block.
+   - Pushes a single undoable entry for the combined operation.
+
+**Accessibility:** The `+` button and Quick Add menu are fully keyboard navigable. `Escape` closes the menu without creating a node.
 
 ### 8.2 Selecting Blocks
 
@@ -367,11 +396,11 @@ Selected blocks can be moved as a group. Connections between selected blocks mov
 
 **Step 1:** Hover over any block on the canvas. A connection point (small circle) appears on each edge of the block (top, right, bottom, left).
 
-**Step 2:** Hover over a connection point. A **`+` icon** appears indicating the point is active.
+**Step 2:** Hover over a connection point. The point **changes colour** to indicate it is active (e.g., from muted grey to the accent colour). The icon does **not** grow or scale on hover — size must remain constant. This prevents visual clutter and avoids unintentional layout shifts when the cursor approaches multiple nearby handles.
 
-**Step 3:** Click the connection point and drag toward the target block. A preview line follows the cursor.
+**Step 3:** Click the connection point and **drag** toward the target block (or simply **click** the source point and then **click** the target point — both interaction modes are supported). A preview line follows the cursor during drag.
 
-**Step 4:** Release over a target block (or its connection point). A connection is created.
+**Step 4:** Release (or click) over a target block or its connection point. A connection is created.
 
 ### 9.2 Connection Types
 
@@ -691,20 +720,20 @@ Accessible via the **Export** dropdown in the top toolbar.
 
 **Actions tracked by undo/redo:**
 
-| Action                             | Undoable |
-| ---------------------------------- | -------- |
-| Add block                          | Yes      |
-| Delete block                       | Yes      |
-| Move block(s)                      | Yes      |
-| Edit label / description           | Yes      |
+| Action                   | Undoable |
+| ------------------------ | -------- |
+| Add block                | Yes      |
+| Delete block             | Yes      |
+| Move block(s)            | Yes      |
+| Edit label / description | Yes      |
 
 > **Drag-move coalescing:** A drag-move gesture is recorded as a **single** undo entry per drag. The `UndoEntry` is pushed on pointer-up (drag end), capturing block positions before and after the complete gesture — not on every individual pixel of movement. Arrow-key nudge events within a 300 ms window are similarly coalesced into one entry.
-| Add connection                     | Yes      |
-| Delete connection                  | Yes      |
-| Change connection type (Y/N)       | Yes      |
-| Add comment                        | Yes      |
-| Delete comment                     | Yes      |
-| Edit data field / expected outcome | Yes      |
+> | Add connection | Yes |
+> | Delete connection | Yes |
+> | Change connection type (Y/N) | Yes |
+> | Add comment | Yes |
+> | Delete comment | Yes |
+> | Edit data field / expected outcome | Yes |
 
 **Actions NOT tracked (not undoable):**
 

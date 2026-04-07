@@ -97,7 +97,9 @@ test.describe("S4.3 — Block palette (palette mode)", () => {
     const palette = new PalettePage(page);
 
     const labels = await palette.entries.evaluateAll((els) =>
-      els.map((el) => el.querySelector(".palette-label")?.textContent?.trim() ?? ""),
+      els.map(
+        (el) => el.querySelector(".palette-label")?.textContent?.trim() ?? "",
+      ),
     );
 
     const expectedOrder = PALETTE_ENTRIES.map((e) => e.label);
@@ -189,7 +191,10 @@ test.describe("S4.5 — Grid snapping (16px, always on)", () => {
     page.on("pageerror", (e) => errors.push(e.message));
     const canvas = new CanvasPage(page);
     await expect(canvas.canvasSlot).toBeVisible();
-    expect(errors, "No page errors after canvas mount with snapGrid").toHaveLength(0);
+    expect(
+      errors,
+      "No page errors after canvas mount with snapGrid",
+    ).toHaveLength(0);
   });
 
   test("AC3 — snapToGrid logic: values snap to nearest 16px multiple", async ({
@@ -201,15 +206,15 @@ test.describe("S4.5 — Grid snapping (16px, always on)", () => {
       const GRID = 16;
       const snap = (v: number) => Math.round(v / GRID) * GRID;
       return [
-        snap(0),    // 0   → 0
-        snap(8),    // 8   → 16  (round half up)
-        snap(7),    // 7   → 0
-        snap(16),   // 16  → 16
-        snap(20),   // 20  → 16
-        snap(24),   // 24  → 32  (round half up)
-        snap(100),  // 100 → 96
-        snap(104),  // 104 → 112 (104/16=6.5, rounds to 7 → 112)
-        snap(108),  // 108 → 112 (round half up)
+        snap(0), // 0   → 0
+        snap(8), // 8   → 16  (round half up)
+        snap(7), // 7   → 0
+        snap(16), // 16  → 16
+        snap(20), // 20  → 16
+        snap(24), // 24  → 32  (round half up)
+        snap(100), // 100 → 96
+        snap(104), // 104 → 112 (104/16=6.5, rounds to 7 → 112)
+        snap(108), // 108 → 112 (round half up)
       ];
     });
     expect(results[0]).toBe(0);

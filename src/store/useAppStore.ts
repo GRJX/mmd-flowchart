@@ -149,6 +149,16 @@ interface AppStore {
     id: string,
     waypoints: Array<{ x: number; y: number }>,
   ) => void;
+
+  // ── Quick-add (Contextual Predictive Creation) ────────────────────────────
+  pendingQuickAdd: {
+    sourceNodeId: string;
+    screenPos: { x: number; y: number };
+  } | null;
+  setPendingQuickAdd: (
+    state: { sourceNodeId: string; screenPos: { x: number; y: number } } | null,
+  ) => void;
+  quickAddAndConnect: (type: BlockType) => void;
 }
 
 // ── Store implementation ───────────────────────────────────────────────────────
@@ -536,5 +546,69 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const connections = new Map(diagram.connections);
     connections.set(id, { ...conn, waypoints });
     set({ diagram: { ...diagram, connections, isDirty: true } });
+  },
+
+  // ── Quick-add (Contextual Predictive Creation) ────────────────────────────
+  pendingQuickAdd: null,
+
+  setPendingQuickAdd: (state) => set({ pendingQuickAdd: state }),
+
+  quickAddAndConnect: (type) => {
+    const { diagram, pendingQuickAdd } = get();
+    if (!diagram || !pendingQuickAdd) return;
+    const { sourceNodeId } = pendingQuickAdd;
+    const sourceBlock = diagram.blocks.get(sourceNodeId);
+    if (!sourceBlock) return;
+
+    const GRID = 16;
+    const snapVal = (v: number) => Math.round(v / GRID) * GRID;
+    const GAP = 240;
+    const ROW_STEP = 128;
+
+    // Compute a free slot to the right, shifting down to avoid collisions
+    let candidate = {
+      x: snapVal(sourceBlock.position.x + GAP),
+      y: snapVal(sourceBlock.position.y),
+    };
+    const existingBlocks = Array.from(diagram.blocks.values());
+    let attempts = 0;
+    while (
+      attempts < 8 &&
+      existingBlocks.some(
+        (b) =>
+          b.id !== sourceNodeId &&
+          Math.abs(b.position.x - candidate.x) < 100 &&
+          Math.abs(b.position.y - candidate.y) < 80,
+      )
+    ) {
+      candidate = { x: candidate.x, y: snapVal(candidate.y + ROW_STEP) };
+      attempts++;
+    }
+
+    const before = takeSnapshot(diagram);
+
+    const newBlock = createBlock(type, candidate, diagram.blocks);
+    const newBlocks = new Map(diagram.blocks);
+    newBlocks.set(newBlock.id, newBlock);
+
+    const connId = crypto.randomUUID();
+    const connection: Connection = {
+      id: connId,
+      sourceId: sourceNodeId,
+      targetId: newBlock.id,
+      type: "default",
+      waypoints: [],
+    };
+    const newConnections = new Map(diagram.connections);
+    newConnections.set(connId, connection);
+
+    const newDiagram = {
+      ...diagram,
+      blocks: newBlocks,
+      connections: newConnections,
+      isDirty: true,
+    };
+    set({ diagram: newDiagram, pendingQuickAdd: null });
+    get().pushUndo("addBlock", before, takeSnapshot(get().diagram!));
   },
 }));
