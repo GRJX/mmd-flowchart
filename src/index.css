@@ -827,6 +827,14 @@ body {
   outline: none;
 }
 
+/* ── Drop ghost (palette → canvas drag preview) ───── */
+.drop-ghost-overlay {
+  pointer-events: none;
+  opacity: 0.6;
+  z-index: 10;
+  cursor: default !important;
+}
+
 /* Override React Flow canvas background to use our token */
 .react-flow {
   background-color: var(--bg-canvas);
@@ -845,6 +853,28 @@ body {
 }
 
 /* Edge default style — colors handled via --xy-edge-stroke on .react-flow */
+
+/* Direct overrides ensure visibility regardless of CSS load order.
+   Two-class specificity beats RF's single-class .react-flow__edge-path rule. */
+.react-flow__edge .react-flow__edge-path {
+  stroke: var(--teal);
+  stroke-width: 2;
+  fill: none;
+}
+
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:focus .react-flow__edge-path {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+
+/* In-progress connection drag line */
+.react-flow__connection .react-flow__connection-path,
+.react-flow__connection-path {
+  stroke: var(--teal);
+  stroke-width: 2;
+  fill: none;
+}
 
 .react-flow__edge-label {
   font-size: 11px;
@@ -877,12 +907,8 @@ body {
   text-align: center;
   pointer-events: none;
   padding: 0 8px;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  line-clamp: 2;
   word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .node-label-input {
@@ -907,14 +933,14 @@ body {
 
 .node--start {
   width: 120px;
-  height: 72px;
+  height: 52px;
   background: transparent;
   border: none;
 }
 
 .node--start__circle {
-  width: 72px;
-  height: 72px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   border: 2px solid var(--teal);
   background: var(--fill-start);
@@ -932,14 +958,14 @@ body {
 
 .node--end {
   width: 120px;
-  height: 72px;
+  height: 52px;
   background: transparent;
   border: none;
 }
 
 .node--end__circle {
-  width: 72px;
-  height: 72px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   border: 2px solid var(--red);
   background: var(--fill-end);
@@ -972,25 +998,40 @@ body {
 
 .node--decision {
   width: 120px;
-  height: 120px;
+  height: 88px;
   position: relative;
   background: transparent;
   border: none;
 }
 
+/* Border layer — full container, clipped to diamond */
+.node--decision::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  background: var(--yellow);
+  z-index: 0;
+}
+
+/* Fill layer — 2px inset from border */
 .node-decision-shape {
   position: absolute;
-  inset: 6px;
-  border: 2px solid var(--yellow);
-  border-radius: 4px;
+  inset: 2px;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
   background: var(--fill-decision);
-  transform: rotate(45deg);
-  box-sizing: border-box;
+  border: none;
+  border-radius: 0;
+  transform: none;
+  z-index: 1;
+}
+
+.node--decision.node--selected::before {
+  background: var(--accent);
 }
 
 .node--decision.node--selected .node-decision-shape {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent), 0 0 10px rgba(251, 191, 36, 0.2);
+  box-shadow: none;
 }
 
 .node-decision-content {
@@ -1000,7 +1041,7 @@ body {
   align-items: center;
   justify-content: center;
   text-align: center;
-  z-index: 1;
+  z-index: 2;
 }
 
 /* ── Result node ──────────────────────────────────── */
@@ -1206,134 +1247,6 @@ body {
   display: none;
 }
 
-/* ── Quick-add (+) button ─────────────────────────────────────
-   Appears on source-handle hover; triggers Contextual Predictive Creation.
-   ─────────────────────────────────────────────────────────── */
-
-.quick-add-btn {
-  position: absolute;
-  z-index: 20;
-  width: 20px;
-  height: 20px;
-  min-width: 20px;
-  min-height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  border: 1.5px solid var(--accent);
-  background: var(--bg-panel);
-  color: var(--accent);
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  transition:
-    background-color 0.12s ease,
-    color 0.12s ease,
-    transform 0.12s ease;
-  /* Ensure 44px touch target via padding (WCAG 2.5.5) */
-  touch-action: none;
-}
-
-.quick-add-btn:hover {
-  background: var(--accent);
-  color: #fff;
-  transform: scale(1.15);
-}
-
-.quick-add-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* ── Quick-add floating menu ──────────────────────────────────
-   Node-type picker that opens at the (+) button click position.
-   ─────────────────────────────────────────────────────────── */
-
-.quick-add-menu {
-  position: fixed;
-  z-index: 400;
-  width: 200px;
-  padding: 6px 4px;
-  background: var(--bg-dialog);
-  border: 1px solid var(--border-hi);
-  border-radius: 8px;
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.45),
-    0 2px 6px rgba(0, 0, 0, 0.25);
-  animation: quick-add-in 0.12s ease;
-}
-
-@keyframes quick-add-in {
-  from { opacity: 0; transform: scale(0.93) translateY(-4px); }
-  to   { opacity: 1; transform: scale(1)    translateY(0);    }
-}
-
-.quick-add-menu__heading {
-  margin: 0 0 4px;
-  padding: 2px 8px 4px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  border-bottom: 1px solid var(--border);
-}
-
-.quick-add-menu__item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 7px 10px;
-  border: none;
-  border-radius: 5px;
-  background: none;
-  cursor: pointer;
-  text-align: left;
-  transition: background-color 0.1s ease;
-}
-
-.quick-add-menu__item:hover {
-  background-color: var(--bg-hover);
-}
-
-.quick-add-menu__item:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-  border-radius: 5px;
-}
-
-.quick-add-menu__icon {
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  color: var(--teal);
-}
-
-.quick-add-menu__text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.quick-add-menu__label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-}
-
-.quick-add-menu__desc {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
 /* ── Edge styles ────────────────────────────────────────────── */
 /* Edge/connection-line colors are driven by --xy-edge-stroke etc. on .react-flow above */
 
@@ -1396,9 +1309,8 @@ body {
 
 /* ── Decision node incomplete (missing Y or N path) ─────────── */
 
-.node--decision.node--incomplete .node-decision-shape {
-  border-color: var(--orange) !important;
-  box-shadow: 0 0 8px rgba(251, 146, 60, 0.3);
+.node--decision.node--incomplete::before {
+  background: var(--orange);
 }
 
 /* ── Connection limit violation (too many connections from loaded file) ─ */

@@ -16,7 +16,7 @@ export function StartNode({ id, data, selected }: NodeProps) {
         <span className="node-label">Start</span>
       </div>
       {/* Start can only be a source — never a connection target (§9.1) */}
-      <ConnectionHandles canBeSource={canBeSource} canBeTarget={false} sourceNodeId={id} />
+      <ConnectionHandles canBeSource={canBeSource} canBeTarget={false} />
       <CommentDot blockId={id} count={comments.length} />
     </div>
   )

@@ -629,6 +629,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       targetId: newBlock.id,
       type: "default",
       waypoints: [],
+      dataField: null,
     };
     const newConnections = new Map(diagram.connections);
     newConnections.set(connId, connection);

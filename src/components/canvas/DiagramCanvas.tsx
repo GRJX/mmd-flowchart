@@ -17,8 +17,8 @@ import {
   type OnSelectionChangeParams,
   type ReactFlowInstance,
 } from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
 import { useAppStore } from '../../store/useAppStore'
+import { getDragBlockType, setDragBlockType } from '../../lib/dragState'
 import type { Block, BlockType, DiagramFile } from '../../types/diagram'
 import { StartNode } from '../nodes/StartNode'
 import { EndNode } from '../nodes/EndNode'
@@ -26,8 +26,6 @@ import { ActionNode } from '../nodes/ActionNode'
 import { DecisionNode } from '../nodes/DecisionNode'
 import { ResultNode } from '../nodes/ResultNode'
 import { OrthogonalEdge } from '../edges/OrthogonalEdge'
-import { YNPicker } from './YNPicker'
-import { QuickAddMenu } from './QuickAddMenu'
 
 // ── Node type map (constant outside component to prevent re-registration) ─────
 
@@ -82,11 +80,11 @@ function snapToGrid(pos: { x: number; y: number }): { x: number; y: number } {
 
 /** Default dimensions per block type. */
 const DEFAULT_NODE_DIMS: Record<BlockType, { width: number; height: number }> = {
-  start:    { width: 120, height: 72  },
-  end:      { width: 120, height: 72  },
+  start:    { width: 120, height: 52  },
+  end:      { width: 120, height: 52  },
   action:   { width: 120, height: 88  },
   result:   { width: 120, height: 88  },
-  decision: { width: 120, height: 120 },
+  decision: { width: 120, height: 88  },
 }
 
 /** Convert Block dimensions per type, used for React Flow width/height hints */
@@ -145,8 +143,8 @@ function diagramToRFNodes(diagram: DiagramFile): RFNode[] {
 
     node.data = {
       ...node.data,
-      canBeSource:  maxOut > 0 && outCount < maxOut,
-      canBeTarget:  maxIn  > 0 && inCount  < maxIn,
+      canBeSource:  block.type !== 'end',
+      canBeTarget:  block.type !== 'start',
       hasViolation: inCount > maxIn || outCount > maxOut,
     }
 
@@ -204,6 +202,22 @@ function DeleteConfirmDialog({ blockLabels, onConfirm, onCancel }: DeleteConfirm
   )
 }
 
+// ── Drop ghost overlay ─────────────────────────────────────────────────────
+
+function DropGhost({ type, x, y }: { type: BlockType; x: number; y: number }) {
+  const dims = DEFAULT_NODE_DIMS[type]
+  return (
+    <div
+      className={`node node--${type} drop-ghost-overlay`}
+      style={{ position: 'absolute', left: x, top: y, width: dims.width, height: dims.height }}
+    >
+      {type === 'decision' && <div className="node-decision-shape" />}
+      {type === 'start'    && <div className="node--start__circle" />}
+      {type === 'end'      && <div className="node--end__circle" />}
+    </div>
+  )
+}
+
 // ── DiagramCanvas ─────────────────────────────────────────────────────────────
 
 interface PendingDelete {
@@ -223,9 +237,6 @@ export function DiagramCanvas() {
     addConnection,
     deleteConnection,
     setSelectedConnectionId,
-    pendingQuickAdd,
-    setPendingQuickAdd,
-    quickAddAndConnect,
   } = useAppStore()
 
   const rfInstance = useRef<ReactFlowInstance | null>(null)
@@ -234,17 +245,13 @@ export function DiagramCanvas() {
   const loadedDiagramName = useRef<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
 
-  // ── Connection state ─────────────────────────────────────────────────────
-  interface PendingConn {
-    source: string
-    target: string
-    existingYId: string | null
-    existingNId: string | null
-  }
-  const [pendingConnection, setPendingConnection] = useState<PendingConn | null>(null)
-
   // ── Edge selection (local RF state — not synced to store) ─────────────────
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(new Set())
+
+  // ── Drop ghost (palette → canvas drag preview) ────────────────────────────
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [dropGhost, setDropGhost] = useState<{ type: BlockType; x: number; y: number } | null>(null)
+  const lastSnapRef = useRef<{ x: number; y: number }>({ x: -1e9, y: -1e9 })
 
   const [nodes, setNodes] = useNodesState<RFNode>([])
   const [edges, setEdges] = useEdgesState<RFEdge>([])
@@ -358,7 +365,7 @@ export function DiagramCanvas() {
   )
 
   // ── Drop from palette ─────────────────────────────────────────────────────
-  const { screenToFlowPosition } = useReactFlow()
+  const { screenToFlowPosition, flowToScreenPosition } = useReactFlow()
 
   // ── Connection validation ─────────────────────────────────────────────────
   const isValidConnection = useCallback(
@@ -393,16 +400,12 @@ export function DiagramCanvas() {
       if (!srcBlock) return
 
       if (srcBlock.type === 'decision') {
-        // Find existing Y/N connections from this Decision block
-        let existingYId: string | null = null
-        let existingNId: string | null = null
+        // Auto-assign: use the first unoccupied Y/N slot
+        let hasY = false
         for (const conn of diagram.connections.values()) {
-          if (conn.sourceId === source) {
-            if (conn.type === 'yes') existingYId = conn.id
-            if (conn.type === 'no')  existingNId = conn.id
-          }
+          if (conn.sourceId === source && conn.type === 'yes') hasY = true
         }
-        setPendingConnection({ source, target, existingYId, existingNId })
+        addConnection(source, target, hasY ? 'no' : 'yes')
       } else {
         addConnection(source, target, 'default')
       }
@@ -410,27 +413,29 @@ export function DiagramCanvas() {
     [diagram, addConnection],
   )
 
-  // ── Y/N picker confirm ────────────────────────────────────────────────────
-  const handleYNSelect = useCallback(
-    (type: 'yes' | 'no') => {
-      if (!pendingConnection) return
-      const { source, target, existingYId, existingNId } = pendingConnection
-      const existingId = type === 'yes' ? existingYId : existingNId
-      if (existingId) deleteConnection(existingId)
-      addConnection(source, target, type)
-      setPendingConnection(null)
-    },
-    [pendingConnection, addConnection, deleteConnection],
-  )
-
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'copy'
-  }, [])
+
+    const type = getDragBlockType()
+    if (!type || !wrapRef.current) return
+
+    const snapped = snapToGrid(screenToFlowPosition({ x: e.clientX, y: e.clientY }))
+    const last = lastSnapRef.current
+    if (last.x === snapped.x && last.y === snapped.y) return   // no grid change
+    lastSnapRef.current = snapped
+
+    const screenPt = flowToScreenPosition(snapped)
+    const rect = wrapRef.current.getBoundingClientRect()
+    setDropGhost({ type, x: screenPt.x - rect.left, y: screenPt.y - rect.top })
+  }, [screenToFlowPosition, flowToScreenPosition])
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault()
+      setDropGhost(null)
+      setDragBlockType(null)
+      lastSnapRef.current = { x: -1e9, y: -1e9 }
       const type = e.dataTransfer.getData('application/block-type') as BlockType
       if (!type || !diagram) return
 
@@ -439,6 +444,14 @@ export function DiagramCanvas() {
     },
     [diagram, addBlock, screenToFlowPosition],
   )
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    // Only clear when leaving the entire canvas wrapper (not crossing child elements)
+    if ((e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) return
+    setDropGhost(null)
+    setDragBlockType(null)
+    lastSnapRef.current = { x: -1e9, y: -1e9 }
+  }, [])
 
   // ── Click on canvas pane background → deselect all ────────────────────────
   const handlePaneClick = useCallback(() => {
@@ -475,11 +488,13 @@ export function DiagramCanvas() {
 
   return (
     <div
+      ref={wrapRef}
       className="diagram-canvas-wrap"
       onKeyDown={(e) => {
         handleKeyDown(e)
         handleCtrlA(e)
       }}
+      onDragLeave={handleDragLeave}
       tabIndex={-1}
     >
       <ReactFlow
@@ -513,7 +528,6 @@ export function DiagramCanvas() {
         // Select all via Ctrl+A (handled by our onKeyDown)
         selectionKeyCode={null}
         fitView={false}
-        connectOnClick={true}
         nodeOrigin={[0, 0]}
         snapToGrid={true}
         snapGrid={[GRID_SIZE, GRID_SIZE]}
@@ -527,8 +541,9 @@ export function DiagramCanvas() {
         />
       </ReactFlow>
 
-      {pendingDelete && (
-        <DeleteConfirmDialog
+      {dropGhost && <DropGhost {...dropGhost} />}
+
+      {pendingDelete && (        <DeleteConfirmDialog
           blockLabels={pendingDelete.labels}
           onConfirm={() => {
             deleteBlocks(pendingDelete.ids)
@@ -538,23 +553,6 @@ export function DiagramCanvas() {
         />
       )}
 
-      {pendingConnection && diagram && (
-        <YNPicker
-          sourceLabel={diagram.blocks.get(pendingConnection.source)?.label ?? 'Decision'}
-          hasY={!!pendingConnection.existingYId}
-          hasN={!!pendingConnection.existingNId}
-          onSelect={handleYNSelect}
-          onCancel={() => setPendingConnection(null)}
-        />
-      )}
-
-      {pendingQuickAdd && (
-        <QuickAddMenu
-          screenPos={pendingQuickAdd.screenPos}
-          onSelect={(type) => quickAddAndConnect(type)}
-          onClose={() => setPendingQuickAdd(null)}
-        />
-      )}
     </div>
   )
 }

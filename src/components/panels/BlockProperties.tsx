@@ -63,11 +63,12 @@ export function BlockProperties({ block }: BlockPropertiesProps) {
         {block.type === 'start' ? (
           <span className="prop-value prop-value--readonly">Start</span>
         ) : (
-          <input
-            className="prop-input"
+          <textarea
+            className="prop-textarea"
             value={block.label}
             onChange={(e) => updateBlockLabel(block.id, e.target.value)}
             placeholder={`${descLabel}…`}
+            rows={2}
           />
         )}
       </div>

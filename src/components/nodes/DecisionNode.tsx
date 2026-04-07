@@ -50,7 +50,7 @@ export function DecisionNode({ id, data, selected }: NodeProps) {
         )}
       </div>
 
-      <ConnectionHandles canBeSource={canBeSource} canBeTarget={canBeTarget} sourceNodeId={id} />
+      <ConnectionHandles canBeSource={canBeSource} canBeTarget={canBeTarget} />
       <CommentDot blockId={id} count={comments.length} />
     </div>
   )
