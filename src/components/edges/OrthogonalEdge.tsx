@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import {
   BaseEdge,
   EdgeLabelRenderer,
+  Position,
   getSmoothStepPath,
   useReactFlow,
   type EdgeProps,
@@ -18,6 +19,27 @@ function getOrthogonalPathWithWaypoint(
   tx: number, ty: number,
 ): string {
   return `M ${sx} ${sy} L ${wpX} ${sy} L ${wpX} ${ty} L ${tx} ${ty}`
+}
+
+/** Offset in px from the source handle where the Y/N badge is anchored. */
+const LABEL_SOURCE_OFFSET = 20
+
+/**
+ * Returns the position of the Y/N edge label, fixed near the source exit
+ * point so it stays anchored to the diamond regardless of edge length.
+ */
+function getLabelNearSource(
+  sx: number,
+  sy: number,
+  sourcePosition: Position,
+): { lx: number; ly: number } {
+  switch (sourcePosition) {
+    case Position.Right:  return { lx: sx + LABEL_SOURCE_OFFSET, ly: sy }
+    case Position.Left:   return { lx: sx - LABEL_SOURCE_OFFSET, ly: sy }
+    case Position.Bottom: return { lx: sx,                        ly: sy + LABEL_SOURCE_OFFSET }
+    case Position.Top:    return { lx: sx,                        ly: sy - LABEL_SOURCE_OFFSET }
+    default:              return { lx: sx + LABEL_SOURCE_OFFSET, ly: sy }
+  }
 }
 
 /**
@@ -72,8 +94,7 @@ export function OrthogonalEdge({
     handleY = ly
   }
 
-  const labelX = (sourceX + targetX) / 2
-  const labelY = (sourceY + targetY) / 2
+  const { lx: labelX, ly: labelY } = getLabelNearSource(sourceX, sourceY, sourcePosition)
   const connectionType = data?.connectionType as string | undefined
 
   // ── Waypoint drag handling ────────────────────────────────────────────────
