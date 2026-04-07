@@ -1163,6 +1163,21 @@ body {
   box-shadow: 0 0 8px rgba(251, 146, 60, 0.3);
 }
 
+/* ── Connection limit violation (too many connections from loaded file) ─ */
+
+.node--start.node--violation,
+.node--end.node--violation,
+.node--action.node--violation,
+.node--result.node--violation {
+  border-color: var(--orange) !important;
+  box-shadow: 0 0 8px rgba(251, 146, 60, 0.3);
+}
+
+.node--decision.node--violation .node-decision-shape {
+  border-color: var(--orange) !important;
+  box-shadow: 0 0 8px rgba(251, 146, 60, 0.3);
+}
+
 /* ── Y/N Picker overlay ─────────────────────────────────────── */
 
 .yn-picker-overlay {

@@ -11,16 +11,19 @@ import { CommentDot } from './CommentDot'
  * Orange border variant when Y or N path is missing (spec §9.4).
  */
 export function DecisionNode({ id, data, selected }: NodeProps) {
-  const d = data as { label: string; hasYConnection?: boolean; hasNConnection?: boolean; comments?: unknown[] }
+  const d = data as { label: string; hasYConnection?: boolean; hasNConnection?: boolean; comments?: unknown[]; canBeSource?: boolean; canBeTarget?: boolean; hasViolation?: boolean }
   const label = d.label
   const comments = d.comments ?? []
-  const incomplete = !d.hasYConnection || !d.hasNConnection
+  const incomplete   = !d.hasYConnection || !d.hasNConnection
+  const canBeSource  = d.canBeSource  ?? true
+  const canBeTarget  = d.canBeTarget  ?? true
+  const hasViolation = d.hasViolation ?? false
   const { editing, draft, setDraft, startEdit, commitEdit, cancelEdit, inputRef } =
     useInlineEdit({ id, initialLabel: label })
 
   return (
     <div
-      className={`node node--decision ${selected ? 'node--selected' : ''} ${incomplete ? 'node--incomplete' : ''}`}
+      className={`node node--decision ${selected ? 'node--selected' : ''} ${incomplete ? 'node--incomplete' : ''} ${hasViolation ? 'node--violation' : ''}`}
       onDoubleClick={startEdit}
     >
       {/* Rotated square is the visible diamond — absolute positioned */}
@@ -48,7 +51,7 @@ export function DecisionNode({ id, data, selected }: NodeProps) {
         )}
       </div>
 
-      <ConnectionHandles />
+      <ConnectionHandles canBeSource={canBeSource} canBeTarget={canBeTarget} />
       <CommentDot blockId={id} count={comments.length} />
     </div>
   )

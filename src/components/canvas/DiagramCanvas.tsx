@@ -44,6 +44,24 @@ const EDGE_TYPES = {
   orthogonal: OrthogonalEdge,
 } as const
 
+// ── Connection limits per block type ─────────────────────────────────────────
+
+const MAX_INPUTS: Record<BlockType, number> = {
+  start:    0,
+  end:      1,
+  action:   1,
+  result:   1,
+  decision: 1,
+}
+
+const MAX_OUTPUTS: Record<BlockType, number> = {
+  start:    1,
+  end:      0,
+  action:   1,
+  result:   1,
+  decision: 2,
+}
+
 // ── Node / edge converters ────────────────────────────────────────────────────
 
 /** Convert Block dimensions per type, used for React Flow width/height hints */
@@ -72,12 +90,19 @@ function blockToRFNode(block: Block): RFNode {
 }
 
 function diagramToRFNodes(diagram: DiagramFile): RFNode[] {
-  // Pre-compute which Y/N paths each Decision block currently has
+  // Pre-compute in/out counts and Decision Y/N paths for all blocks
+  const inCounts  = new Map<string, number>()
+  const outCounts = new Map<string, number>()
   const decisionConns = new Map<string, { yes: boolean; no: boolean }>()
+
   for (const block of diagram.blocks.values()) {
+    inCounts.set(block.id, 0)
+    outCounts.set(block.id, 0)
     if (block.type === 'decision') decisionConns.set(block.id, { yes: false, no: false })
   }
   for (const conn of diagram.connections.values()) {
+    inCounts.set(conn.targetId,  (inCounts.get(conn.targetId)  ?? 0) + 1)
+    outCounts.set(conn.sourceId, (outCounts.get(conn.sourceId) ?? 0) + 1)
     const info = decisionConns.get(conn.sourceId)
     if (info) {
       if (conn.type === 'yes') info.yes = true
@@ -86,7 +111,19 @@ function diagramToRFNodes(diagram: DiagramFile): RFNode[] {
   }
 
   return Array.from(diagram.blocks.values()).map((block) => {
-    const node = blockToRFNode(block)
+    const node     = blockToRFNode(block)
+    const inCount  = inCounts.get(block.id)  ?? 0
+    const outCount = outCounts.get(block.id) ?? 0
+    const maxIn    = MAX_INPUTS[block.type]
+    const maxOut   = MAX_OUTPUTS[block.type]
+
+    node.data = {
+      ...node.data,
+      canBeSource:  maxOut > 0 && outCount < maxOut,
+      canBeTarget:  maxIn  > 0 && inCount  < maxIn,
+      hasViolation: inCount > maxIn || outCount > maxOut,
+    }
+
     if (block.type === 'decision') {
       const info = decisionConns.get(block.id)!
       node.data = { ...node.data, hasYConnection: info.yes, hasNConnection: info.no }
@@ -305,6 +342,14 @@ export function DiagramCanvas() {
       if (!src || !tgt) return false
       if (tgt.type === 'start') return false                       // start can't be target
       if (src.type === 'end')   return false                       // end can't be source
+      // Enforce per-block output limit
+      const srcOutCount = Array.from(diagram.connections.values())
+        .filter((c) => c.sourceId === source).length
+      if (srcOutCount >= MAX_OUTPUTS[src.type]) return false
+      // Enforce per-block input limit
+      const tgtInCount = Array.from(diagram.connections.values())
+        .filter((c) => c.targetId === target).length
+      if (tgtInCount >= MAX_INPUTS[tgt.type]) return false
       return true
     },
     [diagram],

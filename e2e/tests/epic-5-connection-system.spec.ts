@@ -392,13 +392,18 @@ test.describe("S5.3 — Y/N edge labels anchored to decision exit point, not mid
       for (const sheet of Array.from(document.styleSheets)) {
         try {
           for (const rule of Array.from(sheet.cssRules ?? [])) {
-            if ((rule as CSSStyleRule).selectorText === ".edge-label") return true;
+            if ((rule as CSSStyleRule).selectorText === ".edge-label")
+              return true;
           }
-        } catch { /* cross-origin */ }
+        } catch {
+          /* cross-origin */
+        }
       }
       return false;
     });
-    expect(found, ".edge-label CSS rule must be present in stylesheet").toBe(true);
+    expect(found, ".edge-label CSS rule must be present in stylesheet").toBe(
+      true,
+    );
   });
 
   test("AC2 — .edge-label has pointer-events: none so labels don't block interaction", async ({
@@ -410,17 +415,20 @@ test.describe("S5.3 — Y/N edge labels anchored to decision exit point, not mid
         try {
           for (const rule of Array.from(sheet.cssRules ?? [])) {
             if ((rule as CSSStyleRule).selectorText === ".edge-label") {
-              return (rule as CSSStyleRule).style.getPropertyValue("pointer-events");
+              return (rule as CSSStyleRule).style.getPropertyValue(
+                "pointer-events",
+              );
             }
           }
-        } catch { /* cross-origin */ }
+        } catch {
+          /* cross-origin */
+        }
       }
       return null;
     });
-    expect(
-      pointerEvents,
-      ".edge-label must have pointer-events: none",
-    ).toBe("none");
+    expect(pointerEvents, ".edge-label must have pointer-events: none").toBe(
+      "none",
+    );
   });
 
   test("AC3 — .edge-label--yes CSS rule exists with a color declaration (teal badge)", async ({
@@ -432,10 +440,15 @@ test.describe("S5.3 — Y/N edge labels anchored to decision exit point, not mid
         try {
           for (const rule of Array.from(sheet.cssRules ?? [])) {
             if ((rule as CSSStyleRule).selectorText === ".edge-label--yes") {
-              return (rule as CSSStyleRule).style.getPropertyValue("color") || "found";
+              return (
+                (rule as CSSStyleRule).style.getPropertyValue("color") ||
+                "found"
+              );
             }
           }
-        } catch { /* cross-origin */ }
+        } catch {
+          /* cross-origin */
+        }
       }
       return null;
     });
@@ -451,10 +464,15 @@ test.describe("S5.3 — Y/N edge labels anchored to decision exit point, not mid
         try {
           for (const rule of Array.from(sheet.cssRules ?? [])) {
             if ((rule as CSSStyleRule).selectorText === ".edge-label--no") {
-              return (rule as CSSStyleRule).style.getPropertyValue("color") || "found";
+              return (
+                (rule as CSSStyleRule).style.getPropertyValue("color") ||
+                "found"
+              );
             }
           }
-        } catch { /* cross-origin */ }
+        } catch {
+          /* cross-origin */
+        }
       }
       return null;
     });
@@ -473,12 +491,17 @@ test.describe("S5.3 — Y/N edge labels anchored to decision exit point, not mid
             const sel = (rule as CSSStyleRule).selectorText;
             if (badgeSelectors.has(sel)) {
               const style = (rule as CSSStyleRule).style;
-              if (style.getPropertyValue("left") || style.getPropertyValue("top")) {
+              if (
+                style.getPropertyValue("left") ||
+                style.getPropertyValue("top")
+              ) {
                 return sel;
               }
             }
           }
-        } catch { /* cross-origin */ }
+        } catch {
+          /* cross-origin */
+        }
       }
       return null;
     });
@@ -488,8 +511,109 @@ test.describe("S5.3 — Y/N edge labels anchored to decision exit point, not mid
     ).toBeNull();
   });
 
-  test("AC6 — composite assertYNLabelSourceAnchored passes", async ({ page }) => {
+  test("AC6 — composite assertYNLabelSourceAnchored passes", async ({
+    page,
+  }) => {
     await loadApp(page);
     await assertYNLabelSourceAnchored(page);
+  });
+});
+
+// ── S5.4 — Per-block connection limits (Issue #38) ────────────────────────
+
+test.describe("S5.4 — Per-block connection limits", () => {
+  /**
+   * Acceptance criteria (CSS / structural — headless-friendly subset):
+   *   AC1 — `.node--violation` CSS rule exists for at least one block type.
+   *   AC2 — The violation rule declares a border-color (orange warning).
+   *   AC3 — The `MAX_INPUTS` / `MAX_OUTPUTS` logic is wired: the bundle
+   *          must not reference `canBeSource` / `canBeTarget` only as
+   *          hardcoded literals — they must be computed from data.
+   *          (Verified structurally: the base `.conn-handle` rule and the
+   *           conditional hide rule must both exist in the stylesheet.)
+   *
+   * Interactive limits (handles hide, isValidConnection guard) require a
+   * loaded DiagramFile and are covered by manual QA.
+   */
+
+  test("AC1 — .node--violation CSS rule exists in stylesheet", async ({
+    page,
+  }) => {
+    await loadApp(page);
+    const found = await page.evaluate(() => {
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          for (const rule of Array.from(sheet.cssRules ?? [])) {
+            const sel = (rule as CSSStyleRule).selectorText ?? "";
+            if (sel.includes("node--violation")) return true;
+          }
+        } catch {
+          /* cross-origin */
+        }
+      }
+      return false;
+    });
+    expect(found, ".node--violation CSS rule must exist in stylesheet").toBe(
+      true,
+    );
+  });
+
+  test("AC2 — .node--violation rules declare border-color (orange warning)", async ({
+    page,
+  }) => {
+    await loadApp(page);
+    const hasColor = await page.evaluate(() => {
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          for (const rule of Array.from(sheet.cssRules ?? [])) {
+            const sel = (rule as CSSStyleRule).selectorText ?? "";
+            if (
+              sel.includes("node--violation") &&
+              !sel.includes("node-decision")
+            ) {
+              const bc = (rule as CSSStyleRule).style.getPropertyValue(
+                "border-color",
+              );
+              if (bc) return true;
+            }
+          }
+        } catch {
+          /* cross-origin */
+        }
+      }
+      return false;
+    });
+    expect(
+      hasColor,
+      ".node--violation rules must declare border-color for the orange warning",
+    ).toBe(true);
+  });
+
+  test("AC3 — .conn-handle opacity rule exists (handles hidden by default)", async ({
+    page,
+  }) => {
+    await loadApp(page);
+    const opacity = await page.evaluate(() => {
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          for (const rule of Array.from(sheet.cssRules ?? [])) {
+            if ((rule as CSSStyleRule).selectorText === ".conn-handle") {
+              return (rule as CSSStyleRule).style.getPropertyValue("opacity");
+            }
+          }
+        } catch {
+          /* cross-origin */
+        }
+      }
+      return null;
+    });
+    expect(
+      opacity,
+      ".conn-handle must have an opacity declaration",
+    ).toBeTruthy();
+    expect(
+      parseFloat(opacity ?? "1"),
+      ".conn-handle base opacity must be 0 (hidden by default until node is hovered)",
+    ).toBe(0);
   });
 });

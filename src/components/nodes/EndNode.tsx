@@ -4,15 +4,17 @@ import { ConnectionHandles } from './ConnectionHandles'
 import { CommentDot } from './CommentDot'
 
 export function EndNode({ id, data, selected }: NodeProps) {
-  const d = data as { label: string; comments?: unknown[] }
+  const d = data as { label: string; comments?: unknown[]; canBeTarget?: boolean; hasViolation?: boolean }
   const label = d.label
   const comments = d.comments ?? []
+  const canBeTarget  = d.canBeTarget  ?? true
+  const hasViolation = d.hasViolation ?? false
   const { editing, draft, setDraft, startEdit, commitEdit, cancelEdit, inputRef } =
     useInlineEdit({ id, initialLabel: label })
 
   return (
     <div
-      className={`node node--end ${selected ? 'node--selected' : ''}`}
+      className={`node node--end ${selected ? 'node--selected' : ''} ${hasViolation ? 'node--violation' : ''}`}
       onDoubleClick={startEdit}
     >
       {editing ? (
@@ -34,7 +36,7 @@ export function EndNode({ id, data, selected }: NodeProps) {
         <span className="node-label">{label}</span>
       )}
       {/* End can only be a target — never a connection source (§9.1) */}
-      <ConnectionHandles canBeSource={false} canBeTarget={true} />
+      <ConnectionHandles canBeSource={false} canBeTarget={canBeTarget} />
       <CommentDot blockId={id} count={comments.length} />
     </div>
   )
