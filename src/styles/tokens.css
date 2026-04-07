@@ -33,11 +33,11 @@
   --teal:    #2dd4bf;
 
   /* --- Block fills (dark mode) --- */
-  --fill-start:    rgba(45, 212, 191, 0.22);
-  --fill-end:      rgba(248, 113, 113, 0.22);
-  --fill-action:   rgba(77, 163, 255, 0.18);
-  --fill-decision: rgba(251, 191, 36, 0.20);
-  --fill-result:   rgba(45, 212, 191, 0.15);
+  --fill-start:    #173c37;
+  --fill-end:      #442626;
+  --fill-action:   #1c2b3c;
+  --fill-decision: #3e3115;
+  --fill-result:   #152e2b;
 }
 
 /* =====================================================
@@ -61,11 +61,11 @@
   --text-dim:   #9a9a9a;
 
   /* --- Block fills (light mode) --- */
-  --fill-start:    rgba(13, 148, 136, 0.10);
-  --fill-end:      rgba(220, 38, 38, 0.08);
-  --fill-action:   rgba(37, 99, 235, 0.07);
-  --fill-decision: rgba(202, 138, 4,  0.08);
-  --fill-result:   rgba(13, 148, 136, 0.07);
+  --fill-start:    #e7f4f3;
+  --fill-end:      #fceaea;
+  --fill-action:   #eff4fe;
+  --fill-decision: #fbf6eb;
+  --fill-result:   #eef8f7;
 }
 
 /* =====================================================
