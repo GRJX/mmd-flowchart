@@ -272,7 +272,7 @@ There are five block types. Each is visually distinct.
 
 | Property       | Value                                                                                                                                                                                                      |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shape          | Near-circular ellipse (border-radius: 50%, default 80×64 px)                                                                                                                                               |
+| Shape          | Circle (border-radius: 50%, equal width and height, default 72×72 px)                                                                                                                                      |
 | Label          | "Start" (non-editable label; user cannot rename this)                                                                                                                                                      |
 | Mermaid syntax | `A([Start])`                                                                                                                                                                                               |
 | Constraint     | **Exactly one** per diagram. If one already exists, the Start block in the palette is greyed out and disabled.                                                                                             |
@@ -282,7 +282,7 @@ There are five block types. Each is visually distinct.
 
 | Property       | Value                                                                                                                                  |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Shape          | Near-circular ellipse, visually distinct from Start via a red border (default 80×64 px)                                                |
+| Shape          | Circle, visually distinct from Start via a red border (default 72×72 px)                                                               |
 | Label          | "End" (editable — user can rename, e.g., "End - Pass", "End - Fail")                                                                   |
 | Mermaid syntax | `Z([End])`                                                                                                                             |
 | Constraint     | Multiple allowed                                                                                                                       |
@@ -304,7 +304,7 @@ The **Data Field** is a free-text field for additional context (e.g., test data,
 
 | Property       | Value                                                                                                                       |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Shape          | Diamond                                                                                                                     |
+| Shape          | Diamond (default 120×120 px, 1:1 ratio)                                                                                                                                         |
 | Label          | Editable condition — default "Condition?"                                                                                   |
 | Mermaid syntax | `C{Condition?}`                                                                                                             |
 | Fields         | Condition description, Comments                                                                                             |
@@ -391,10 +391,10 @@ All block types support resize via drag handles that appear on the corners when 
 
 | Block type  | Default size | Min size | Max size  |
 | ----------- | ------------ | -------- | --------- |
-| Start / End | 80 × 64 px   | 48 × 38  | 240 × 192 |
+| Start / End | 72 × 72 px   | 40 × 40  | 240 × 240 |
 | Action      | 120 × 88 px  | 64 × 48  | 320 × 240 |
 | Result      | 120 × 88 px  | 64 × 48  | 320 × 240 |
-| Decision    | 110 × 110 px | 60 × 60  | 240 × 240 |
+| Decision    | 120 × 120 px | 60 × 60  | 240 × 240 |
 
 ### 8.4 Canvas Navigation
 

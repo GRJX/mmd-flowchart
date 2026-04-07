@@ -909,8 +909,8 @@ body {
 /* ── Start node ───────────────────────────────────── */
 
 .node--start {
-  width: 80px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   border: 2px solid var(--teal);
   background: var(--bg-canvas);
@@ -924,8 +924,8 @@ body {
 /* ── End node ─────────────────────────────────────── */
 
 .node--end {
-  width: 80px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   border: 2px solid var(--red);
   background: var(--bg-canvas);
@@ -953,8 +953,8 @@ body {
 /* ── Decision node (diamond) ──────────────────────── */
 
 .node--decision {
-  width: 110px;
-  height: 110px;
+  width: 120px;
+  height: 120px;
   position: relative;
   background: transparent;
   border: none;

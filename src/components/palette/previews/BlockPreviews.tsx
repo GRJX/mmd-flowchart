@@ -2,8 +2,8 @@
 
 export function StartPreview() {
   return (
-    <svg width="36" height="28" viewBox="0 0 36 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="18" cy="14" rx="16" ry="12"
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="14" cy="14" r="12"
         stroke="var(--teal)" strokeWidth="2" fill="var(--bg-canvas)" />
     </svg>
   )
@@ -11,8 +11,8 @@ export function StartPreview() {
 
 export function EndPreview() {
   return (
-    <svg width="36" height="28" viewBox="0 0 36 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="18" cy="14" rx="16" ry="12"
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="14" cy="14" r="12"
         stroke="var(--red)" strokeWidth="2" fill="var(--bg-canvas)" />
     </svg>
   )

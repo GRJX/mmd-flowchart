@@ -16,10 +16,10 @@ export function StartNode({ id, data, selected }: NodeProps) {
     <div className={`node node--start ${selected ? 'node--selected' : ''} ${hasViolation ? 'node--violation' : ''}`}>
       <NodeResizer
         isVisible={selected}
-        minWidth={48}
-        minHeight={38}
+        minWidth={40}
+        minHeight={40}
         maxWidth={240}
-        maxHeight={192}
+        maxHeight={240}
         keepAspectRatio
         onResizeEnd={(_e, p) => resizeBlock(id, Math.round(p.width), Math.round(p.height))}
       />

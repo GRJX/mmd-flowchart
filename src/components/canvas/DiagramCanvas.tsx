@@ -82,11 +82,11 @@ function snapToGrid(pos: { x: number; y: number }): { x: number; y: number } {
 
 /** Default dimensions per block type. */
 const DEFAULT_NODE_DIMS: Record<BlockType, { width: number; height: number }> = {
-  start:    { width: 80,  height: 64  },
-  end:      { width: 80,  height: 64  },
+  start:    { width: 72,  height: 72  },
+  end:      { width: 72,  height: 72  },
   action:   { width: 120, height: 88  },
   result:   { width: 120, height: 88  },
-  decision: { width: 110, height: 110 },
+  decision: { width: 120, height: 120 },
 }
 
 /** Convert Block dimensions per type, used for React Flow width/height hints */
