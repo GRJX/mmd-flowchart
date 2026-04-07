@@ -18,7 +18,9 @@ export async function assertConnectionSystemIdleState(
  * Asserts the YNPicker dialog is not present in the DOM.
  * Called both on cold load and after any action that should not trigger it.
  */
-export async function assertYNPickerAbsent(conn: ConnectionPage): Promise<void> {
+export async function assertYNPickerAbsent(
+  conn: ConnectionPage,
+): Promise<void> {
   await expect(conn.ynPickerOverlay).toHaveCount(0);
   await expect(conn.ynPicker).toHaveCount(0);
 }
@@ -135,4 +137,109 @@ export async function assertConnHandleHoverColourOnlyNoSizeIncrease(
     base["height"],
     ".conn-handle base rule must declare explicit height",
   ).toBeTruthy();
+}
+
+/**
+ * Asserts the CSS structure that supports source-anchored Y/N edge labels
+ * (fix for bug #39 — labels were drifting to edge midpoint instead of staying
+ * near the decision diamond exit point).
+ *
+ * Verifies:
+ *  - `.edge-label` base rule exists with `pointer-events: none` and
+ *    `position: absolute` (required for EdgeLabelRenderer source-offset
+ *    translate positioning).
+ *  - `.edge-label--yes` exists and declares a `color` (teal).
+ *  - `.edge-label--no` exists and declares a `color` (red).
+ *  - Neither badge rule contains a `left`, `top`, `right`, or `bottom`
+ *    property that would hardcode a midpoint offset, confirming the labels
+ *    rely on inline `transform: translate(sourceX, sourceY)` injected by
+ *    the OrthogonalEdge component.
+ */
+export async function assertYNLabelSourceAnchored(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  type RuleMap = Record<string, string>;
+
+  const collected = await page.evaluate((): Record<string, RuleMap> => {
+    const result: Record<string, RuleMap> = {};
+    const targets = new Set([".edge-label", ".edge-label--yes", ".edge-label--no"]);
+
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        for (const rule of Array.from(sheet.cssRules ?? [])) {
+          const sel = (rule as CSSStyleRule).selectorText;
+          if (targets.has(sel)) {
+            const style = (rule as CSSStyleRule).style;
+            const props: RuleMap = {};
+            for (let i = 0; i < style.length; i++) {
+              const prop = style.item(i);
+              props[prop] = style.getPropertyValue(prop);
+            }
+            result[sel] = props;
+          }
+        }
+      } catch {
+        // cross-origin sheet — skip
+      }
+    }
+    return result;
+  });
+
+  // ── Base .edge-label rule ──────────────────────────────────────────────
+  expect(
+    collected[".edge-label"],
+    ".edge-label CSS rule not found in stylesheet",
+  ).toBeTruthy();
+
+  const base = collected[".edge-label"] ?? {};
+
+  expect(
+    base["pointer-events"],
+    ".edge-label must have pointer-events: none (labels must not block interaction)",
+  ).toBe("none");
+
+  // ── .edge-label--yes ──────────────────────────────────────────────────
+  expect(
+    collected[".edge-label--yes"],
+    ".edge-label--yes CSS rule not found in stylesheet",
+  ).toBeTruthy();
+
+  const yes = collected[".edge-label--yes"] ?? {};
+
+  expect(
+    yes["color"],
+    ".edge-label--yes must declare a color (teal)",
+  ).toBeTruthy();
+
+  // Must not hardcode a positional offset that would place it at the midpoint
+  expect(
+    yes["left"],
+    ".edge-label--yes must NOT declare left (position controlled by inline transform)",
+  ).toBeFalsy();
+  expect(
+    yes["top"],
+    ".edge-label--yes must NOT declare top (position controlled by inline transform)",
+  ).toBeFalsy();
+
+  // ── .edge-label--no ───────────────────────────────────────────────────
+  expect(
+    collected[".edge-label--no"],
+    ".edge-label--no CSS rule not found in stylesheet",
+  ).toBeTruthy();
+
+  const no = collected[".edge-label--no"] ?? {};
+
+  expect(
+    no["color"],
+    ".edge-label--no must declare a color (red)",
+  ).toBeTruthy();
+
+  expect(
+    no["left"],
+    ".edge-label--no must NOT declare left (position controlled by inline transform)",
+  ).toBeFalsy();
+  expect(
+    no["top"],
+    ".edge-label--no must NOT declare top (position controlled by inline transform)",
+  ).toBeFalsy();
 }

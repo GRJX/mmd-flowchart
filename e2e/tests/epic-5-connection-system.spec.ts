@@ -34,6 +34,7 @@ import {
   assertConnectionSystemIdleState,
   assertYNPickerAbsent,
   assertConnHandleHoverColourOnlyNoSizeIncrease,
+  assertYNLabelSourceAnchored,
 } from "../asserters/connection.asserter";
 
 // ── S5.1 — Connection handles absent before diagram ───────────────────────
@@ -141,7 +142,10 @@ test.describe("S5.2 — YNPicker CSS class registration", () => {
       }
       return false;
     });
-    expect(overlayRuleFound, ".yn-picker-overlay CSS rule should be in stylesheet").toBe(true);
+    expect(
+      overlayRuleFound,
+      ".yn-picker-overlay CSS rule should be in stylesheet",
+    ).toBe(true);
   });
 
   test("connection handle CSS class exists in the loaded stylesheet", async ({
@@ -162,7 +166,10 @@ test.describe("S5.2 — YNPicker CSS class registration", () => {
       }
       return false;
     });
-    expect(handleRuleFound, ".conn-handle CSS rule should be in stylesheet").toBe(true);
+    expect(
+      handleRuleFound,
+      ".conn-handle CSS rule should be in stylesheet",
+    ).toBe(true);
   });
 
   test("edge waypoint handle CSS class exists in the loaded stylesheet", async ({
@@ -173,7 +180,9 @@ test.describe("S5.2 — YNPicker CSS class registration", () => {
       for (const sheet of Array.from(document.styleSheets)) {
         try {
           for (const rule of Array.from(sheet.cssRules ?? [])) {
-            if ((rule as CSSStyleRule).selectorText === ".edge-waypoint-handle") {
+            if (
+              (rule as CSSStyleRule).selectorText === ".edge-waypoint-handle"
+            ) {
               return true;
             }
           }
@@ -183,7 +192,10 @@ test.describe("S5.2 — YNPicker CSS class registration", () => {
       }
       return false;
     });
-    expect(waypointRuleFound, ".edge-waypoint-handle CSS rule should be in stylesheet").toBe(true);
+    expect(
+      waypointRuleFound,
+      ".edge-waypoint-handle CSS rule should be in stylesheet",
+    ).toBe(true);
   });
 
   test("Decision-block incomplete warning CSS class exists in stylesheet", async ({
@@ -344,5 +356,140 @@ test.describe("S5.1 — Connection handle hover behaviour: colour only, no size 
   }) => {
     await loadApp(page);
     await assertConnHandleHoverColourOnlyNoSizeIncrease(page);
+  });
+});
+
+// ── S5.3 — Y/N label anchored to source exit point (bug #39 regression) ──
+
+test.describe("S5.3 — Y/N edge labels anchored to decision exit point, not midpoint", () => {
+  /**
+   * Bug #39 — Y/N labels on Decision block outputs not anchored to exit point.
+   *
+   * Root cause: labels were positioned at (sourceX+targetX)/2, (sourceY+targetY)/2
+   * (the edge midpoint), which caused them to drift away from the diamond as the
+   * target block moved.
+   *
+   * Fix: getLabelNearSource() offsets the label by LABEL_SOURCE_OFFSET (20 px)
+   * from (sourceX, sourceY) in the sourcePosition direction so the badge stays
+   * immediately adjacent to the diamond exit handle at all times.
+   *
+   * Acceptance criteria:
+   *   AC1 — `.edge-label` CSS rule exists in the stylesheet.
+   *   AC2 — `.edge-label` has `pointer-events: none` (labels must not block interaction).
+   *   AC3 — `.edge-label--yes` CSS rule exists with a declared color (teal).
+   *   AC4 — `.edge-label--no` CSS rule exists with a declared color (red).
+   *   AC5 — Neither badge rule hard-codes `left` or `top` CSS properties
+   *          (position is controlled exclusively by the inline `transform: translate`
+   *          produced by getLabelNearSource, not by static CSS offsets).
+   *   AC6 — Composite asserter assertYNLabelSourceAnchored passes.
+   */
+
+  test("AC1 — .edge-label CSS rule exists in the loaded stylesheet", async ({
+    page,
+  }) => {
+    await loadApp(page);
+    const found = await page.evaluate(() => {
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          for (const rule of Array.from(sheet.cssRules ?? [])) {
+            if ((rule as CSSStyleRule).selectorText === ".edge-label") return true;
+          }
+        } catch { /* cross-origin */ }
+      }
+      return false;
+    });
+    expect(found, ".edge-label CSS rule must be present in stylesheet").toBe(true);
+  });
+
+  test("AC2 — .edge-label has pointer-events: none so labels don't block interaction", async ({
+    page,
+  }) => {
+    await loadApp(page);
+    const pointerEvents = await page.evaluate(() => {
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          for (const rule of Array.from(sheet.cssRules ?? [])) {
+            if ((rule as CSSStyleRule).selectorText === ".edge-label") {
+              return (rule as CSSStyleRule).style.getPropertyValue("pointer-events");
+            }
+          }
+        } catch { /* cross-origin */ }
+      }
+      return null;
+    });
+    expect(
+      pointerEvents,
+      ".edge-label must have pointer-events: none",
+    ).toBe("none");
+  });
+
+  test("AC3 — .edge-label--yes CSS rule exists with a color declaration (teal badge)", async ({
+    page,
+  }) => {
+    await loadApp(page);
+    const color = await page.evaluate(() => {
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          for (const rule of Array.from(sheet.cssRules ?? [])) {
+            if ((rule as CSSStyleRule).selectorText === ".edge-label--yes") {
+              return (rule as CSSStyleRule).style.getPropertyValue("color") || "found";
+            }
+          }
+        } catch { /* cross-origin */ }
+      }
+      return null;
+    });
+    expect(color, ".edge-label--yes must declare a color").toBeTruthy();
+  });
+
+  test("AC4 — .edge-label--no CSS rule exists with a color declaration (red badge)", async ({
+    page,
+  }) => {
+    await loadApp(page);
+    const color = await page.evaluate(() => {
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          for (const rule of Array.from(sheet.cssRules ?? [])) {
+            if ((rule as CSSStyleRule).selectorText === ".edge-label--no") {
+              return (rule as CSSStyleRule).style.getPropertyValue("color") || "found";
+            }
+          }
+        } catch { /* cross-origin */ }
+      }
+      return null;
+    });
+    expect(color, ".edge-label--no must declare a color").toBeTruthy();
+  });
+
+  test("AC5 — neither .edge-label--yes nor .edge-label--no hard-codes left/top (source-offset via inline transform only)", async ({
+    page,
+  }) => {
+    await loadApp(page);
+    const hardcodedPosition = await page.evaluate(() => {
+      const badgeSelectors = new Set([".edge-label--yes", ".edge-label--no"]);
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          for (const rule of Array.from(sheet.cssRules ?? [])) {
+            const sel = (rule as CSSStyleRule).selectorText;
+            if (badgeSelectors.has(sel)) {
+              const style = (rule as CSSStyleRule).style;
+              if (style.getPropertyValue("left") || style.getPropertyValue("top")) {
+                return sel;
+              }
+            }
+          }
+        } catch { /* cross-origin */ }
+      }
+      return null;
+    });
+    expect(
+      hardcodedPosition,
+      "Y/N badge CSS rules must NOT hard-code left/top — position is injected via inline transform by getLabelNearSource()",
+    ).toBeNull();
+  });
+
+  test("AC6 — composite assertYNLabelSourceAnchored passes", async ({ page }) => {
+    await loadApp(page);
+    await assertYNLabelSourceAnchored(page);
   });
 });
