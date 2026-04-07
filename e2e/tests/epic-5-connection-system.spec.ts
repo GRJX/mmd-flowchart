@@ -33,6 +33,7 @@ import { ConnectionPage } from "../pages/connection.page";
 import {
   assertConnectionSystemIdleState,
   assertYNPickerAbsent,
+  assertConnHandleHoverColourOnlyNoSizeIncrease,
 } from "../asserters/connection.asserter";
 
 // ── S5.1 — Connection handles absent before diagram ───────────────────────
@@ -208,5 +209,140 @@ test.describe("S5.2 — YNPicker CSS class registration", () => {
       incompleteRuleFound,
       ".node--incomplete CSS rule should be in stylesheet (Decision orange-border warning)",
     ).toBe(true);
+  });
+});
+
+// ── S5.1 — Connection handle hover: colour change only, no size increase ──
+
+test.describe("S5.1 — Connection handle hover behaviour: colour only, no size increase", () => {
+  /**
+   * Feature: Connection point hover should change colour only — no size increase
+   *
+   * Acceptance criteria:
+   *   AC1 — The `.conn-handle:hover` CSS rule declares a `background-color`
+   *          change (the accent colour).
+   *   AC2 — The `.conn-handle:hover` rule does NOT declare `width`, `height`,
+   *          `min-width`, or `min-height` overrides.
+   *   AC3 — The `.conn-handle:hover` rule does NOT use a `transform` property
+   *          (e.g. `scale(...)`) that would visually resize the dot.
+   *   AC4 — The base `.conn-handle` rule retains explicit `width` and `height`
+   *          declarations so the handle size is always controlled.
+   */
+
+  test("AC1 — .conn-handle:hover declares a background-color change", async ({
+    page,
+  }) => {
+    await loadApp(page);
+    const hoverHasColour = await page.evaluate(() => {
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          for (const rule of Array.from(sheet.cssRules ?? [])) {
+            if ((rule as CSSStyleRule).selectorText === ".conn-handle:hover") {
+              return !!(rule as CSSStyleRule).style.getPropertyValue(
+                "background-color",
+              );
+            }
+          }
+        } catch {
+          // cross-origin sheet
+        }
+      }
+      return false;
+    });
+    expect(
+      hoverHasColour,
+      ".conn-handle:hover must declare a background-color (accent colour on hover)",
+    ).toBe(true);
+  });
+
+  test("AC2 — .conn-handle:hover does NOT override width or height", async ({
+    page,
+  }) => {
+    await loadApp(page);
+    const sizeOverrideFound = await page.evaluate(() => {
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          for (const rule of Array.from(sheet.cssRules ?? [])) {
+            if ((rule as CSSStyleRule).selectorText === ".conn-handle:hover") {
+              const style = (rule as CSSStyleRule).style;
+              return !!(
+                style.getPropertyValue("width") ||
+                style.getPropertyValue("height") ||
+                style.getPropertyValue("min-width") ||
+                style.getPropertyValue("min-height")
+              );
+            }
+          }
+        } catch {
+          // cross-origin sheet
+        }
+      }
+      return false; // rule not found — no size override
+    });
+    expect(
+      sizeOverrideFound,
+      ".conn-handle:hover must NOT declare width/height (colour-only hover, no size increase)",
+    ).toBe(false);
+  });
+
+  test("AC3 — .conn-handle:hover does NOT use transform to scale the dot", async ({
+    page,
+  }) => {
+    await loadApp(page);
+    const transformFound = await page.evaluate(() => {
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          for (const rule of Array.from(sheet.cssRules ?? [])) {
+            if ((rule as CSSStyleRule).selectorText === ".conn-handle:hover") {
+              return !!(rule as CSSStyleRule).style.getPropertyValue(
+                "transform",
+              );
+            }
+          }
+        } catch {
+          // cross-origin sheet
+        }
+      }
+      return false;
+    });
+    expect(
+      transformFound,
+      ".conn-handle:hover must NOT use transform (no scale-up on hover)",
+    ).toBe(false);
+  });
+
+  test("AC4 — base .conn-handle rule declares explicit width and height", async ({
+    page,
+  }) => {
+    await loadApp(page);
+    const baseHasSize = await page.evaluate(() => {
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          for (const rule of Array.from(sheet.cssRules ?? [])) {
+            if ((rule as CSSStyleRule).selectorText === ".conn-handle") {
+              const style = (rule as CSSStyleRule).style;
+              return !!(
+                style.getPropertyValue("width") &&
+                style.getPropertyValue("height")
+              );
+            }
+          }
+        } catch {
+          // cross-origin sheet
+        }
+      }
+      return false;
+    });
+    expect(
+      baseHasSize,
+      ".conn-handle base rule must declare explicit width and height",
+    ).toBe(true);
+  });
+
+  test("composite — assertConnHandleHoverColourOnlyNoSizeIncrease passes", async ({
+    page,
+  }) => {
+    await loadApp(page);
+    await assertConnHandleHoverColourOnlyNoSizeIncrease(page);
   });
 });

@@ -47,3 +47,92 @@ export async function assertYNPickerStructure(
   await expect(conn.ynPickerCancelBtn).toBeVisible();
   await expect(conn.page.locator(".yn-picker-hint")).toContainText(sourceLabel);
 }
+
+/**
+ * Asserts that the .conn-handle:hover CSS rule changes colour only — the
+ * declared width and height must remain identical to the base rule (10px)
+ * and must NOT be overridden in the :hover rule.
+ *
+ * Implementation approach: we walk document.styleSheets and inspect the
+ * CSSStyleRule declarations for both `.conn-handle` and `.conn-handle:hover`,
+ * then compare their size properties.
+ */
+export async function assertConnHandleHoverColourOnlyNoSizeIncrease(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  const result = await page.evaluate(() => {
+    type RuleMap = Record<string, string>;
+    const collected: Record<string, RuleMap> = {};
+
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        for (const rule of Array.from(sheet.cssRules ?? [])) {
+          const sel = (rule as CSSStyleRule).selectorText;
+          if (sel === ".conn-handle" || sel === ".conn-handle:hover") {
+            const style = (rule as CSSStyleRule).style;
+            const props: RuleMap = {};
+            for (let i = 0; i < style.length; i++) {
+              const prop = style.item(i);
+              props[prop] = style.getPropertyValue(prop);
+            }
+            collected[sel] = props;
+          }
+        }
+      } catch {
+        // cross-origin sheet — skip
+      }
+    }
+    return collected;
+  });
+
+  // Both rules must have been found
+  expect(
+    result[".conn-handle"],
+    ".conn-handle base CSS rule not found in stylesheet",
+  ).toBeTruthy();
+  expect(
+    result[".conn-handle:hover"],
+    ".conn-handle:hover CSS rule not found in stylesheet",
+  ).toBeTruthy();
+
+  const base = result[".conn-handle"] ?? {};
+  const hover = result[".conn-handle:hover"] ?? {};
+
+  // Hover rule must declare a background-color change
+  expect(
+    hover["background-color"],
+    ".conn-handle:hover must declare a background-color",
+  ).toBeTruthy();
+
+  // Hover rule must NOT declare width or height (no size increase)
+  expect(
+    hover["width"],
+    ".conn-handle:hover must NOT change width (colour-only hover)",
+  ).toBeFalsy();
+  expect(
+    hover["height"],
+    ".conn-handle:hover must NOT change height (colour-only hover)",
+  ).toBeFalsy();
+  expect(
+    hover["min-width"],
+    ".conn-handle:hover must NOT change min-width",
+  ).toBeFalsy();
+  expect(
+    hover["min-height"],
+    ".conn-handle:hover must NOT change min-height",
+  ).toBeFalsy();
+  expect(
+    hover["transform"],
+    ".conn-handle:hover must NOT use transform (scale) to resize",
+  ).toBeFalsy();
+
+  // The base size declarations must still be present (10 px)
+  expect(
+    base["width"],
+    ".conn-handle base rule must declare explicit width",
+  ).toBeTruthy();
+  expect(
+    base["height"],
+    ".conn-handle base rule must declare explicit height",
+  ).toBeTruthy();
+}
