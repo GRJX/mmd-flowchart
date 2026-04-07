@@ -1,6 +1,4 @@
 import type { NodeProps } from '@xyflow/react'
-import { NodeResizer } from '@xyflow/react'
-import { useAppStore } from '../../store/useAppStore'
 import { useInlineEdit } from './StartNode'
 import { ConnectionHandles } from './ConnectionHandles'
 import { CommentDot } from './CommentDot'
@@ -20,7 +18,6 @@ export function DecisionNode({ id, data, selected }: NodeProps) {
   const canBeSource  = d.canBeSource  ?? true
   const canBeTarget  = d.canBeTarget  ?? true
   const hasViolation = d.hasViolation ?? false
-  const resizeBlock = useAppStore((s) => s.resizeBlock)
   const { editing, draft, setDraft, startEdit, commitEdit, cancelEdit, inputRef } =
     useInlineEdit({ id, initialLabel: label })
 
@@ -29,16 +26,6 @@ export function DecisionNode({ id, data, selected }: NodeProps) {
       className={`node node--decision ${selected ? 'node--selected' : ''} ${incomplete ? 'node--incomplete' : ''} ${hasViolation ? 'node--violation' : ''}`}
       onDoubleClick={startEdit}
     >
-      {/* Rotated square is the visible diamond — absolute positioned */}
-      <NodeResizer
-        isVisible={selected}
-        minWidth={60}
-        minHeight={60}
-        maxWidth={240}
-        maxHeight={240}
-        keepAspectRatio
-        onResizeEnd={(_e, p) => resizeBlock(id, Math.round(p.width), Math.round(p.height))}
-      />
       <div className="node-decision-shape" />
 
       {/* Counter-rotated content keeps label horizontal */}

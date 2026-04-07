@@ -280,12 +280,12 @@ There are five block types. Each is visually distinct.
 
 ### 7.2 End Block
 
-| Property       | Value                                                                                                                                  |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Shape          | Circle, visually distinct from Start via a red border (default 72×72 px)                                                               |
-| Label          | "End" (editable — user can rename, e.g., "End - Pass", "End - Fail")                                                                   |
-| Mermaid syntax | `Z([End])`                                                                                                                             |
-| Constraint     | Multiple allowed                                                                                                                       |
+| Property       | Value                                                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Shape          | Circle, visually distinct from Start via a red border (default 72×72 px)                                                                 |
+| Label          | "End" (editable — user can rename, e.g., "End - Pass", "End - Fail")                                                                     |
+| Mermaid syntax | `Z([End])`                                                                                                                               |
+| Constraint     | Multiple allowed                                                                                                                         |
 | Connections    | **Unlimited inputs.** Cannot have outgoing connections. Multiple blocks (e.g., several Result blocks) may connect to the same End block. |
 
 ### 7.3 State / Action Block

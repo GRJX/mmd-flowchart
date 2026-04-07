@@ -35,7 +35,10 @@ interface MetadataV1BlockMeta {
 interface MetadataV1 {
   version: "1";
   meta: Record<string, MetadataV1BlockMeta>;
-  connections: Record<string, { waypoints: Array<{ x: number; y: number }>; dataField?: string | null }>;
+  connections: Record<
+    string,
+    { waypoints: Array<{ x: number; y: number }>; dataField?: string | null }
+  >;
 }
 
 // ── Label escaping ─────────────────────────────────────────────────────────────

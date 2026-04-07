@@ -830,6 +830,12 @@ body {
 /* Override React Flow canvas background to use our token */
 .react-flow {
   background-color: var(--bg-canvas);
+  /* Override React Flow's built-in edge/connection-line CSS variables */
+  --xy-edge-stroke: var(--teal);
+  --xy-edge-stroke-width: 2;
+  --xy-edge-stroke-selected: var(--accent);
+  --xy-connectionline-stroke: var(--teal);
+  --xy-connectionline-stroke-width: 2;
 }
 
 /* Selection box */
@@ -838,16 +844,7 @@ body {
   border: 1px solid var(--accent);
 }
 
-/* Edge default style */
-.react-flow__edge-path {
-  stroke: var(--border-hi);
-  stroke-width: 1.5;
-}
-
-.react-flow__edge.selected .react-flow__edge-path {
-  stroke: var(--accent);
-  stroke-width: 2;
-}
+/* Edge default style — colors handled via --xy-edge-stroke on .react-flow */
 
 .react-flow__edge-label {
   font-size: 11px;
@@ -909,29 +906,50 @@ body {
 /* ── Start node ───────────────────────────────────── */
 
 .node--start {
+  width: 120px;
+  height: 72px;
+  background: transparent;
+  border: none;
+}
+
+.node--start__circle {
   width: 72px;
   height: 72px;
   border-radius: 50%;
   border: 2px solid var(--teal);
-  background: var(--bg-canvas);
-  box-shadow: inset 0 0 0 0 transparent;
+  background: var(--fill-start);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.node--start.node--selected {
+.node--start.node--selected .node--start__circle {
   box-shadow: 0 0 0 2px var(--teal), 0 0 12px rgba(45, 212, 191, 0.25);
 }
 
 /* ── End node ─────────────────────────────────────── */
 
 .node--end {
+  width: 120px;
+  height: 72px;
+  background: transparent;
+  border: none;
+}
+
+.node--end__circle {
   width: 72px;
   height: 72px;
   border-radius: 50%;
   border: 2px solid var(--red);
-  background: var(--bg-canvas);
+  background: var(--fill-end);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.node--end.node--selected {
+.node--end.node--selected .node--end__circle {
   box-shadow: 0 0 0 2px var(--red), 0 0 12px rgba(248, 113, 113, 0.25);
 }
 
@@ -942,7 +960,7 @@ body {
   height: 88px;
   border-radius: 8px;
   border: 1.5px solid var(--border-hi);
-  background: var(--bg-canvas);
+  background: var(--fill-action);
 }
 
 .node--action.node--selected {
@@ -965,7 +983,7 @@ body {
   inset: 6px;
   border: 2px solid var(--yellow);
   border-radius: 4px;
-  background: var(--bg-canvas);
+  background: var(--fill-decision);
   transform: rotate(45deg);
   box-sizing: border-box;
 }
@@ -993,7 +1011,7 @@ body {
   border-radius: 8px;
   border: 1.5px solid var(--border-hi);
   border-left: 4px solid var(--teal);
-  background: var(--bg-canvas);
+  background: var(--fill-result);
 }
 
 .node--result.node--selected {
@@ -1317,23 +1335,10 @@ body {
 }
 
 /* ── Edge styles ────────────────────────────────────────────── */
-
-/* Override default edge stroke to use teal */
-.react-flow__edge .react-flow__edge-path {
-  stroke: var(--teal) !important;
-  stroke-width: 2 !important;
-}
-
-/* In-progress connection drag line — must be visible in both themes */
-.react-flow__connection-path {
-  stroke: var(--teal) !important;
-  stroke-width: 2 !important;
-  fill: none;
-}
+/* Edge/connection-line colors are driven by --xy-edge-stroke etc. on .react-flow above */
 
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: var(--accent) !important;
-  stroke-width: 2.5 !important;
+  stroke-width: 2.5;
 }
 
 /* Edge interaction area (invisible wider path for easier click) */

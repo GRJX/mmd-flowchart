@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
 import type { NodeProps } from '@xyflow/react'
-import { NodeResizer } from '@xyflow/react'
 import { useAppStore } from '../../store/useAppStore'
 import { ConnectionHandles } from './ConnectionHandles'
 import { CommentDot } from './CommentDot'
@@ -10,20 +9,12 @@ export function StartNode({ id, data, selected }: NodeProps) {
   const comments = d.comments ?? []
   const canBeSource = d.canBeSource ?? true
   const hasViolation = d.hasViolation ?? false
-  const resizeBlock = useAppStore((s) => s.resizeBlock)
   // Start block label is always "Start" — non-editable per spec §7.1
   return (
     <div className={`node node--start ${selected ? 'node--selected' : ''} ${hasViolation ? 'node--violation' : ''}`}>
-      <NodeResizer
-        isVisible={selected}
-        minWidth={40}
-        minHeight={40}
-        maxWidth={240}
-        maxHeight={240}
-        keepAspectRatio
-        onResizeEnd={(_e, p) => resizeBlock(id, Math.round(p.width), Math.round(p.height))}
-      />
-      <span className="node-label">Start</span>
+      <div className="node--start__circle">
+        <span className="node-label">Start</span>
+      </div>
       {/* Start can only be a source — never a connection target (§9.1) */}
       <ConnectionHandles canBeSource={canBeSource} canBeTarget={false} sourceNodeId={id} />
       <CommentDot blockId={id} count={comments.length} />

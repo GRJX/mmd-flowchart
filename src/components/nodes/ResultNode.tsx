@@ -1,6 +1,4 @@
 import type { NodeProps } from '@xyflow/react'
-import { NodeResizer } from '@xyflow/react'
-import { useAppStore } from '../../store/useAppStore'
 import { useInlineEdit } from './StartNode'
 import { ConnectionHandles } from './ConnectionHandles'
 import { CommentDot } from './CommentDot'
@@ -12,7 +10,6 @@ export function ResultNode({ id, data, selected }: NodeProps) {
   const canBeSource  = d.canBeSource  ?? true
   const canBeTarget  = d.canBeTarget  ?? true
   const hasViolation = d.hasViolation ?? false
-  const resizeBlock = useAppStore((s) => s.resizeBlock)
   const { editing, draft, setDraft, startEdit, commitEdit, cancelEdit, inputRef } =
     useInlineEdit({ id, initialLabel: label })
 
@@ -21,15 +18,6 @@ export function ResultNode({ id, data, selected }: NodeProps) {
       className={`node node--result ${selected ? 'node--selected' : ''} ${hasViolation ? 'node--violation' : ''}`}
       onDoubleClick={startEdit}
     >
-      <NodeResizer
-        isVisible={selected}
-        minWidth={64}
-        minHeight={48}
-        maxWidth={320}
-        maxHeight={240}
-        keepAspectRatio
-        onResizeEnd={(_e, p) => resizeBlock(id, Math.round(p.width), Math.round(p.height))}
-      />
       {editing ? (
         <input
           ref={inputRef}

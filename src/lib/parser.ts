@@ -32,7 +32,10 @@ interface MetadataV1BlockMeta {
 interface MetadataV1 {
   version: string;
   meta: Record<string, MetadataV1BlockMeta>;
-  connections?: Record<string, { waypoints?: Array<{ x: number; y: number }>; dataField?: string | null }>;
+  connections?: Record<
+    string,
+    { waypoints?: Array<{ x: number; y: number }>; dataField?: string | null }
+  >;
 }
 
 // ── Label unescaping ───────────────────────────────────────────────────────────
@@ -323,7 +326,14 @@ export function parseMmd(text: string): ParseResult {
     const waypoints = connMeta[metaKey]?.waypoints ?? [];
     const connDataField = connMeta[metaKey]?.dataField ?? null;
 
-    connections.set(id, { id, sourceId, targetId, type, waypoints, dataField: connDataField });
+    connections.set(id, {
+      id,
+      sourceId,
+      targetId,
+      type,
+      waypoints,
+      dataField: connDataField,
+    });
   }
 
   return {
