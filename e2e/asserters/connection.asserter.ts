@@ -162,7 +162,11 @@ export async function assertYNLabelSourceAnchored(
 
   const collected = await page.evaluate((): Record<string, RuleMap> => {
     const result: Record<string, RuleMap> = {};
-    const targets = new Set([".edge-label", ".edge-label--yes", ".edge-label--no"]);
+    const targets = new Set([
+      ".edge-label",
+      ".edge-label--yes",
+      ".edge-label--no",
+    ]);
 
     for (const sheet of Array.from(document.styleSheets)) {
       try {
@@ -242,4 +246,106 @@ export async function assertYNLabelSourceAnchored(
     no["top"],
     ".edge-label--no must NOT declare top (position controlled by inline transform)",
   ).toBeFalsy();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Issue #38 — Per-block connection limit asserters
+// ─────────────────────────────────────────────────────────────────────────────
+
+type NodeTypeName = "start" | "end" | "action" | "result" | "decision";
+
+/**
+ * Asserts that the CSS rule for a given block type exists in the loaded
+ * stylesheet, confirming the component styles were bundled correctly.
+ */
+export async function assertNodeTypeCSSRuleExists(
+  page: import("@playwright/test").Page,
+  nodeType: NodeTypeName,
+): Promise<void> {
+  const selector = `.node--${nodeType}`;
+  const found = await page.evaluate((sel: string) => {
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        for (const rule of Array.from(sheet.cssRules ?? [])) {
+          if ((rule as CSSStyleRule).selectorText === sel) return true;
+        }
+      } catch { /* cross-origin */ }
+    }
+    return false;
+  }, selector);
+  expect(found, `${selector} CSS rule must exist in the stylesheet`).toBe(true);
+}
+
+/**
+ * Asserts that the `.conn-handle--target` CSS class is defined in the
+ * stylesheet, confirming source and target handles are visually
+ * distinguished (required for per-block limit enforcement).
+ */
+export async function assertTargetHandleCSSClassExists(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  const found = await page.evaluate(() => {
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        for (const rule of Array.from(sheet.cssRules ?? [])) {
+          const sel = (rule as CSSStyleRule).selectorText ?? "";
+          if (sel.includes("conn-handle--target")) return true;
+        }
+      } catch { /* cross-origin */ }
+    }
+    return false;
+  });
+  expect(
+    found,
+    ".conn-handle--target CSS rule must exist (source/target handle distinction)",
+  ).toBe(true);
+}
+
+/**
+ * Asserts that the `.node--decision.node--incomplete` CSS rule exists with
+ * a border-color declaration — this is the orange warning shown on Decision
+ * blocks that are missing a Y or N outgoing connection (spec §9.4).
+ */
+export async function assertDecisionIncompleteWarningCSS(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  const result = await page.evaluate(() => {
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        for (const rule of Array.from(sheet.cssRules ?? [])) {
+          const sel = (rule as CSSStyleRule).selectorText ?? "";
+          if (sel.includes("node--incomplete")) {
+            const borderColor = (rule as CSSStyleRule).style.getPropertyValue("border-color");
+            return { found: true, hasBorderColor: !!borderColor };
+          }
+        }
+      } catch { /* cross-origin */ }
+    }
+    return { found: false, hasBorderColor: false };
+  });
+  expect(
+    result.found,
+    ".node--incomplete CSS rule must exist for the Decision orange-border warning",
+  ).toBe(true);
+  expect(
+    result.hasBorderColor,
+    ".node--decision.node--incomplete must declare border-color (orange warning)",
+  ).toBe(true);
+}
+
+/**
+ * Asserts the full per-block CSS structure required for connection limits:
+ * - All five block type CSS rules present
+ * - conn-handle--target CSS class present
+ * - node--incomplete warning CSS present (Decision block)
+ */
+export async function assertConnectionLimitsCSSStructure(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  const nodeTypes: NodeTypeName[] = ["start", "end", "action", "result", "decision"];
+  for (const t of nodeTypes) {
+    await assertNodeTypeCSSRuleExists(page, t);
+  }
+  await assertTargetHandleCSSClassExists(page);
+  await assertDecisionIncompleteWarningCSS(page);
 }
