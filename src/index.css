@@ -1070,7 +1070,7 @@ body {
   border: 2px solid var(--bg-canvas) !important;
   border-radius: 50% !important;
   opacity: 0;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
   z-index: 10;
 }
 
@@ -1079,11 +1079,10 @@ body {
   opacity: 1;
 }
 
-/* Scale up on direct hover — the + affordance */
+/* Colour change on direct hover — no size increase */
 .conn-handle:hover {
-  transform: scale(1.5) !important;
   opacity: 1;
-  background-color: var(--teal) !important;
+  background-color: var(--accent) !important;
 }
 
 /* While a connection is being dragged, show all target handles */
