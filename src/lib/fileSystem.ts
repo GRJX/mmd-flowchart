@@ -1,4 +1,4 @@
-import type { FileTreeNode } from '../types/diagram'
+import type { FileTreeNode } from "../types/diagram";
 
 // ── Directory tree reading ────────────────────────────────────────────────────
 
@@ -10,39 +10,53 @@ import type { FileTreeNode } from '../types/diagram'
 export async function readDirectoryEntries(
   dirHandle: FileSystemDirectoryHandle,
 ): Promise<FileTreeNode[]> {
-  const nodes: FileTreeNode[] = []
+  const nodes: FileTreeNode[] = [];
 
-  for await (const [name, handle] of (dirHandle as unknown as AsyncIterable<[string, FileSystemHandle]>)) {
-    if (handle.kind === 'directory') {
-      nodes.push({ name, type: 'folder', handle: handle as FileSystemDirectoryHandle })
-    } else if (handle.kind === 'file' && name.endsWith('.mmd')) {
-      nodes.push({ name, type: 'file', handle: handle as FileSystemFileHandle })
+  for await (const [name, handle] of dirHandle as unknown as AsyncIterable<
+    [string, FileSystemHandle]
+  >) {
+    if (handle.kind === "directory") {
+      nodes.push({
+        name,
+        type: "folder",
+        handle: handle as FileSystemDirectoryHandle,
+      });
+    } else if (handle.kind === "file" && name.endsWith(".mmd")) {
+      nodes.push({
+        name,
+        type: "file",
+        handle: handle as FileSystemFileHandle,
+      });
     }
   }
 
   // Sort: folders first (alphabetical), then files (alphabetical)
   nodes.sort((a, b) => {
-    if (a.type !== b.type) return a.type === 'folder' ? -1 : 1
-    return a.name.localeCompare(b.name)
-  })
+    if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
 
-  return nodes
+  return nodes;
 }
 
 // ── File reading ──────────────────────────────────────────────────────────────
 
-export async function readFileText(handle: FileSystemFileHandle): Promise<string> {
-  const file = await handle.getFile()
-  return file.text()
+export async function readFileText(
+  handle: FileSystemFileHandle,
+): Promise<string> {
+  const file = await handle.getFile();
+  return file.text();
 }
 
 /**
  * Returns the last-modified timestamp of the file backing a handle.
  * Used for external-change detection.
  */
-export async function getFileLastModified(handle: FileSystemFileHandle): Promise<number> {
-  const file = await handle.getFile()
-  return file.lastModified
+export async function getFileLastModified(
+  handle: FileSystemFileHandle,
+): Promise<number> {
+  const file = await handle.getFile();
+  return file.lastModified;
 }
 
 // ── Atomic write ──────────────────────────────────────────────────────────────
@@ -60,9 +74,9 @@ export async function writeFileAtomic(
   handle: FileSystemFileHandle,
   content: string,
 ): Promise<void> {
-  const writable = await handle.createWritable()
-  await writable.write(content)
-  await writable.close()
+  const writable = await handle.createWritable();
+  await writable.write(content);
+  await writable.close();
 }
 
 // ── File creation ─────────────────────────────────────────────────────────────
@@ -75,8 +89,8 @@ export async function createMmdFile(
   dirHandle: FileSystemDirectoryHandle,
   filename: string,
 ): Promise<FileSystemFileHandle> {
-  const name = filename.endsWith('.mmd') ? filename : `${filename}.mmd`
-  return dirHandle.getFileHandle(name, { create: true })
+  const name = filename.endsWith(".mmd") ? filename : `${filename}.mmd`;
+  return dirHandle.getFileHandle(name, { create: true });
 }
 
 // ── Directory creation ────────────────────────────────────────────────────────
@@ -85,7 +99,7 @@ export async function createDirectory(
   parentHandle: FileSystemDirectoryHandle,
   name: string,
 ): Promise<FileSystemDirectoryHandle> {
-  return parentHandle.getDirectoryHandle(name, { create: true })
+  return parentHandle.getDirectoryHandle(name, { create: true });
 }
 
 // ── Rename (copy + delete pattern) ────────────────────────────────────────────
@@ -99,12 +113,39 @@ export async function renameFile(
   oldName: string,
   newName: string,
 ): Promise<FileSystemFileHandle> {
-  const oldHandle = await dirHandle.getFileHandle(oldName)
-  const content = await readFileText(oldHandle)
-  const newHandle = await dirHandle.getFileHandle(newName, { create: true })
-  await writeFileAtomic(newHandle, content)
-  await (dirHandle as unknown as { removeEntry(name: string): Promise<void> }).removeEntry(oldName)
-  return newHandle
+  const oldHandle = await dirHandle.getFileHandle(oldName);
+  const content = await readFileText(oldHandle);
+  const newHandle = await dirHandle.getFileHandle(newName, { create: true });
+  await writeFileAtomic(newHandle, content);
+  await (
+    dirHandle as unknown as { removeEntry(name: string): Promise<void> }
+  ).removeEntry(oldName);
+  return newHandle;
+}
+
+// ── Move ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Moves a file from srcDirHandle to destDirHandle (copy + delete).
+ * File System Access API has no native move across directories.
+ * If a file with the same name already exists in destDirHandle the existing
+ * file is overwritten (standard file-manager behaviour).
+ */
+export async function moveFileToFolder(
+  srcDirHandle: FileSystemDirectoryHandle,
+  destDirHandle: FileSystemDirectoryHandle,
+  filename: string,
+): Promise<FileSystemFileHandle> {
+  const srcHandle = await srcDirHandle.getFileHandle(filename);
+  const content = await readFileText(srcHandle);
+  const destHandle = await destDirHandle.getFileHandle(filename, {
+    create: true,
+  });
+  await writeFileAtomic(destHandle, content);
+  await (
+    srcDirHandle as unknown as { removeEntry(name: string): Promise<void> }
+  ).removeEntry(filename);
+  return destHandle;
 }
 
 // ── Delete ────────────────────────────────────────────────────────────────────
@@ -113,7 +154,9 @@ export async function deleteEntry(
   parentHandle: FileSystemDirectoryHandle,
   name: string,
 ): Promise<void> {
-  await (parentHandle as unknown as {
-    removeEntry(name: string, opts?: { recursive?: boolean }): Promise<void>
-  }).removeEntry(name, { recursive: true })
+  await (
+    parentHandle as unknown as {
+      removeEntry(name: string, opts?: { recursive?: boolean }): Promise<void>;
+    }
+  ).removeEntry(name, { recursive: true });
 }

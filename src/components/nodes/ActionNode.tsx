@@ -2,6 +2,7 @@ import type { NodeProps } from '@xyflow/react'
 import { useInlineEdit } from './StartNode'
 import { ConnectionHandles } from './ConnectionHandles'
 import { CommentDot } from './CommentDot'
+import { NodeAddStem } from './NodeAddStem'
 
 export function ActionNode({ id, data, selected }: NodeProps) {
   const d = data as { label: string; comments?: unknown[]; canBeSource?: boolean; canBeTarget?: boolean; hasViolation?: boolean }
@@ -38,6 +39,7 @@ export function ActionNode({ id, data, selected }: NodeProps) {
       )}
       <ConnectionHandles canBeSource={canBeSource} canBeTarget={canBeTarget} />
       <CommentDot blockId={id} count={comments.length} />
+      {canBeSource && <NodeAddStem nodeId={id} direction="bottom" />}
     </div>
   )
 }

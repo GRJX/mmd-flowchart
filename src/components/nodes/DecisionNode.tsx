@@ -2,6 +2,7 @@ import type { NodeProps } from '@xyflow/react'
 import { useInlineEdit } from './StartNode'
 import { ConnectionHandles } from './ConnectionHandles'
 import { CommentDot } from './CommentDot'
+import { NodeAddStem } from './NodeAddStem'
 
 /**
  * Decision block rendered as a diamond.
@@ -52,6 +53,9 @@ export function DecisionNode({ id, data, selected }: NodeProps) {
 
       <ConnectionHandles canBeSource={canBeSource} canBeTarget={canBeTarget} />
       <CommentDot blockId={id} count={comments.length} />
+      {/* Right stem = Y (yes) path; bottom stem = N (no) path */}
+      {canBeSource && !d.hasYConnection && <NodeAddStem nodeId={id} direction="right" />}
+      {canBeSource && !d.hasNConnection && <NodeAddStem nodeId={id} direction="bottom" />}
     </div>
   )
 }

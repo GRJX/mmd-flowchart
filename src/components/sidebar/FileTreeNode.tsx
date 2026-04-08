@@ -5,8 +5,14 @@ import { FileIcon } from './icons/FileIcon'
 import { FileContextMenu } from './FileContextMenu'
 import { FolderContextMenu } from './FolderContextMenu'
 import { useAppStore } from '../../store/useAppStore'
-import { renameFile } from '../../lib/fileSystem'
+import { renameFile, moveFileToFolder } from '../../lib/fileSystem'
 import { ChevronRight, ChevronDown } from 'lucide-react'
+
+/**
+ * Module-level drag state shared across all FileTreeNode instances.
+ * Cleared on dragend or after a successful drop.
+ */
+let activeDrag: { node: FileTreeNodeType; parentHandle: FileSystemDirectoryHandle } | null = null
 
 interface FileTreeNodeProps {
   node: FileTreeNodeType
@@ -30,6 +36,7 @@ export function FileTreeNode({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState(node.name)
+  const [isDragOver, setIsDragOver] = useState(false)
   const renameInputRef = useRef<HTMLInputElement>(null)
 
   const isActive = node.type === 'file' && activeFilePath === node.name
@@ -47,6 +54,59 @@ export function FileTreeNode({
     e.preventDefault()
     e.stopPropagation()
     setContextMenu({ x: e.clientX, y: e.clientY })
+  }
+
+  // ── Drag-and-drop (folders are drop targets; files are draggable) ──────────
+
+  function handleDragStart(e: React.DragEvent) {
+    // Minimal dataTransfer payload — real state lives in activeDrag
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', node.name)
+    activeDrag = { node, parentHandle }
+  }
+
+  function handleDragEnd() {
+    activeDrag = null
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    if (!activeDrag || activeDrag.node.type !== 'file') return
+    // Don't allow dropping into the same folder the file is already in
+    if (activeDrag.parentHandle === node.handle) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setIsDragOver(true)
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    // Only clear when leaving the folder row itself, not moving to a child element
+    if (!e.currentTarget.contains(e.relatedTarget as Element)) {
+      setIsDragOver(false)
+    }
+  }
+
+  async function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+    if (!activeDrag || activeDrag.node.type !== 'file') return
+    const { node: draggedNode, parentHandle: srcHandle } = activeDrag
+    activeDrag = null
+    const destHandle = node.handle as FileSystemDirectoryHandle
+    if (srcHandle === destHandle) return
+    try {
+      await moveFileToFolder(srcHandle, destHandle, draggedNode.name)
+      // Auto-expand the destination folder so the user sees the moved file
+      if (!expanded) {
+        await expandFolder(node)
+        setExpanded(true)
+      }
+      await refreshFileTree()
+      addToast(`Moved "${draggedNode.name}" to ${node.name}`, 'success')
+    } catch (err) {
+      addToast(`Failed to move "${draggedNode.name}"`, 'error')
+      console.error(err)
+    }
   }
 
   async function handleRenameCommit() {
@@ -70,10 +130,13 @@ export function FileTreeNode({
     return (
       <>
         <div
-          className={`tree-node tree-node--folder`}
+          className={`tree-node tree-node--folder${isDragOver ? ' tree-node--drag-over' : ''}`}
           style={{ paddingLeft: indentPx }}
           onClick={handleToggleExpand}
           onContextMenu={handleContextMenu}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
           role="treeitem"
           aria-expanded={expanded}
           tabIndex={0}
@@ -119,8 +182,11 @@ export function FileTreeNode({
       <div
         className={`tree-node tree-node--file ${isActive ? 'tree-node--active' : ''}`}
         style={{ paddingLeft: indentPx }}
+        draggable={!renaming}
         onClick={() => !renaming && onFileClick(node)}
         onContextMenu={handleContextMenu}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
         role="treeitem"
         aria-selected={isActive}
         tabIndex={0}

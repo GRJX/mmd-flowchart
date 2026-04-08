@@ -3,6 +3,7 @@ import type { NodeProps } from '@xyflow/react'
 import { useAppStore } from '../../store/useAppStore'
 import { ConnectionHandles } from './ConnectionHandles'
 import { CommentDot } from './CommentDot'
+import { NodeAddStem } from './NodeAddStem'
 
 export function StartNode({ id, data, selected }: NodeProps) {
   const d = data as { comments?: unknown[]; canBeSource?: boolean; hasViolation?: boolean }
@@ -16,8 +17,9 @@ export function StartNode({ id, data, selected }: NodeProps) {
         <span className="node-label">Start</span>
       </div>
       {/* Start can only be a source — never a connection target (§9.1) */}
-      <ConnectionHandles canBeSource={canBeSource} canBeTarget={false} />
+      <ConnectionHandles canBeSource={canBeSource} canBeTarget={false} nodeType="circle" />
       <CommentDot blockId={id} count={comments.length} />
+      {canBeSource && <NodeAddStem nodeId={id} direction="bottom" />}
     </div>
   )
 }

@@ -1,35 +1,66 @@
 import { useEffect, useRef } from 'react'
 import type { BlockType } from '../../types/diagram'
 
-// ── Available block types in the quick-add menu ───────────────────────────────
+// ── Fan item definitions ──────────────────────────────────────────────────────
 
-interface BlockOption {
+interface FanItem {
   type: BlockType
   label: string
-  description: string
-  icon: string
+  /** Pixel offset from the + button center to the item button center. */
+  dx: number
+  dy: number
 }
 
-const BLOCK_OPTIONS: BlockOption[] = [
-  { type: 'action',   label: 'Action',   description: 'A step in the flow',       icon: '▭' },
-  { type: 'decision', label: 'Decision', description: 'Branch on a condition',     icon: '◇' },
-  { type: 'result',   label: 'Result',   description: 'An outcome / output',       icon: '▣' },
-  { type: 'end',      label: 'End',      description: 'Terminate the flow',        icon: '⬭' },
+/**
+ * Four items spread in a downward arc (radius 72px), symmetric around the
+ * vertical axis below the + button:
+ *   Decision  150° → lower-left
+ *   Action    120° → center-left (most common next step, near center)
+ *   Result     60° → center-right
+ *   End        30° → lower-right
+ */
+const FAN_ITEMS: FanItem[] = [
+  { type: 'decision', label: 'Decision', dx: -75, dy: 40 },
+  { type: 'action',   label: 'Action',   dx: -25, dy: 40 },
+  { type: 'result',   label: 'Result',   dx: +25, dy: 40 },
+  { type: 'end',      label: 'End',      dx: +75, dy: 40 },
 ]
+
+const BTN_SIZE = 44 // px — size of each fan button
+
+// ── Mini block-shape icons ────────────────────────────────────────────────────
+
+function FanIcon({ type }: { type: BlockType }) {
+  switch (type) {
+    case 'action':
+      return <div className="fan-icon fan-icon--action" aria-hidden />
+    case 'decision':
+      return (
+        <div className="fan-icon fan-icon--decision-wrap" aria-hidden>
+          <div className="fan-icon fan-icon--decision-fill" />
+        </div>
+      )
+    case 'result':
+      return <div className="fan-icon fan-icon--result" aria-hidden />
+    case 'end':
+      return <div className="fan-icon fan-icon--end" aria-hidden />
+    default:
+      return null
+  }
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface QuickAddMenuProps {
-  /** Screen-space position near which to render the menu. */
   screenPos: { x: number; y: number }
   onSelect: (type: BlockType) => void
   onClose: () => void
 }
 
 /**
- * Floating node-type picker for Contextual Predictive Creation.
- * Opens at the clicked quick-add (+) button location and allows the user
- * to choose what kind of block to create and auto-connect.
+ * Radial fan node-type picker.
+ * Anchored at the clicked (+) button position; items fan outward in a downward
+ * arc. Each item shows a mini shape matching the actual block type.
  */
 export function QuickAddMenu({ screenPos, onSelect, onClose }: QuickAddMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
@@ -52,34 +83,36 @@ export function QuickAddMenu({ screenPos, onSelect, onClose }: QuickAddMenuProps
     }
   }, [onClose])
 
-  // Clamp to viewport so the menu never overflows off-screen
-  const menuWidth = 200
-  const menuHeight = BLOCK_OPTIONS.length * 52 + 12
-  const left = Math.min(screenPos.x + 12, window.innerWidth  - menuWidth  - 8)
-  const top  = Math.min(screenPos.y - 8,  window.innerHeight - menuHeight - 8)
-
   return (
     <div
       ref={menuRef}
-      className="quick-add-menu"
+      className="radial-menu"
       role="menu"
       aria-label="Add connected node"
-      style={{ left, top }}
+      style={{ left: screenPos.x, top: screenPos.y }}
     >
-      <p className="quick-add-menu__heading">Add node</p>
-      {BLOCK_OPTIONS.map((opt) => (
-        <button
-          key={opt.type}
-          className="quick-add-menu__item"
-          role="menuitem"
-          onClick={() => onSelect(opt.type)}
+      {FAN_ITEMS.map((item, i) => (
+        <div
+          key={item.type}
+          className="radial-item"
+          style={{
+            left: item.dx - BTN_SIZE / 2,
+            top: item.dy - BTN_SIZE / 2,
+            animationDelay: `${i * 25}ms`,
+          }}
         >
-          <span className="quick-add-menu__icon" aria-hidden="true">{opt.icon}</span>
-          <span className="quick-add-menu__text">
-            <span className="quick-add-menu__label">{opt.label}</span>
-            <span className="quick-add-menu__desc">{opt.description}</span>
-          </span>
-        </button>
+          <button
+            className="radial-item__btn"
+            role="menuitem"
+            onClick={() => onSelect(item.type)}
+            title={item.label}
+            aria-label={`Add ${item.label}`}
+            type="button"
+          >
+            <FanIcon type={item.type} />
+          </button>
+          <span className="radial-item__label" aria-hidden>{item.label}</span>
+        </div>
       ))}
     </div>
   )

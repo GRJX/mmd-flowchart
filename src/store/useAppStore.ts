@@ -12,7 +12,35 @@ import type {
 } from "../types/diagram";
 import { readDirectoryEntries } from "../lib/fileSystem";
 import { saveDirectoryHandle } from "../lib/indexedDb";
-import { createBlock } from "../lib/blockFactory";
+import { createBlock, MAX_INPUTS, MAX_OUTPUTS } from "../lib/blockFactory";
+
+// ── File tree helpers (module-level) ─────────────────────────────────────────
+
+/**
+ * Reads a directory, then recursively re-reads children of any folder that was
+ * already expanded in the previous tree. This preserves expanded state after a
+ * refresh so components don't show "expanded but empty" folders.
+ */
+async function readTreePreservingExpanded(
+  dirHandle: FileSystemDirectoryHandle,
+  previousNodes: FileTreeNode[],
+): Promise<FileTreeNode[]> {
+  const nodes = await readDirectoryEntries(dirHandle);
+  for (const node of nodes) {
+    if (node.type === "folder") {
+      const prev = previousNodes.find(
+        (n) => n.name === node.name && n.type === "folder",
+      );
+      if (prev && prev.children !== undefined) {
+        node.children = await readTreePreservingExpanded(
+          node.handle as FileSystemDirectoryHandle,
+          prev.children,
+        );
+      }
+    }
+  }
+  return nodes;
+}
 
 // ── Undo/redo helpers (module-level) ─────────────────────────────────────────
 
@@ -155,10 +183,15 @@ interface AppStore {
   // ── Quick-add (Contextual Predictive Creation) ────────────────────────────
   pendingQuickAdd: {
     sourceNodeId: string;
+    direction: "bottom" | "right";
     screenPos: { x: number; y: number };
   } | null;
   setPendingQuickAdd: (
-    state: { sourceNodeId: string; screenPos: { x: number; y: number } } | null,
+    state: {
+      sourceNodeId: string;
+      direction: "bottom" | "right";
+      screenPos: { x: number; y: number };
+    } | null,
   ) => void;
   quickAddAndConnect: (type: BlockType) => void;
 }
@@ -227,9 +260,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   refreshFileTree: async () => {
-    const { directoryHandle } = get();
+    const { directoryHandle, fileTree } = get();
     if (!directoryHandle) return;
-    const tree = await readDirectoryEntries(directoryHandle);
+    const tree = await readTreePreservingExpanded(directoryHandle, fileTree);
     set({ fileTree: tree });
   },
 
@@ -510,6 +543,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
   addConnection: (sourceId, targetId, type) => {
     const { diagram } = get();
     if (!diagram) return null;
+    const src = diagram.blocks.get(sourceId);
+    const tgt = diagram.blocks.get(targetId);
+    if (!src || !tgt) return null;
+    // Enforce per-block connection limits
+    const srcOutCount = Array.from(diagram.connections.values()).filter(
+      (c) => c.sourceId === sourceId,
+    ).length;
+    if (srcOutCount >= MAX_OUTPUTS[src.type]) return null;
+    const tgtInCount = Array.from(diagram.connections.values()).filter(
+      (c) => c.targetId === targetId,
+    ).length;
+    if (tgtInCount >= MAX_INPUTS[tgt.type]) return null;
     const before = takeSnapshot(diagram);
     const id = crypto.randomUUID();
     const connection: Connection = {
@@ -587,20 +632,30 @@ export const useAppStore = create<AppStore>((set, get) => ({
   quickAddAndConnect: (type) => {
     const { diagram, pendingQuickAdd } = get();
     if (!diagram || !pendingQuickAdd) return;
-    const { sourceNodeId } = pendingQuickAdd;
+    const { sourceNodeId, direction } = pendingQuickAdd;
     const sourceBlock = diagram.blocks.get(sourceNodeId);
     if (!sourceBlock) return;
 
     const GRID = 16;
     const snapVal = (v: number) => Math.round(v / GRID) * GRID;
     const GAP = 240;
-    const ROW_STEP = 128;
+    const SHIFT_STEP = 128;
 
-    // Compute a free slot to the right, shifting down to avoid collisions
-    let candidate = {
-      x: snapVal(sourceBlock.position.x + GAP),
-      y: snapVal(sourceBlock.position.y),
-    };
+    // Compute candidate position: bottom stem goes down, right stem goes right
+    let candidate: { x: number; y: number };
+    if (direction === "bottom") {
+      candidate = {
+        x: snapVal(sourceBlock.position.x),
+        y: snapVal(sourceBlock.position.y + GAP),
+      };
+    } else {
+      candidate = {
+        x: snapVal(sourceBlock.position.x + GAP),
+        y: snapVal(sourceBlock.position.y),
+      };
+    }
+
+    // Shift in the perpendicular axis to avoid collisions
     const existingBlocks = Array.from(diagram.blocks.values());
     let attempts = 0;
     while (
@@ -612,7 +667,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
           Math.abs(b.position.y - candidate.y) < 80,
       )
     ) {
-      candidate = { x: candidate.x, y: snapVal(candidate.y + ROW_STEP) };
+      if (direction === "bottom") {
+        candidate = { x: snapVal(candidate.x + SHIFT_STEP), y: candidate.y };
+      } else {
+        candidate = { x: candidate.x, y: snapVal(candidate.y + SHIFT_STEP) };
+      }
       attempts++;
     }
 
@@ -622,12 +681,30 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const newBlocks = new Map(diagram.blocks);
     newBlocks.set(newBlock.id, newBlock);
 
+    // Enforce source output limit before creating auto-connection
+    const srcOutCount = Array.from(diagram.connections.values()).filter(
+      (c) => c.sourceId === sourceNodeId,
+    ).length;
+    if (srcOutCount >= MAX_OUTPUTS[sourceBlock.type]) return;
+
+    // Determine connection type:
+    // Decision right-stem = Y (yes) path, bottom-stem = N (no) path
+    let connType: Connection["type"] = "default";
+    if (sourceBlock.type === "decision") {
+      connType = direction === "right" ? "yes" : "no";
+      // If that specific slot is already taken, abort
+      const slotTaken = Array.from(diagram.connections.values()).some(
+        (c) => c.sourceId === sourceNodeId && c.type === connType,
+      );
+      if (slotTaken) return;
+    }
+
     const connId = crypto.randomUUID();
     const connection: Connection = {
       id: connId,
       sourceId: sourceNodeId,
       targetId: newBlock.id,
-      type: "default",
+      type: connType,
       waypoints: [],
       dataField: null,
     };

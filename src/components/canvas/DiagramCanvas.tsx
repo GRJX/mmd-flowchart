@@ -19,6 +19,7 @@ import {
 } from '@xyflow/react'
 import { useAppStore } from '../../store/useAppStore'
 import { getDragBlockType, setDragBlockType } from '../../lib/dragState'
+import { MAX_INPUTS, MAX_OUTPUTS } from '../../lib/blockFactory'
 import type { Block, BlockType, DiagramFile } from '../../types/diagram'
 import { StartNode } from '../nodes/StartNode'
 import { EndNode } from '../nodes/EndNode'
@@ -26,6 +27,7 @@ import { ActionNode } from '../nodes/ActionNode'
 import { DecisionNode } from '../nodes/DecisionNode'
 import { ResultNode } from '../nodes/ResultNode'
 import { OrthogonalEdge } from '../edges/OrthogonalEdge'
+import { QuickAddMenu } from './QuickAddMenu'
 
 // ── Node type map (constant outside component to prevent re-registration) ─────
 
@@ -42,24 +44,6 @@ const NODE_TYPES = {
 const EDGE_TYPES = {
   orthogonal: OrthogonalEdge,
 } as const
-
-// ── Connection limits per block type ─────────────────────────────────────────
-
-const MAX_INPUTS: Record<BlockType, number> = {
-  start:    0,
-  end:      Infinity,
-  action:   1,
-  result:   1,
-  decision: 1,
-}
-
-const MAX_OUTPUTS: Record<BlockType, number> = {
-  start:    1,
-  end:      0,
-  action:   1,
-  result:   1,
-  decision: 2,
-}
 
 // ── Grid snapping ────────────────────────────────────────────────────────────
 
@@ -143,8 +127,8 @@ function diagramToRFNodes(diagram: DiagramFile): RFNode[] {
 
     node.data = {
       ...node.data,
-      canBeSource:  block.type !== 'end',
-      canBeTarget:  block.type !== 'start',
+      canBeSource:  outCount < maxOut,
+      canBeTarget:  inCount  < maxIn,
       hasViolation: inCount > maxIn || outCount > maxOut,
     }
 
@@ -162,7 +146,7 @@ function diagramToRFEdges(diagram: DiagramFile): RFEdge[] {
     source: conn.sourceId,
     target: conn.targetId,
     type: 'orthogonal',
-    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: 'var(--teal)' },
+    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: '#9ca3af' },
     data: { connectionType: conn.type, waypoints: conn.waypoints },
   }))
 }
@@ -237,6 +221,9 @@ export function DiagramCanvas() {
     addConnection,
     deleteConnection,
     setSelectedConnectionId,
+    pendingQuickAdd,
+    setPendingQuickAdd,
+    quickAddAndConnect,
   } = useAppStore()
 
   const rfInstance = useRef<ReactFlowInstance | null>(null)
@@ -260,6 +247,8 @@ export function DiagramCanvas() {
   useEffect(() => {
     if (syncingFromRF.current) {
       syncingFromRF.current = false
+      // Always re-sync edges so markerEnd objects stay current in RF state
+      if (diagram) setEdges(diagramToRFEdges(diagram))
       return
     }
     if (diagram) {
@@ -513,6 +502,8 @@ export function DiagramCanvas() {
         onConnect={handleConnect}
         isValidConnection={isValidConnection}
         onInit={(instance) => { rfInstance.current = instance }}
+        // Connection mode: closest handles for shortest path
+        connectionMode="loose"
         // Zoom: 10% – 400%
         minZoom={0.1}
         maxZoom={4}
@@ -542,6 +533,14 @@ export function DiagramCanvas() {
       </ReactFlow>
 
       {dropGhost && <DropGhost {...dropGhost} />}
+
+      {pendingQuickAdd && (
+        <QuickAddMenu
+          screenPos={pendingQuickAdd.screenPos}
+          onSelect={(type) => { quickAddAndConnect(type) }}
+          onClose={() => setPendingQuickAdd(null)}
+        />
+      )}
 
       {pendingDelete && (        <DeleteConfirmDialog
           blockLabels={pendingDelete.labels}

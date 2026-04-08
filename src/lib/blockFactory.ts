@@ -1,5 +1,23 @@
 import type { Block, BlockType } from "../types/diagram";
 
+// ── Connection limits per block type (shared by canvas + store) ───────────────
+
+export const MAX_INPUTS: Record<BlockType, number> = {
+  start: 0,
+  end: Infinity,
+  action: 1,
+  result: 1,
+  decision: 1,
+};
+
+export const MAX_OUTPUTS: Record<BlockType, number> = {
+  start: 1,
+  end: 0,
+  action: 1,
+  result: 1,
+  decision: 2,
+};
+
 const BLOCK_PREFIXES: Record<BlockType, string> = {
   start: "S",
   end: "E",
@@ -11,7 +29,7 @@ const BLOCK_PREFIXES: Record<BlockType, string> = {
 const BLOCK_DEFAULTS: Record<BlockType, string> = {
   start: "Start",
   end: "End",
-  action: "Action",
+  action: "Action/State",
   decision: "Condition?",
   result: "Result",
 };

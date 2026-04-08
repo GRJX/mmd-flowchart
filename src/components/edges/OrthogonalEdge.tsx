@@ -87,7 +87,7 @@ export function OrthogonalEdge({
     const [path, lx, ly] = getSmoothStepPath({
       sourceX, sourceY, sourcePosition,
       targetX, targetY, targetPosition,
-      borderRadius: 4,
+      borderRadius: 10,
     })
     edgePath = path
     handleX = lx

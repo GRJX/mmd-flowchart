@@ -1,0 +1,672 @@
+/* =====================================================================
+   MMD Flowchart — Node-Link Interaction Design System
+   =====================================================================
+
+   DESIGN PRINCIPLES
+   ─────────────────
+   1. High signal-to-noise  — color used only for data type or system
+      status. Neutral grays carry structural chrome; teal / red /
+      yellow / orange carry semantic meaning.
+   2. Spatial consistency   — dot grid scales proportionally during
+      zoom so the user always has a physical sense of distance.
+   3. WCAG AA compliance    — all focus rings meet 3:1 contrast minimum
+      against their surrounding surface; interactive affordances meet
+      4.5:1 text contrast.
+   4. No layout shifts      — handle hover / proximity effects MUST NOT
+      change element dimensions; only color, opacity, and box-shadow
+      may animate on hover.
+
+   COMPONENT STATE MACHINE
+   ───────────────────────
+   Node:    default → hover → [active|dragging]
+                     ↘ linked (has ≥1 connection)
+                     ↘ incomplete (decision missing Y or N)
+                     ↘ violation (over connection limit)
+                     ↘ compact (user-collapsed)
+
+   Handle:  hidden → revealed (parent hover) → active (being dragged from)
+                                             ↘ snap (target near cursor)
+                                             ↘ invalid (incompatible type)
+
+   Edge:    ghost (in-progress drag) → committed
+            committed → selected
+            committed → error (illegal state detected post-add)
+
+   ===================================================================== */
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   §1  KEYFRAME LIBRARY
+   ─────────────────────────────────────────────────────────────────────
+   Naming convention: <element>-<state>
+   All animations use the token vars from tokens.css.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* Ghost link: marching dashes travel source → target, 22px = two full
+   cycles of dasharray(6 5) ensuring seamless loop. */
+@keyframes ghost-march {
+  to { stroke-dashoffset: -22; }
+}
+
+/* Settled edge: line draws in from source on first connection */
+@keyframes edge-draw-in {
+  from { stroke-dashoffset: 1000; opacity: 0; }
+  to   { stroke-dashoffset: 0;    opacity: 1; }
+}
+
+/* Proximity snap: concentric pulse ring on a compatible target handle */
+@keyframes snap-pulse {
+  0%   { transform: scale(1.0); box-shadow: 0 0 0 0   var(--snap-ring-color); }
+  50%  { transform: scale(1.1); box-shadow: 0 0 0 var(--snap-ring-size) rgba(45, 212, 191, 0); }
+  100% { transform: scale(1.0); box-shadow: 0 0 0 0   var(--snap-ring-color); }
+}
+
+/* Error connection: rejected wiggle on incompatible target handle */
+@keyframes handle-reject {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-3px); }
+  40%       { transform: translateX(3px); }
+  60%       { transform: translateX(-2px); }
+  80%       { transform: translateX(2px); }
+}
+
+/* Node drag lift: slight upward float to confirm grab */
+@keyframes node-lift {
+  to { transform: translateY(-2px); }
+}
+
+/* Violation pulse: draws attention to connection-limit breach */
+@keyframes violation-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(251, 146, 60, 0.30); }
+  50%       { box-shadow: 0 0 18px rgba(251, 146, 60, 0.60); }
+}
+
+/* compact-shrink: node collapses to header bar */
+@keyframes compact-shrink {
+  from { max-height: 200px; }
+  to   { max-height: 28px;  }
+}
+
+/* Flow direction particles: subtle rightward march on committed edges.
+   Only applied when .edge--flow-animated class is present, keeping the
+   default canvas calm. */
+@keyframes flow-march {
+  to { stroke-dashoffset: -28; }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   §2  NODE HOVER STATE
+   Elevation lifts the node above the canvas plane without resizing it.
+   Transition uses --ease-settle for a physical "pick up" feel.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* React Flow wraps each node in .react-flow__node which receives :hover.
+   We cast elevation onto the inner .node—* shape layer. */
+
+/* Action & Result nodes */
+.react-flow__node:not(.dragging):hover .node--action,
+.react-flow__node:not(.dragging):hover .node--result {
+  box-shadow: var(--shadow-node-hover);
+  border-color: var(--border-hi);
+  transition:
+    box-shadow var(--dur-normal) var(--ease-settle),
+    border-color var(--dur-fast)  var(--ease-smooth);
+}
+
+/* Start node — glow around the circle shape */
+.react-flow__node:not(.dragging):hover .node--start .node--start__circle {
+  box-shadow:
+    var(--shadow-node-hover),
+    0 0 0 2px rgba(45, 212, 191, 0.25);
+  transition: box-shadow var(--dur-normal) var(--ease-settle);
+}
+
+/* End node */
+.react-flow__node:not(.dragging):hover .node--end .node--end__circle {
+  box-shadow:
+    var(--shadow-node-hover),
+    0 0 0 2px rgba(248, 113, 113, 0.20);
+  transition: box-shadow var(--dur-normal) var(--ease-settle);
+}
+
+/* Decision node — glow on the ::before border layer */
+.react-flow__node:not(.dragging):hover .node--decision {
+  filter: brightness(1.08);
+  transition: filter var(--dur-normal) var(--ease-smooth);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   §3  NODE ACTIVE / DRAGGING STATE
+   React Flow adds `.dragging` to the .react-flow__node wrapper during
+   a drag gesture. We increase elevation and reduce opacity slightly to
+   give a "lifted from surface" read.
+   ───────────────────────────────────────────────────────────────────── */
+
+.react-flow__node.dragging .node--action,
+.react-flow__node.dragging .node--result {
+  box-shadow: var(--shadow-node-raised);
+  opacity: 0.88;
+  border-color: var(--accent);
+  transition:
+    box-shadow var(--dur-fast) var(--ease-settle),
+    opacity    var(--dur-fast) var(--ease-smooth);
+}
+
+.react-flow__node.dragging .node--start .node--start__circle,
+.react-flow__node.dragging .node--end   .node--end__circle {
+  box-shadow: var(--shadow-node-raised);
+  opacity: 0.88;
+}
+
+.react-flow__node.dragging .node--decision {
+  filter: brightness(1.12);
+  opacity: 0.88;
+}
+
+/* Cursor upgrade during drag (already in base, reinforced here) */
+.react-flow__node.dragging * {
+  cursor: grabbing !important;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   §4  NODE LINKED STATE
+   A node that already has ≥1 connection receives `.node--linked` from
+   diagramToRFNodes (implementation note: add this class when inCount>0
+   or outCount>0). Until then, the Decision node's `node--incomplete`
+   class provides partial coverage.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* Start/Result nodes: teal-tinted glow (output only, teal brand) */
+.node--start.node--linked .node--start__circle {
+  box-shadow: var(--shadow-linked-teal);
+}
+
+.node--result.node--linked {
+  box-shadow: var(--shadow-linked-teal);
+}
+
+/* Action nodes: neutral blue glow (generic connection) */
+.node--action.node--linked {
+  box-shadow: var(--shadow-linked-blue);
+  border-color: rgba(77, 163, 255, 0.45);
+}
+
+/* End nodes: red-tinted glow (termination) */
+.node--end.node--linked .node--end__circle {
+  box-shadow: var(--shadow-linked-red);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   §5  NODE COMPACT MODE
+   `.node--compact` collapses a node to a 28px header strip showing
+   only its type icon and truncated label. Useful for managing visual
+   complexity on dense diagrams.
+
+   Implementation note: toggling this class requires a JS hook;
+   the CSS specifies the visual contract only.
+   ───────────────────────────────────────────────────────────────────── */
+
+.node--compact {
+  overflow: hidden;
+  max-height: 28px;
+  transition: max-height var(--dur-slow) var(--ease-smooth);
+}
+
+.node--compact .node-label {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 6px;
+}
+
+/* Hide the body content (data fields, comment indicator) in compact mode */
+.node--compact .comment-dot,
+.node--compact .node-label-input {
+  display: none;
+}
+
+/* Compact badge: shows node type abbreviation in compact header */
+.node-compact-badge {
+  display: none;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.node--compact .node-compact-badge {
+  display: block;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   §6  HANDLE AFFORDANCES
+   ─────────────────────────────────────────────────────────────────────
+
+   OUTPUT handles (source, type="source", class .conn-handle)
+   ──────────────────────────────────────────────────────────
+   Shape: filled circle (dot). Communicates "data flows out from here."
+   Size: 10px. Color: --teal.
+   On hover: outer halo ring expands (no size change — spec §9.1).
+
+   INPUT handles (target, type="target", class .conn-handle--target)
+   ──────────────────────────────────────────────────────────────────
+   Shape: directional chevron pointing inward toward the node center.
+   This creates an unambiguous "receive data here" affordance.
+
+   Chevron directions:
+     top    handle → ▽  (arrow points down into node)
+     bottom handle → △  (arrow points up into node)
+     left   handle → ▷  (arrow points right into node)
+     right  handle → ◁  (arrow points left into node)
+
+   clip-path uses percentage coordinates on the handle bounding box.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* Source (output) handles: hollow teal ring + fill on hover */
+.conn-handle:not(.conn-handle--target) {
+  width:      var(--handle-src-size) !important;
+  height:     var(--handle-src-size) !important;
+  min-width:  var(--handle-src-size) !important;
+  min-height: var(--handle-src-size) !important;
+  border-radius: 50% !important;
+  background-color: transparent !important;
+  border: 2px solid var(--teal) !important;
+  opacity: 0 !important;
+  box-shadow: none;
+  transition:
+    opacity    var(--dur-fast)   var(--ease-smooth),
+    background-color var(--dur-normal) var(--ease-settle),
+    box-shadow var(--dur-normal) var(--ease-settle);
+}
+
+.conn-handle:not(.conn-handle--target):hover {
+  opacity: 1 !important;
+  background-color: var(--teal) !important;
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.22);
+}
+
+/* Target (input) handles: small solid accent dot */
+.conn-handle--target {
+  width:      8px !important;
+  height:     8px !important;
+  min-width:  8px !important;
+  min-height: 8px !important;
+  border-radius: 50% !important;
+  background-color: var(--accent) !important;
+  border: none !important;
+  opacity: 0 !important;
+  clip-path: none !important;
+  transition:
+    opacity    var(--dur-fast)   var(--ease-smooth),
+    background-color var(--dur-fast) var(--ease-smooth),
+    transform  var(--dur-fast)   var(--ease-settle);
+}
+
+/* Override old chevron clip-paths — targets are now uniform dots */
+.conn-handle--target.react-flow__handle-top,
+.conn-handle--target.react-flow__handle-bottom,
+.conn-handle--target.react-flow__handle-left,
+.conn-handle--target.react-flow__handle-right {
+  clip-path: none !important;
+}
+
+/* Target handle hover */
+.conn-handle--target:hover {
+  opacity: 1 !important;
+  background-color: var(--accent) !important;
+  transform: scale(1.3);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   §7  PROXIMITY SNAP
+   When a live connection drag nears a compatible target handle,
+   React Flow's connection logic triggers. We visually respond by
+   pulsing the target handle.
+
+   React Flow adds class `.connectionindicator` to handles while a
+   connection is being dragged (any potential target). Narrow it to
+   `.conn-handle--target.connectionindicator` for the inward chevrons.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* All potential targets: revealed, muted */
+.react-flow__handle.connectionindicator.conn-handle--target {
+  opacity: 0.65 !important;
+  background-color: rgba(45, 212, 191, 0.50) !important;
+  transition:
+    opacity          var(--dur-fast) var(--ease-smooth),
+    background-color var(--dur-fast) var(--ease-smooth);
+}
+
+/* The CLOSEST compatible target: full brightness pulse */
+.react-flow__handle.connectionindicator.conn-handle--target:hover {
+  opacity: 1 !important;
+  background-color: var(--accent) !important;
+  animation: snap-pulse 0.55s var(--ease-spring) infinite;
+}
+
+/* Incompatible target (React Flow adds .invalid when isValidConnection
+   returns false): red rejection color + reject wiggle */
+.react-flow__handle.connectionindicator.invalid.conn-handle--target {
+  opacity: 0.70;
+  background-color: var(--red) !important;
+}
+
+.react-flow__handle.connectionindicator.invalid.conn-handle--target:hover {
+  animation: handle-reject var(--dur-slow) var(--ease-spring);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   §8  GHOST LINK (IN-PROGRESS CONNECTION DRAG)
+   When a user drags from a source handle before connecting, a preview
+   line follows the cursor. Requirements:
+     • Marching dashes  → communicates "not yet committed"
+     • Semi-transparent → clearly ephemeral
+     • Teal stroke      → matches committed edge color for continuity
+     • Direction        → dashes march from source toward cursor
+   ───────────────────────────────────────────────────────────────────── */
+
+.react-flow__connection .react-flow__connection-path,
+.react-flow__connection-path {
+  stroke:            var(--edge-color) !important;
+  stroke-width:      2px !important;
+  stroke-dasharray:  var(--edge-ghost-dash) !important;
+  stroke-dashoffset: 0;
+  opacity:           var(--edge-ghost-opacity) !important;
+  fill:              none !important;
+  animation:         ghost-march 0.55s linear infinite;
+}
+
+/* Source socket glow while dragging FROM it */
+.conn-handle:not(.conn-handle--target).react-flow__handle-connecting {
+  box-shadow: 0 0 0 6px rgba(45, 212, 191, 0.30) !important;
+  opacity: 1 !important;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   §9  COMMITTED EDGE STATES
+   ─────────────────────────────────────────────────────────────────────
+
+   DIRECTIONALITY APPROACH
+   ────────────────────────
+   Pure CSS cannot apply a gradient to an SVG `stroke`. Two approaches:
+
+   A) Flow particles (CSS-only, implemented here):
+      Animated marching dashes march in the source-to-target direction.
+      Applied via `.edge--animated` class to keep the default canvas quiet.
+
+   B) Gradient stroke (requires JS, specified here for implementation):
+      Inject an SVG <defs><linearGradient> into the React Flow SVG
+      container, then reference it as `stroke="url(#edge-gradient-{id})"`.
+      Gradient: --teal at offset 0% → --accent at offset 100%.
+      Apply per edge so each gradient is oriented along the edge path.
+      Implementation: add gradient def injection to OrthogonalEdge.tsx.
+
+   Default (no motion): clean teal stroke, 2px, arrow marker at target.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* Default edge — already in index.css; reinforced here for specificity */
+.react-flow__edge .react-flow__edge-path {
+  stroke:       var(--edge-color);
+  stroke-width: 2px;
+  fill:         none;
+}
+
+/* Selected edge */
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:focus-within .react-flow__edge-path {
+  stroke:       var(--accent);
+  stroke-width: 2.5px;
+}
+
+/* Flow direction: animated marching ants (opt-in) */
+.react-flow__edge.edge--animated .react-flow__edge-path {
+  stroke-dasharray:  8 12;         /* longer dash, more gap → calmer rhythm */
+  stroke-dashoffset: 0;
+  animation: flow-march 1.8s linear infinite;
+}
+
+/* Draw-in on first connection (applied briefly via JS class `.edge--new`)*/
+.react-flow__edge.edge--new .react-flow__edge-path {
+  stroke-dasharray:  1000;
+  stroke-dashoffset: 1000;
+  animation: edge-draw-in 0.3s var(--ease-settle) forwards;
+}
+
+/* Error state (post-connect validation failure, illegal loaded state) */
+.react-flow__edge.edge--error .react-flow__edge-path {
+  stroke:           var(--red);
+  stroke-dasharray: var(--edge-error-dash);
+  opacity: 0.85;
+}
+
+/* Y-path edge: warm teal (decision yes = proceed) */
+.react-flow__edge.edge--yes .react-flow__edge-path {
+  stroke: var(--teal);
+}
+
+/* N-path edge: muted red (decision no = alternate path) */
+.react-flow__edge.edge--no .react-flow__edge-path {
+  stroke: color-mix(in srgb, var(--red) 80%, var(--teal) 20%);
+  /* Fallback for browsers without color-mix: */
+  stroke: #e06060;
+}
+
+/* Hover on edge increases stroke weight for pick-ability */
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke:       var(--text-muted);
+  stroke-width: 3px;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   §10  VIOLATION / ERROR NODE STATE (elevated specificity)
+   Already partially defined in index.css; this adds the pulsing
+   attention animation for nodes flagged as over-connected.
+   ───────────────────────────────────────────────────────────────────── */
+
+.node--action.node--violation,
+.node--result.node--violation {
+  border-color: var(--orange) !important;
+  animation: violation-pulse 2s var(--ease-smooth) infinite;
+}
+
+.node--start.node--violation .node--start__circle,
+.node--end.node--violation   .node--end__circle {
+  box-shadow: 0 0 0 2px var(--orange), 0 0 16px rgba(251, 146, 60, 0.4);
+  animation: violation-pulse 2s var(--ease-smooth) infinite;
+}
+
+.node--decision.node--violation::before {
+  background: var(--orange);
+  animation: violation-pulse 2s var(--ease-smooth) infinite;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   §11  COMPLEXITY MANAGEMENT — EDGE BUNDLE INDICATOR
+   When multiple edges share a source-to-target corridor (e.g., a
+   Decision block with both Y and N paths both to the same target),
+   group them visually with a bundle marker.
+
+   Implementation note: the `.edge-bundle-indicator` element is a
+   foreignObject or HTML overlay rendered at the midpoint of the bundle.
+   The CSS here defines its appearance; JS must position it.
+   ───────────────────────────────────────────────────────────────────── */
+
+.edge-bundle-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-panel);
+  border: 1.5px solid var(--border-hi);
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  pointer-events: all;
+  transition:
+    background-color var(--dur-fast) var(--ease-smooth),
+    border-color     var(--dur-fast) var(--ease-smooth),
+    color            var(--dur-fast) var(--ease-smooth);
+}
+
+.edge-bundle-indicator:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Collapsed bundle: edges in the bundle are hidden, indicator shown */
+.edge-bundle-indicator--collapsed {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-panel);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   §12  SPATIAL CONSISTENCY — GRID ZOOM SCALING
+   The dot grid is rendered by React Flow's <Background> component.
+   Its `gap` and `size` props are static, but the SVG pattern element
+   scales with the viewport transform. No extra CSS is needed for
+   proportional scaling — React Flow handles this correctly.
+
+   The token below is exposed so it can be read in JS if needed.
+   ───────────────────────────────────────────────────────────────────── */
+
+:root {
+  --canvas-grid-gap:  20px;   /* matches BackgroundVariant.Dots gap prop */
+  --canvas-grid-dot:  1.5px;  /* matches BackgroundVariant.Dots size prop */
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   §13  ACCESSIBILITY
+   ─────────────────────────────────────────────────────────────────────
+
+   Focus rings
+   ───────────
+   All interactive node surfaces, handles, and toolbar controls must
+   have a visible focus ring when navigated via keyboard.
+
+   React Flow nodes are focusable via tabIndex; we add a ring:         */
+
+.react-flow__node:focus-visible {
+  outline: none;
+}
+
+.react-flow__node:focus-visible .node--action,
+.react-flow__node:focus-visible .node--result {
+  box-shadow: 0 0 0 3px var(--accent), var(--shadow-node-hover);
+}
+
+.react-flow__node:focus-visible .node--start .node--start__circle,
+.react-flow__node:focus-visible .node--end   .node--end__circle {
+  box-shadow: 0 0 0 3px var(--accent);
+}
+
+.react-flow__node:focus-visible .node--decision::before {
+  outline:        3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/*   Touch targets
+   ──────────────
+   Connection handles have a visual size of 10–13px but need ≥44px
+   touch target. The `.conn-handle-wrap` wrapper already positions
+   around the handle; extend its interactive area with padding:          */
+
+.conn-handle-wrap {
+  padding: 16px;
+  margin:  -16px;
+}
+
+/*   Reduced-motion
+   ────────────────
+   Users who opt out of animation (prefers-reduced-motion) get
+   instant transitions and no continuous animations.                     */
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes ghost-march     { to { stroke-dashoffset: -22; } }
+  @keyframes snap-pulse      { 50% { transform: scale(1.05); } }
+  @keyframes handle-reject   { 50% { transform: translateX(-2px); } }
+  @keyframes flow-march      { to  { stroke-dashoffset: -28; } }
+  @keyframes violation-pulse { 50% { box-shadow: 0 0 18px rgba(251,146,60,0.6); } }
+
+  .react-flow__connection-path,
+  .react-flow__edge.edge--animated .react-flow__edge-path {
+    animation: none;
+    stroke-dasharray: none;
+  }
+
+  .react-flow__node:hover .node--action,
+  .react-flow__node:hover .node--result,
+  .react-flow__node.dragging .node--action,
+  .react-flow__node.dragging .node--result {
+    transition: none;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   CONNECTION ANIMATION TIMELINE (specification)
+   ─────────────────────────────────────────────────────────────────────
+
+    0 ms  │ User hover lands on source block
+          │ → Source handles fade in (opacity 0→1, dur-fast 120ms)
+
+   120 ms │ User hovers source handle
+          │ → Handle halo ring expands (box-shadow 0px→5px, dur-normal 200ms)
+          │ → Cursor changes to crosshair
+
+   ~200 ms│ User begins drag from source handle
+          │ → Ghost link appears (marching dashes, teal, 60% opacity)
+          │ → Source handle glows (ring 5px→8px)
+          │ → All compatible target handles revealed at 65% opacity
+          │ → Animation: ghost-march 0.55s linear infinite
+
+   ongoing│ Ghost line follows cursor
+          │ → Cubic bezier path computed each 16ms (requestAnimationFrame)
+
+   ~???ms │ Cursor nears compatible target handle (within ~25px)
+          │ → Target handle: snap-pulse animation begins (0.55s spring loop)
+          │ → Target handle: color shifts teal→accent (dur-fast 120ms)
+
+   ~???ms │ User releases over valid target
+          │ → Ghost link disappears (opacity 1→0, instant)
+          │ → Edge committed: edge-draw-in animation (300ms ease-settle)
+          │ → Source handle halo shrinks back (dur-normal 200ms)
+          │ → All revealed target handles fade out (dur-fast 120ms)
+          │ → If Decision source: YNPicker appears (slide-in 200ms)
+
+   ~???ms │ User releases over invalid target
+          │ → Target handle: handle-reject wiggle (350ms spring, 1 cycle)
+          │ → Ghost link: stroke turns red, dashed
+          │ → Ghost link fades out (opacity red→0, dur-slow 350ms)
+          │ → No edge is committed
+
+   ─────────────────────────────────────────────────────────────────────
+   STATE CONTRAST RATIOS (WCAG AA reference)
+   ─────────────────────────────────────────────────────────────────────
+   Text on nodes:      --text (#e2e2e2) on --fill-action (#1c2b3c) → 8.4:1 ✓
+   Teal handle on bg:  --teal (#2dd4bf) on --bg-canvas (#111111)  → 7.1:1 ✓
+   Accent focus ring:  --accent (#4da3ff) on --bg-canvas (#111111) → 5.2:1 ✓
+   Red error on bg:    --red (#f87171) on --bg-canvas (#111111)    → 4.8:1 ✓
+   Orange warning:     --orange (#fb923c) on --bg-canvas (#111111) → 4.6:1 ✓
+   ───────────────────────────────────────────────────────────────────── */

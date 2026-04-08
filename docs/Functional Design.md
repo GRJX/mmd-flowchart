@@ -355,18 +355,27 @@ User drags a block type from the right panel onto the canvas. A ghost/preview of
 **Method 2 — Click in palette:**  
 User clicks a block in the palette. The block is added to the **center of the visible canvas area**. A connection dot immediately appears on the block to indicate it is ready to connect.
 
-**Method 3 — Contextual Predictive Creation (quick-add):**  
-This is the fastest way to extend a workflow. It collapses the traditional 7-step manual process (find → drag → drop → aim → click → drag → connect) into 3 clicks:
+**Method 3 — Node Add Stem (primary sequential workflow):**  
+This is the fastest way to extend an activity diagram. Every block except **End** displays a permanently-visible stem:
+- A short line extending from the **bottom** connection point (all blocks).
+- A second line extending from the **right** connection point on **Decision** blocks only (Y-path).
+- A **`+` circle button** at the tip of each stem.
 
-1. **Intent detection** — Hover over any source-capable block. A small **`+` button** appears next to each active connection handle on the block's edge.
-2. **Modal injection** — Click the `+` button. A **Quick Add** menu opens inline at the click position, offering selectable block types (Action, Decision, Result, End) with a short description of each.
-3. **Automated bridging** — Select a block type. The system automatically:
-   - Computes a placement position 240 px to the right of the source block (snapped to the 16 px grid), shifting downward in 128 px increments if the slot is occupied by an existing block.
-   - Creates the new block at that position.
-   - Draws a `default` connection from the source block to the new block.
-   - Pushes a single undoable entry for the combined operation.
+On click, a **radial fan menu** opens, radiating outward below the click position with four options (Action, Decision, Result, End) — each option rendered as a mini shape matching the real block (rounded rectangle, diamond, teal-bordered rectangle, circle).
 
-**Accessibility:** The `+` button and Quick Add menu are fully keyboard navigable. `Escape` closes the menu without creating a node.
+The stem is always visible; it disappears only when the port's output limit is reached (node is fully connected on that exit).
+
+For Decision blocks:
+- Right stem → creates the **Y (yes)** path; disappears once Y is connected.
+- Bottom stem → creates the **N (no)** path; disappears once N is connected.
+
+Placement rules:
+- Bottom stem: new node placed 240 px **below** the source (snapped to 16 px grid).
+- Right stem: new node placed 240 px **to the right** of the source.
+- Collision avoidance shifts in the perpendicular axis by 128 px increments (up to 8 attempts).
+- A single undoable entry is pushed for the combined add + connect operation.
+
+**Accessibility:** The `+` button is keyboard-focusable. `Escape` closes the fan menu without creating a node.
 
 ### 8.2 Selecting Blocks
 
@@ -423,11 +432,11 @@ Selected blocks can be moved as a group. Connections between selected blocks mov
 
 ### 9.1 Creating Connections
 
-**Step 1:** Hover over any block on the canvas. A connection point (small circle) appears on each edge of the block (top, right, bottom, left).
+**Step 1:** Hover over any block on the canvas. A connection point (small hollow teal ring for source / small accent-colored dot for target) appears on each edge of the block (top, right, bottom, left). Handles are **hidden at rest** and only appear on hover — they do not affect layout.
 
-**Step 2:** Hover over a connection point. The point **changes colour** to indicate it is active (e.g., from muted grey to the accent colour). The icon does **not** grow or scale on hover — size must remain constant. This prevents visual clutter and avoids unintentional layout shifts when the cursor approaches multiple nearby handles.
+**Step 2:** Hover over a connection point. The point fills in to indicate it is active. The icon does **not** grow or scale on hover — size must remain constant to prevent layout shifts.
 
-**Step 3:** Click the connection point and **drag** toward the target block (or simply **click** the source point and then **click** the target point — both interaction modes are supported). A **teal** preview line follows the cursor during drag, matching the colour of committed connection lines.
+**Step 3:** Click the connection point and **drag** toward the target block (or **click** source then **click** target). A preview line with marching dashes follows the cursor during drag.
 
 **Step 4:** Release (or click) over a target block or its connection point. A connection is created.
 
