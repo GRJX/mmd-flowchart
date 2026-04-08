@@ -64,8 +64,8 @@ function snapToGrid(pos: { x: number; y: number }): { x: number; y: number } {
 
 /** Default dimensions per block type. */
 const DEFAULT_NODE_DIMS: Record<BlockType, { width: number; height: number }> = {
-  start:    { width: 120, height: 52  },
-  end:      { width: 120, height: 52  },
+  start:    { width: 52,  height: 52  },
+  end:      { width: 52,  height: 52  },
   action:   { width: 120, height: 88  },
   result:   { width: 120, height: 88  },
   decision: { width: 120, height: 88  },

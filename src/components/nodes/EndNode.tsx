@@ -38,7 +38,7 @@ export function EndNode({ id, data, selected }: NodeProps) {
         )}
       </div>
       {/* End can only be a target — never a connection source (§9.1) */}
-      <ConnectionHandles canBeSource={false} canBeTarget={canBeTarget} nodeType="circle" />
+      <ConnectionHandles canBeSource={false} canBeTarget={canBeTarget} />
       <CommentDot blockId={id} count={comments.length} />
     </div>
   )

@@ -950,10 +950,12 @@ body {
 /* ── Start node ───────────────────────────────────── */
 
 .node--start {
-  width: 120px;
+  width: 52px;
   height: 52px;
   background: transparent;
   border: none;
+  border-radius: 50%;
+  overflow: visible;
 }
 
 .node--start__circle {
@@ -975,10 +977,12 @@ body {
 /* ── End node ─────────────────────────────────────── */
 
 .node--end {
-  width: 120px;
+  width: 52px;
   height: 52px;
   background: transparent;
   border: none;
+  border-radius: 50%;
+  overflow: visible;
 }
 
 .node--end__circle {
