@@ -20,6 +20,28 @@ export interface Block {
   comments: Comment[];
 }
 
+// ── Node render data (passed through ReactFlow node.data) ─────────────────────
+
+export interface NodeData extends Record<string, unknown> {
+  label: string
+  comments: unknown[]
+  dataField: string | null
+  expectedOutcome: string | null
+  canBeSource: boolean
+  canBeTarget: boolean
+  canAddNewSource: boolean
+  canAddNewTarget: boolean
+  hasViolation: boolean
+  /** Non-decision blocks: whether the bottom-src handle is already in use. */
+  hasBottomConnection: boolean
+  /** Decision blocks: whether the Y (yes) path is connected. */
+  hasYConnection: boolean
+  /** Decision blocks: whether the N (no) path is connected. */
+  hasNConnection: boolean
+  /** True only on the transient drag-preview ghost node. */
+  isDragPreview?: boolean
+}
+
 // ── Connection ────────────────────────────────────────────────────────────────
 
 export type ConnectionType = "default" | "yes" | "no";
@@ -31,6 +53,8 @@ export interface Connection {
   type: ConnectionType;
   waypoints: Array<{ x: number; y: number }>;
   dataField: string | null; // test data / preconditions for this path
+  sourceHandle?: string; // handle ID used as source (e.g. 'bottom-src', 'left-src')
+  targetHandle?: string; // handle ID used as target (e.g. 'top-tgt', 'right-tgt')
 }
 
 // ── Diagram file ──────────────────────────────────────────────────────────────

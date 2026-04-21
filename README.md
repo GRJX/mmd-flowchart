@@ -1,75 +1,103 @@
 # MMD Flowchart Editor
 
-A browser-based Mermaid flowchart editor with a React + TypeScript frontend.
+Een browser-gebaseerde WYSIWYG editor voor het maken en bewerken van Mermaid-flowcharts (`.mmd`-bestanden). Diagrammen worden opgeslagen als leesbare tekstbestanden, direct in een lokale map op schijf.
 
-> **Browser Compatibility:** Chrome / Chromium only.  
-> The File System Access API used for folder management is not supported in Firefox or Safari.
+> **Browser:** Chrome / Chromium vereist — de File System Access API wordt niet ondersteund in Firefox of Safari.
 
 ---
 
-## Development
+## Installatie & starten
 
 ```bash
 npm install
 npm run dev
 ```
 
-The dev server starts at `http://localhost:5173`.
+Beschikbaar op `http://localhost:5173`.
 
-## Production Build
+## Productie build
 
 ```bash
-npm run build
+npm run build        # output naar /dist
+npm run preview      # lokale preview van de productie-build
 ```
-
-Static assets are output to `/dist`.
 
 ## Docker
 
-Build and run the production image:
+```bash
+# Build
+docker build -t mmd-flowchart .
+
+# Run
+docker run -p 3100:80 mmd-flowchart
+```
+
+Of via Docker Compose:
 
 ```bash
-docker build -t mmd-flowchart-editor .
-docker run -p 3000:80 mmd-flowchart-editor
+docker compose up -d
 ```
 
-Open `http://localhost:3000` in Chrome.
+Open `http://localhost:3100` in Chrome.
 
-## Tech Stack
+---
 
-| Tool | Version |
-|---|---|
-| React | 18 |
-| TypeScript | ~5.7 |
-| Vite | ^6 |
-| Tailwind CSS | ^3 |
-| @xyflow/react | ^12 |
-| Zustand | ^5 |
-| Lucide React | ^0.511 |
-| Mermaid | ^10.9.5 |
+## Hoe de app werkt
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Toolbar  (opslaan · nieuw · exporteren · zoom · undo/redo · thema) │
+├──────────────┬──────────────────────────────┬───────────────────┤
+│              │                              │                   │
+│  Sidebar     │   Canvas (React Flow)        │  Right panel      │
+│              │                              │                   │
+│  Mappenpad   │   Nodes (blokken)            │  Blok-palette     │
+│  ├ map/      │   Edges (verbindingen)       │  Blok-properties  │
+│  │ ├ a.mmd   │   Grid 16px                  │  Verbinding-props │
+│  │ └ b.mmd   │   Quick-add stems (+)        │  Commentaar       │
+│  └ c.mmd     │   QuickAdd-menu (radiaal)    │                   │
+│              │   YN-picker (beslissing)     │                   │
+└──────────────┴──────────────────────────────┴───────────────────┘
+```
+
+**Dataflow:**
 
 ```mermaid
-graph TD
-    %% Nodes
-    A([Start])
-    B[Initialize Workflow]
-    C{Check Condition}
-    D[Path A Action]
-    E[Path B Action]
-    F[Process Results]
-    G([End])
+sequenceDiagram
+    participant Schijf as Schijf (.mmd)
+    participant Parser as parseMmd()
+    participant Store as Zustand Store
+    participant RF as React Flow Canvas
+    participant Serial as serializeDiagram()
 
-    %% Assign styles
-    class A,G startend;
-    class B,D,E,F action;
-    class C decision;
-
-    %% Connections/Flow
-    A --> B
-    B --> C
-    C -- "Condition Met" --> D
-    C -- "Condition Not Met" --> E
-    D --> F
-    E --> F
-    F --> G
+    Schijf->>Parser: lees bestandsinhoud
+    Parser->>Store: blocks Map + connections Map + metadata
+    Store->>RF: diagramToRFNodes() → nodes & edges
+    RF->>RF: render · drag & drop · interactie
+    RF->>Store: wijziging (addBlock, addConnection, …)
+    Store->>Serial: huidige diagram-state
+    Serial->>Schijf: Mermaid-syntax + metadata (auto-save 2s)
 ```
+
+---
+
+## Tech stack
+
+| Tool | Versie | Rol |
+|---|---|---|
+| React | 18 | UI framework |
+| TypeScript | ~5.7 | Statische typering |
+| Vite | ^6 | Build tool & dev server |
+| @xyflow/react | ^12 | Canvas, drag & drop, selectie |
+| Zustand | ^5 | State management |
+| Tailwind CSS | ^3 | Utility-first CSS (basis) |
+| Lucide React | ^0.511 | Iconen |
+| Mermaid | ^10.9.5 | Read-only preview voor niet-ondersteunde diagrammen |
+| html-to-image | ^1.11 | PNG/SVG export |
+
+---
+
+## Documentatie
+
+- [FO.md](FO.md) — gedetailleerde functionele beschrijving van alle features, bloktypen, verbindingsregels en interacties.
+- [USERFLOWS.md](USERFLOWS.md) — stapsgewijze user flows als Mermaid-diagrammen (nieuw diagram, nodes toevoegen, verwijderen, opslaan, exporteren, etc.).

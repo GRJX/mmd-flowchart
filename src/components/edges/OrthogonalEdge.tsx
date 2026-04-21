@@ -152,22 +152,27 @@ export function OrthogonalEdge({
         </EdgeLabelRenderer>
       )}
 
-      {/* Midpoint waypoint drag handle */}
+      {/* Midpoint waypoint drag handle.
+          Outer div owns the translate so CSS :hover scale on the inner div
+          cannot clobber the position transform. */}
       {showHandle && (
         <EdgeLabelRenderer>
           <div
-            className={`edge-waypoint-handle${dragging ? ' edge-waypoint-handle--dragging' : ''}`}
-            title="Drag to add a bend"
             style={{
               transform: `translate(-50%, -50%) translate(${handleX}px,${handleY}px)`,
               position: 'absolute',
-              pointerEvents: 'all',
-              cursor: dragging ? 'grabbing' : 'grab',
+              pointerEvents: 'none',
             }}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-          />
+          >
+            <div
+              className={`edge-waypoint-handle${dragging ? ' edge-waypoint-handle--dragging' : ''}`}
+              title="Drag to add a bend"
+              style={{ pointerEvents: 'all', cursor: dragging ? 'grabbing' : 'grab' }}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+            />
+          </div>
         </EdgeLabelRenderer>
       )}
     </>

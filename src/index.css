@@ -843,14 +843,6 @@ body {
   outline: none;
 }
 
-/* ── Drop ghost (palette → canvas drag preview) ───── */
-.drop-ghost-overlay {
-  pointer-events: none;
-  opacity: 0.6;
-  z-index: 10;
-  cursor: default !important;
-}
-
 /* Override React Flow canvas background to use our token */
 .react-flow {
   background-color: var(--bg-canvas);
@@ -869,14 +861,6 @@ body {
 }
 
 /* Edge default style — colors handled via --edge-color on .react-flow */
-
-/* Direct overrides ensure visibility regardless of CSS load order.
-   Two-class specificity beats RF's single-class .react-flow__edge-path rule. */
-.react-flow__edge .react-flow__edge-path {
-  stroke: var(--edge-color);
-  stroke-width: 2;
-  fill: none;
-}
 
 .react-flow__edge.selected .react-flow__edge-path,
 .react-flow__edge:focus .react-flow__edge-path {
@@ -908,6 +892,7 @@ body {
   box-sizing: border-box;
   cursor: grab;
   overflow: visible;
+  position: relative;
   /* Smooth selected ring */
   transition:
     box-shadow 0.15s ease,
@@ -927,6 +912,12 @@ body {
   padding: 0 8px;
   word-break: break-word;
   overflow-wrap: break-word;
+}
+
+/* Prevents single words like "Start" / "End" from wrapping inside their circle */
+.node-label--nowrap {
+  white-space: nowrap;
+  padding: 0 4px;
 }
 
 .node-label-input {
@@ -949,18 +940,18 @@ body {
 
 /* ── Start node ───────────────────────────────────── */
 
+/* Root wrapper: grows downward to include the stem */
 .node--start {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  flex-direction: column;
+  align-items: center;
   background: transparent;
   border: none;
-  border-radius: 50%;
-  overflow: visible;
 }
 
 .node--start__circle {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   border: 2px solid var(--teal);
   background: var(--fill-start);
@@ -971,23 +962,22 @@ body {
 }
 
 .node--start.node--selected .node--start__circle {
-  box-shadow: 0 0 0 2px var(--teal), 0 0 12px rgba(45, 212, 191, 0.25);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 8px rgba(77, 163, 255, 0.35);
 }
 
 /* ── End node ─────────────────────────────────────── */
 
 .node--end {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  flex-direction: column;
+  align-items: center;
   background: transparent;
   border: none;
-  border-radius: 50%;
-  overflow: visible;
 }
 
 .node--end__circle {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   border: 2px solid var(--red);
   background: var(--fill-end);
@@ -998,32 +988,56 @@ body {
 }
 
 .node--end.node--selected .node--end__circle {
-  box-shadow: 0 0 0 2px var(--red), 0 0 12px rgba(248, 113, 113, 0.25);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 8px rgba(77, 163, 255, 0.35);
 }
 
 /* ── Action node ──────────────────────────────────── */
 
+/* Root wrapper: grows downward to include the stem */
+.node--action-wrap {
+  flex-direction: column;
+  align-items: center;
+  background: transparent;
+  border: none;
+}
+
+/* Visual shape only — selection ring lives here */
 .node--action {
-  width: 120px;
-  height: 88px;
+  width: 128px;
+  height: 96px;
   border-radius: 8px;
-  border: 1.5px solid var(--border-hi);
+  border: 2px solid var(--accent);
   background: var(--fill-action);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .node--action.node--selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 8px rgba(77, 163, 255, 0.35);
 }
 
 /* ── Decision node (diamond) ──────────────────────── */
 
-.node--decision {
-  width: 120px;
-  height: 88px;
-  position: relative;
+/* Root wrapper: padding grows to include stem areas */
+.node--decision-wrap {
   background: transparent;
   border: none;
+  position: relative;
+  /* Diamond stays at top-left; padding area is reserved for the stems */
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+/* Visual shape — always 128×96, pinned to top-left of wrapper */
+.node--decision {
+  width: 128px;
+  height: 96px;
+  position: relative; /* ensures CommentDot and ::before/::after position relative to diamond */
+  background: transparent;
+  border: none;
+  flex-shrink: 0;
 }
 
 /* Border layer — full container, clipped to diamond */
@@ -1048,12 +1062,9 @@ body {
   z-index: 1;
 }
 
-.node--decision.node--selected::before {
-  background: var(--accent);
-}
-
-.node--decision.node--selected .node-decision-shape {
-  box-shadow: none;
+/* Selection ring: drop-shadow follows the diamond alpha mask through clip-path */
+.node--decision.node--selected {
+  filter: drop-shadow(0 0 0 2px var(--accent)) drop-shadow(0 0 4px rgba(77, 163, 255, 0.45));
 }
 
 .node-decision-content {
@@ -1068,19 +1079,29 @@ body {
 
 /* ── Result node ──────────────────────────────────── */
 
+/* Root wrapper: grows downward to include the stem */
+.node--result-wrap {
+  flex-direction: column;
+  align-items: center;
+  background: transparent;
+  border: none;
+}
+
+/* Visual shape only — selection ring lives here */
 .node--result {
-  width: 120px;
-  height: 88px;
+  width: 128px;
+  height: 96px;
   border-radius: 8px;
-  border: 1.5px solid var(--border-hi);
-  border-left: 4px solid var(--teal);
+  border: 2px solid var(--teal);
   background: var(--fill-result);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .node--result.node--selected {
-  border-color: var(--border-hi);
-  border-left-color: var(--teal);
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 8px rgba(45, 212, 191, 0.35);
 }
 
 /* ── Right panel (palette & properties) ──────────── */
@@ -1220,7 +1241,7 @@ body {
   background-color: transparent !important;
   border: 2px solid var(--teal) !important;
   border-radius: 50% !important;
-  opacity: 0;
+  opacity: 0; /* Hover-only visibility */
   transition:
     opacity var(--dur-fast, 120ms) var(--ease-smooth, ease),
     background-color var(--dur-fast, 120ms) var(--ease-smooth, ease),
@@ -1228,33 +1249,27 @@ body {
   z-index: 10;
 }
 
-/* Show handles on node hover */
+/* Remove default React Flow node shadow */
+.react-flow__node {
+  box-shadow: none !important;
+}
+
+/* Show all handles on node hover */
 .react-flow__node:hover .conn-handle {
   opacity: 1 !important;
 }
 
-/* Fill on direct hover */
+/* Fill on direct hover — same ring, highlight colour */
 .conn-handle:hover {
   opacity: 1;
   background-color: var(--teal) !important;
   border-color: var(--teal) !important;
 }
 
-/* Target handles: small solid accent dot (simpler than chevrons) */
-.conn-handle--target {
-  background-color: var(--accent) !important;
-  border: none !important;
-  border-radius: 50% !important;
-  width: 8px !important;
-  height: 8px !important;
-  min-width: 8px !important;
-  min-height: 8px !important;
-  clip-path: none !important;
-}
-
-/* While a connection is being dragged, show all target handles */
-.react-flow__handle.connectionindicator.conn-handle--target {
-  opacity: 0.7;
+/* While a connection is being dragged, light up valid handles as solid rings */
+.react-flow__handle.connectionindicator.conn-handle {
+  opacity: 0.85 !important;
+  background-color: var(--teal) !important;
 }
 
 /* ── NodeResizer handles ──────────────────────────────────────
@@ -1334,26 +1349,17 @@ body {
   border-color: var(--red);
 }
 
-/* ── Decision node incomplete (missing Y or N path) ─────────── */
-
-.node--decision.node--incomplete::before {
-  background: var(--orange);
-}
-
 /* ── Connection limit violation (too many connections from loaded file) ─ */
 
-.node--start.node--violation,
-.node--end.node--violation,
+/* Action / Result: override the semantic border with orange */
 .node--action.node--violation,
 .node--result.node--violation {
   border-color: var(--orange) !important;
   box-shadow: 0 0 8px rgba(251, 146, 60, 0.3);
 }
 
-.node--decision.node--violation .node-decision-shape {
-  border-color: var(--orange) !important;
-  box-shadow: 0 0 8px rgba(251, 146, 60, 0.3);
-}
+/* Start / End violation: handled via circle box-shadow in node-link-design-system.css */
+/* Decision violation: handled via ::before background in node-link-design-system.css */
 
 /* ── Y/N Picker overlay ─────────────────────────────────────── */
 
@@ -1648,19 +1654,6 @@ body {
   border-color: var(--accent);
 }
 
-.prop-incomplete-warning {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 4px 16px 0;
-  padding: 6px 10px;
-  background: rgba(249, 115, 22, 0.1);
-  border: 1px solid rgba(249, 115, 22, 0.3);
-  border-radius: 6px;
-  color: var(--orange, #f97316);
-  font-size: 11px;
-  font-weight: 500;
-}
 
 .prop-actions {
   display: flex;
@@ -1863,42 +1856,49 @@ body {
 }
 
 .node-add-stem {
-  position: absolute;
   pointer-events: none;
   z-index: 5;
 }
 
+/* Default: absolute positioning (used by Decision wrapper) */
+.node-add-stem:not(.node-add-stem--inline) {
+  position: absolute;
+}
+
 .node-add-stem--bottom {
-  left: 50%;
-  top: 100%;
-  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
+/* Inline: in normal document flow (used by Start / Action / Result wrappers) */
+.node-add-stem--bottom.node-add-stem--inline {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
+}
+
 .node-add-stem--right {
-  top: 50%;
-  left: 100%;
-  transform: translateY(-50%);
   display: flex;
   flex-direction: row;
   align-items: center;
 }
 
 .node-add-stem__line {
-  background: var(--border-hi);
+  background: var(--edge-color);
   flex-shrink: 0;
+  position: relative;
 }
 
 .node-add-stem--bottom .node-add-stem__line {
   width: 2px;
-  height: 40px;
+  height: 32px;
 }
 
 .node-add-stem--right .node-add-stem__line {
   height: 2px;
-  width: 40px;
+  width: 32px;
 }
 
 .node-add-btn {
@@ -1906,9 +1906,9 @@ body {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 2px solid var(--border-hi);
+  border: 2px solid var(--edge-color);
   background: var(--bg-panel);
-  color: var(--text-muted);
+  color: var(--edge-color);
   display: flex;
   align-items: center;
   justify-content: center;

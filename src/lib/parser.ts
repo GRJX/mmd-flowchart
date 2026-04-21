@@ -34,7 +34,12 @@ interface MetadataV1 {
   meta: Record<string, MetadataV1BlockMeta>;
   connections?: Record<
     string,
-    { waypoints?: Array<{ x: number; y: number }>; dataField?: string | null }
+    {
+      waypoints?: Array<{ x: number; y: number }>;
+      dataField?: string | null;
+      sourceHandle?: string;
+      targetHandle?: string;
+    }
   >;
 }
 
@@ -326,6 +331,7 @@ export function parseMmd(text: string): ParseResult {
     const waypoints = connMeta[metaKey]?.waypoints ?? [];
     const connDataField = connMeta[metaKey]?.dataField ?? null;
 
+    const meta = connMeta[metaKey]
     connections.set(id, {
       id,
       sourceId,
@@ -333,6 +339,8 @@ export function parseMmd(text: string): ParseResult {
       type,
       waypoints,
       dataField: connDataField,
+      ...(meta?.sourceHandle ? { sourceHandle: meta.sourceHandle } : {}),
+      ...(meta?.targetHandle ? { targetHandle: meta.targetHandle } : {}),
     });
   }
 

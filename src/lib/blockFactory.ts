@@ -1,52 +1,53 @@
-import type { Block, BlockType } from "../types/diagram";
+import type { Block, BlockType, Connection } from '../types/diagram'
+import { BLOCK_CONFIG } from './blockConfig'
 
-// ── Connection limits per block type (shared by canvas + store) ───────────────
+// ── Connection limit helpers ──────────────────────────────────────────────────
 
-export const MAX_INPUTS: Record<BlockType, number> = {
-  start: 0,
-  end: Infinity,
-  action: 1,
-  result: 1,
-  decision: 1,
-};
+export function canAddOutput(
+  connections: Map<string, Connection>,
+  sourceId: string,
+  sourceType: BlockType,
+): boolean {
+  const count = Array.from(connections.values()).filter(c => c.sourceId === sourceId).length
+  return count < BLOCK_CONFIG[sourceType].maxOutputs
+}
 
-export const MAX_OUTPUTS: Record<BlockType, number> = {
-  start: 1,
-  end: 0,
-  action: 1,
-  result: 1,
-  decision: 2,
-};
+export function canAcceptInput(
+  connections: Map<string, Connection>,
+  targetId: string,
+  targetType: BlockType,
+): boolean {
+  const count = Array.from(connections.values()).filter(c => c.targetId === targetId).length
+  return count < BLOCK_CONFIG[targetType].maxInputs
+}
 
-const BLOCK_PREFIXES: Record<BlockType, string> = {
-  start: "S",
-  end: "E",
-  action: "A",
-  decision: "D",
-  result: "R",
-};
+/** Returns which Y/N slots a Decision node already has filled. */
+export function decisionSlotsUsed(
+  connections: Map<string, Connection>,
+  sourceId: string,
+): { yes: boolean; no: boolean } {
+  let yes = false
+  let no = false
+  for (const c of connections.values()) {
+    if (c.sourceId !== sourceId) continue
+    if (c.type === 'yes') yes = true
+    if (c.type === 'no')  no  = true
+  }
+  return { yes, no }
+}
 
-const BLOCK_DEFAULTS: Record<BlockType, string> = {
-  start: "Start",
-  end: "End",
-  action: "Action/State",
-  decision: "Condition?",
-  result: "Result",
-};
+// ── Block creation ────────────────────────────────────────────────────────────
 
 /**
  * Generate a stable, human-readable ID for a new block of the given type.
- * Start block is always 'S'. Others increment: E1, E2, A1, A2, D1, ...
+ * Start is always 'S'. Others increment: E1, E2, A1, A2, D1, …
  */
-export function generateBlockId(
-  type: BlockType,
-  existing: Map<string, Block>,
-): string {
-  if (type === "start") return "S";
-  const prefix = BLOCK_PREFIXES[type];
-  let n = 1;
-  while (existing.has(`${prefix}${n}`)) n++;
-  return `${prefix}${n}`;
+export function generateBlockId(type: BlockType, existing: Map<string, Block>): string {
+  if (type === 'start') return 'S'
+  const { prefix } = BLOCK_CONFIG[type]
+  let n = 1
+  while (existing.has(`${prefix}${n}`)) n++
+  return `${prefix}${n}`
 }
 
 /**
@@ -59,12 +60,12 @@ export function createBlock(
   existing: Map<string, Block>,
 ): Block {
   return {
-    id: generateBlockId(type, existing),
+    id:              generateBlockId(type, existing),
     type,
-    label: BLOCK_DEFAULTS[type],
+    label:           BLOCK_CONFIG[type].defaultLabel,
     position,
-    dataField: null,
+    dataField:       null,
     expectedOutcome: null,
-    comments: [],
-  };
+    comments:        [],
+  }
 }

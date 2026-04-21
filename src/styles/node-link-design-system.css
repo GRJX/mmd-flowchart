@@ -20,7 +20,6 @@
    ───────────────────────
    Node:    default → hover → [active|dragging]
                      ↘ linked (has ≥1 connection)
-                     ↘ incomplete (decision missing Y or N)
                      ↘ violation (over connection limit)
                      ↘ compact (user-collapsed)
 
@@ -104,33 +103,11 @@
 /* React Flow wraps each node in .react-flow__node which receives :hover.
    We cast elevation onto the inner .node—* shape layer. */
 
-/* Action & Result nodes */
+/* All nodes — uniform brightness lift on hover */
 .react-flow__node:not(.dragging):hover .node--action,
-.react-flow__node:not(.dragging):hover .node--result {
-  box-shadow: var(--shadow-node-hover);
-  border-color: var(--border-hi);
-  transition:
-    box-shadow var(--dur-normal) var(--ease-settle),
-    border-color var(--dur-fast)  var(--ease-smooth);
-}
-
-/* Start node — glow around the circle shape */
-.react-flow__node:not(.dragging):hover .node--start .node--start__circle {
-  box-shadow:
-    var(--shadow-node-hover),
-    0 0 0 2px rgba(45, 212, 191, 0.25);
-  transition: box-shadow var(--dur-normal) var(--ease-settle);
-}
-
-/* End node */
-.react-flow__node:not(.dragging):hover .node--end .node--end__circle {
-  box-shadow:
-    var(--shadow-node-hover),
-    0 0 0 2px rgba(248, 113, 113, 0.20);
-  transition: box-shadow var(--dur-normal) var(--ease-settle);
-}
-
-/* Decision node — glow on the ::before border layer */
+.react-flow__node:not(.dragging):hover .node--result,
+.react-flow__node:not(.dragging):hover .node--start,
+.react-flow__node:not(.dragging):hover .node--end,
 .react-flow__node:not(.dragging):hover .node--decision {
   filter: brightness(1.08);
   transition: filter var(--dur-normal) var(--ease-smooth);
@@ -145,21 +122,9 @@
    ───────────────────────────────────────────────────────────────────── */
 
 .react-flow__node.dragging .node--action,
-.react-flow__node.dragging .node--result {
-  box-shadow: var(--shadow-node-raised);
-  opacity: 0.88;
-  border-color: var(--accent);
-  transition:
-    box-shadow var(--dur-fast) var(--ease-settle),
-    opacity    var(--dur-fast) var(--ease-smooth);
-}
-
-.react-flow__node.dragging .node--start .node--start__circle,
-.react-flow__node.dragging .node--end   .node--end__circle {
-  box-shadow: var(--shadow-node-raised);
-  opacity: 0.88;
-}
-
+.react-flow__node.dragging .node--result,
+.react-flow__node.dragging .node--start,
+.react-flow__node.dragging .node--end,
 .react-flow__node.dragging .node--decision {
   filter: brightness(1.12);
   opacity: 0.88;
@@ -175,8 +140,7 @@
    §4  NODE LINKED STATE
    A node that already has ≥1 connection receives `.node--linked` from
    diagramToRFNodes (implementation note: add this class when inCount>0
-   or outCount>0). Until then, the Decision node's `node--incomplete`
-   class provides partial coverage.
+   or outCount>0).
    ───────────────────────────────────────────────────────────────────── */
 
 /* Start/Result nodes: teal-tinted glow (output only, teal brand) */
@@ -581,9 +545,8 @@
   box-shadow: 0 0 0 3px var(--accent);
 }
 
-.react-flow__node:focus-visible .node--decision::before {
-  outline:        3px solid var(--accent);
-  outline-offset: 3px;
+.react-flow__node:focus-visible .node--decision {
+  filter: drop-shadow(0 0 0 3px var(--accent)) drop-shadow(0 0 5px rgba(77, 163, 255, 0.45));
 }
 
 /*   Touch targets

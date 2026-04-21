@@ -1,61 +1,27 @@
-import { useState, useRef, useCallback } from 'react'
 import type { NodeProps } from '@xyflow/react'
-import { useAppStore } from '../../store/useAppStore'
 import { ConnectionHandles } from './ConnectionHandles'
 import { CommentDot } from './CommentDot'
 import { NodeAddStem } from './NodeAddStem'
+import { useNodeData } from './nodeHelpers'
 
 export function StartNode({ id, data, selected }: NodeProps) {
-  const d = data as { comments?: unknown[]; canBeSource?: boolean; hasViolation?: boolean }
-  const comments = d.comments ?? []
-  const canBeSource = d.canBeSource ?? true
-  const hasViolation = d.hasViolation ?? false
-  // Start block label is always "Start" — non-editable per spec §7.1
+  const { comments, canBeSource, hasViolation, hasBottomConnection } = useNodeData(data)
+  const showStem = canBeSource && !hasBottomConnection
+
   return (
+    // The root div grows to include the stem so the source handle lands at its tip.
+    // When the stem is absent the root shrinks back to the circle dimensions.
     <div className={`node node--start ${selected ? 'node--selected' : ''} ${hasViolation ? 'node--violation' : ''}`}>
       <div className="node--start__circle">
-        <span className="node-label">Start</span>
+        <span className="node-label node-label--nowrap">Start</span>
       </div>
-      {/* Start can only be a source — never a connection target (§9.1) */}
-      <ConnectionHandles canBeSource={canBeSource} canBeTarget={false} />
+      {showStem && <NodeAddStem nodeId={id} direction="bottom" inline />}
+      {/* Source handle only while the stem is visible; positioned at the stem tip */}
+      <ConnectionHandles
+        sources={showStem ? ['bottom'] : []}
+        targets={[]}
+      />
       <CommentDot blockId={id} count={comments.length} />
-      {canBeSource && <NodeAddStem nodeId={id} direction="bottom" />}
     </div>
   )
-}
-
-// ── Shared inline-edit hook used by editable node types ───────────────────────
-
-export interface UseInlineEditOptions {
-  id: string
-  initialLabel: string
-}
-
-export function useInlineEdit({ id, initialLabel }: UseInlineEditOptions) {
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(initialLabel)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const updateBlockLabel = useAppStore((s) => s.updateBlockLabel)
-
-  const startEdit = useCallback(() => {
-    setDraft(initialLabel)
-    setEditing(true)
-    // Focus input after next paint
-    requestAnimationFrame(() => inputRef.current?.select())
-  }, [initialLabel])
-
-  const commitEdit = useCallback(() => {
-    setEditing(false)
-    const trimmed = draft.trim()
-    if (trimmed && trimmed !== initialLabel) {
-      updateBlockLabel(id, trimmed)
-    }
-  }, [draft, id, initialLabel, updateBlockLabel])
-
-  const cancelEdit = useCallback(() => {
-    setEditing(false)
-    setDraft(initialLabel)
-  }, [initialLabel])
-
-  return { editing, draft, setDraft, startEdit, commitEdit, cancelEdit, inputRef }
 }

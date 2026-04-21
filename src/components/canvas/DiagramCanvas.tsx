@@ -9,18 +9,22 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
   SelectionMode,
+  ConnectionMode,
   MarkerType,
+  getSmoothStepPath,
   type Node as RFNode,
   type Edge as RFEdge,
   type NodeChange,
   type EdgeChange,
   type OnSelectionChangeParams,
   type ReactFlowInstance,
+  type ConnectionLineComponentProps,
 } from '@xyflow/react'
 import { useAppStore } from '../../store/useAppStore'
 import { getDragBlockType, setDragBlockType } from '../../lib/dragState'
-import { MAX_INPUTS, MAX_OUTPUTS } from '../../lib/blockFactory'
-import type { Block, BlockType, DiagramFile } from '../../types/diagram'
+import { canAddOutput, canAcceptInput, decisionSlotsUsed } from '../../lib/blockFactory'
+import { BLOCK_CONFIG } from '../../lib/blockConfig'
+import type { Block, BlockType, DiagramFile, NodeData } from '../../types/diagram'
 import { StartNode } from '../nodes/StartNode'
 import { EndNode } from '../nodes/EndNode'
 import { ActionNode } from '../nodes/ActionNode'
@@ -62,46 +66,21 @@ function snapToGrid(pos: { x: number; y: number }): { x: number; y: number } {
 
 // ── Node / edge converters ────────────────────────────────────────────────────
 
-/** Default dimensions per block type. */
-const DEFAULT_NODE_DIMS: Record<BlockType, { width: number; height: number }> = {
-  start:    { width: 52,  height: 52  },
-  end:      { width: 52,  height: 52  },
-  action:   { width: 120, height: 88  },
-  result:   { width: 120, height: 88  },
-  decision: { width: 120, height: 88  },
-}
-
 /** Convert Block dimensions per type, used for React Flow width/height hints */
 function getNodeDimensions(block: Block): { width: number; height: number } {
   if (block.width != null && block.height != null) {
     return { width: block.width, height: block.height }
   }
-  return DEFAULT_NODE_DIMS[block.type]
-}
-
-function blockToRFNode(block: Block): RFNode {
-  const dims = getNodeDimensions(block)
-  return {
-    id: block.id,
-    type: block.type,
-    position: block.position,
-    data: {
-      label: block.label,
-      comments: block.comments,
-      dataField: block.dataField,
-      expectedOutcome: block.expectedOutcome,
-    },
-    width: dims.width,
-    height: dims.height,
-    style: { width: dims.width, height: dims.height },
-  }
+  return BLOCK_CONFIG[block.type].dims
 }
 
 function diagramToRFNodes(diagram: DiagramFile): RFNode[] {
-  // Pre-compute in/out counts and Decision Y/N paths for all blocks
-  const inCounts  = new Map<string, number>()
-  const outCounts = new Map<string, number>()
+  // Pre-compute per-block aggregates that require scanning all connections first
+  const inCounts     = new Map<string, number>()
+  const outCounts    = new Map<string, number>()
   const decisionConns = new Map<string, { yes: boolean; no: boolean }>()
+  // Tracks whether a connection leaves via the bottom-src handle (stem side)
+  const hasBottomSrc = new Set<string>()
 
   for (const block of diagram.blocks.values()) {
     inCounts.set(block.id, 0)
@@ -116,39 +95,69 @@ function diagramToRFNodes(diagram: DiagramFile): RFNode[] {
       if (conn.type === 'yes') info.yes = true
       if (conn.type === 'no')  info.no  = true
     }
+    // A missing sourceHandle means the connection predates handle tracking and
+    // was created via the bottom stem (default), so treat it as bottom-src.
+    const handle = conn.sourceHandle ?? 'bottom-src'
+    if (handle === 'bottom-src') hasBottomSrc.add(conn.sourceId)
   }
 
   return Array.from(diagram.blocks.values()).map((block) => {
-    const node     = blockToRFNode(block)
+    const dims     = getNodeDimensions(block)
     const inCount  = inCounts.get(block.id)  ?? 0
     const outCount = outCounts.get(block.id) ?? 0
-    const maxIn    = MAX_INPUTS[block.type]
-    const maxOut   = MAX_OUTPUTS[block.type]
+    const { maxInputs: maxIn, maxOutputs: maxOut } = BLOCK_CONFIG[block.type]
 
-    node.data = {
-      ...node.data,
-      canBeSource:  outCount < maxOut,
-      canBeTarget:  inCount  < maxIn,
-      hasViolation: inCount > maxIn || outCount > maxOut,
-    }
+    const typeSpecific = block.type === 'decision'
+      ? { hasYConnection: decisionConns.get(block.id)!.yes, hasNConnection: decisionConns.get(block.id)!.no }
+      : { hasBottomConnection: hasBottomSrc.has(block.id) }
 
-    if (block.type === 'decision') {
-      const info = decisionConns.get(block.id)!
-      node.data = { ...node.data, hasYConnection: info.yes, hasNConnection: info.no }
+    return {
+      id: block.id,
+      type: block.type,
+      position: block.position,
+      width: dims.width,
+      height: dims.height,
+      style: { width: dims.width, height: dims.height },
+      data: {
+        label: block.label,
+        comments: block.comments,
+        dataField: block.dataField,
+        expectedOutcome: block.expectedOutcome,
+        canBeSource:     true,
+        canBeTarget:     true,
+        canAddNewSource: outCount < maxOut,
+        canAddNewTarget: inCount  < maxIn,
+        hasViolation:    inCount  > maxIn || outCount > maxOut,
+        ...typeSpecific,
+      },
     }
-    return node
   })
 }
 
 function diagramToRFEdges(diagram: DiagramFile): RFEdge[] {
-  return Array.from(diagram.connections.values()).map((conn) => ({
-    id: conn.id,
-    source: conn.sourceId,
-    target: conn.targetId,
-    type: 'orthogonal',
-    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: '#9ca3af' },
-    data: { connectionType: conn.type, waypoints: conn.waypoints },
-  }))
+  return Array.from(diagram.connections.values()).map((conn) => {
+    // Use stored handles when available (set during manual connection dragging).
+    // Fall back to type-based defaults for connections created before handle
+    // tracking was introduced, or via quick-add.
+    const sourceHandle = conn.sourceHandle ?? (conn.type === 'yes' ? 'right-src' : 'bottom-src')
+    const targetHandle = conn.targetHandle ?? 'top-tgt'
+
+    return {
+      id: conn.id,
+      source: conn.sourceId,
+      target: conn.targetId,
+      sourceHandle,
+      targetHandle,
+      type: 'orthogonal',
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 20,
+        height: 20,
+        color: '#5a6375',
+      },
+      data: { connectionType: conn.type, waypoints: conn.waypoints },
+    }
+  })
 }
 
 // ── Confirm delete dialog (inline, no external dependency) ────────────────────
@@ -186,23 +195,45 @@ function DeleteConfirmDialog({ blockLabels, onConfirm, onCancel }: DeleteConfirm
   )
 }
 
-// ── Drop ghost overlay ─────────────────────────────────────────────────────
+// ── DiagramCanvas ─────────────────────────────────────────────────────────────
 
-function DropGhost({ type, x, y }: { type: BlockType; x: number; y: number }) {
-  const dims = DEFAULT_NODE_DIMS[type]
+// ── Connection preview line ───────────────────────────────────────────────────
+// Shown while the user drags a new connection, before it is committed.
+// Uses the same orthogonal (smooth-step) routing as OrthogonalEdge so the
+// preview matches the final edge exactly.
+
+function ConnectionPreviewLine({
+  fromX,
+  fromY,
+  fromPosition,
+  toX,
+  toY,
+  toPosition,
+}: ConnectionLineComponentProps) {
+  const [d] = getSmoothStepPath({
+    sourceX: fromX,
+    sourceY: fromY,
+    sourcePosition: fromPosition,
+    targetX: toX,
+    targetY: toY,
+    targetPosition: toPosition,
+    borderRadius: 10,
+  })
   return (
-    <div
-      className={`node node--${type} drop-ghost-overlay`}
-      style={{ position: 'absolute', left: x, top: y, width: dims.width, height: dims.height }}
-    >
-      {type === 'decision' && <div className="node-decision-shape" />}
-      {type === 'start'    && <div className="node--start__circle" />}
-      {type === 'end'      && <div className="node--end__circle" />}
-    </div>
+    <g>
+      <path
+        fill="none"
+        stroke="var(--edge-color)"
+        strokeWidth={2}
+        strokeDasharray="6 5"
+        strokeOpacity={0.6}
+        d={d}
+      />
+    </g>
   )
 }
 
-// ── DiagramCanvas ─────────────────────────────────────────────────────────────
+// ── Confirm delete dialog ─────────────────────────────────────────────────────
 
 interface PendingDelete {
   ids: string[]
@@ -231,14 +262,12 @@ export function DiagramCanvas() {
   /** Track last-loaded diagram name so fitView only fires on true load-in. */
   const loadedDiagramName = useRef<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
+  const [dragPreview, setDragPreview] = useState<{ type: BlockType; x: number; y: number } | null>(null)
 
   // ── Edge selection (local RF state — not synced to store) ─────────────────
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(new Set())
 
-  // ── Drop ghost (palette → canvas drag preview) ────────────────────────────
   const wrapRef = useRef<HTMLDivElement>(null)
-  const [dropGhost, setDropGhost] = useState<{ type: BlockType; x: number; y: number } | null>(null)
-  const lastSnapRef = useRef<{ x: number; y: number }>({ x: -1e9, y: -1e9 })
 
   const [nodes, setNodes] = useNodesState<RFNode>([])
   const [edges, setEdges] = useEdgesState<RFEdge>([])
@@ -252,8 +281,10 @@ export function DiagramCanvas() {
       return
     }
     if (diagram) {
-      setNodes(diagramToRFNodes(diagram))
-      setEdges(diagramToRFEdges(diagram))
+      const newNodes = diagramToRFNodes(diagram)
+      const newEdges = diagramToRFEdges(diagram)
+      setNodes(newNodes)
+      setEdges(newEdges)
       // Only fit view when a different file is loaded, not on every state mutation
       if (diagram.name !== loadedDiagramName.current) {
         loadedDiagramName.current = diagram.name
@@ -353,8 +384,27 @@ export function DiagramCanvas() {
     [diagram, setSelection, setNodes],
   )
 
+  // ── Drag preview node (injected while hovering over canvas) ──────────────
+  const nodesWithPreview = useMemo<RFNode[]>(() => {
+    if (!dragPreview) return nodes
+    const dims = BLOCK_CONFIG[dragPreview.type].dims
+    const previewNode: RFNode = {
+      id: '__drag-preview__',
+      type: dragPreview.type,
+      position: { x: dragPreview.x, y: dragPreview.y },
+      data: { label: '', isDragPreview: true, canBeSource: false, canBeTarget: false },
+      width: dims.width,
+      height: dims.height,
+      style: { width: dims.width, height: dims.height, opacity: 0.5, pointerEvents: 'none' },
+      selectable: false,
+      draggable: false,
+      focusable: false,
+    }
+    return [...nodes, previewNode]
+  }, [nodes, dragPreview])
+
   // ── Drop from palette ─────────────────────────────────────────────────────
-  const { screenToFlowPosition, flowToScreenPosition } = useReactFlow()
+  const { screenToFlowPosition } = useReactFlow()
 
   // ── Connection validation ─────────────────────────────────────────────────
   const isValidConnection = useCallback(
@@ -367,14 +417,8 @@ export function DiagramCanvas() {
       if (!src || !tgt) return false
       if (tgt.type === 'start') return false                       // start can't be target
       if (src.type === 'end')   return false                       // end can't be source
-      // Enforce per-block output limit
-      const srcOutCount = Array.from(diagram.connections.values())
-        .filter((c) => c.sourceId === source).length
-      if (srcOutCount >= MAX_OUTPUTS[src.type]) return false
-      // Enforce per-block input limit
-      const tgtInCount = Array.from(diagram.connections.values())
-        .filter((c) => c.targetId === target).length
-      if (tgtInCount >= MAX_INPUTS[tgt.type]) return false
+      if (!canAddOutput(diagram.connections, source, src.type))   return false
+      if (!canAcceptInput(diagram.connections, target, tgt.type)) return false
       return true
     },
     [diagram],
@@ -382,64 +426,63 @@ export function DiagramCanvas() {
 
   // ── Connection creation ───────────────────────────────────────────────────
   const handleConnect = useCallback(
-    (connection: { source: string | null; target: string | null }) => {
-      const { source, target } = connection
+    (connection: {
+      source: string | null
+      target: string | null
+      sourceHandle?: string | null
+      targetHandle?: string | null
+    }) => {
+      const { source, target, sourceHandle, targetHandle } = connection
       if (!source || !target || !diagram) return
       const srcBlock = diagram.blocks.get(source)
       if (!srcBlock) return
 
+      const sh = sourceHandle ?? undefined
+      const th = targetHandle ?? undefined
+
       if (srcBlock.type === 'decision') {
-        // Auto-assign: use the first unoccupied Y/N slot
-        let hasY = false
-        for (const conn of diagram.connections.values()) {
-          if (conn.sourceId === source && conn.type === 'yes') hasY = true
-        }
-        addConnection(source, target, hasY ? 'no' : 'yes')
+        const { yes } = decisionSlotsUsed(diagram.connections, source)
+        addConnection(source, target, yes ? 'no' : 'yes', sh, th)
       } else {
-        addConnection(source, target, 'default')
+        addConnection(source, target, 'default', sh, th)
       }
     },
     [diagram, addConnection],
   )
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'copy'
-
-    const type = getDragBlockType()
-    if (!type || !wrapRef.current) return
-
-    const snapped = snapToGrid(screenToFlowPosition({ x: e.clientX, y: e.clientY }))
-    const last = lastSnapRef.current
-    if (last.x === snapped.x && last.y === snapped.y) return   // no grid change
-    lastSnapRef.current = snapped
-
-    const screenPt = flowToScreenPosition(snapped)
-    const rect = wrapRef.current.getBoundingClientRect()
-    setDropGhost({ type, x: screenPt.x - rect.left, y: screenPt.y - rect.top })
-  }, [screenToFlowPosition, flowToScreenPosition])
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+      const type = getDragBlockType()
+      if (!type) return
+      const dims = BLOCK_CONFIG[type].dims
+      const raw = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      const snapped = snapToGrid({ x: raw.x - dims.width / 2, y: raw.y - dims.height / 2 })
+      setDragPreview({ type, ...snapped })
+    },
+    [screenToFlowPosition],
+  )
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault()
-      setDropGhost(null)
       setDragBlockType(null)
-      lastSnapRef.current = { x: -1e9, y: -1e9 }
+      setDragPreview(null)
       const type = e.dataTransfer.getData('application/block-type') as BlockType
       if (!type || !diagram) return
-
-      const rawPosition = screenToFlowPosition({ x: e.clientX, y: e.clientY })
-      addBlock(type, snapToGrid(rawPosition))
+      const dims = BLOCK_CONFIG[type].dims
+      const raw = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      const pos = snapToGrid({ x: raw.x - dims.width / 2, y: raw.y - dims.height / 2 })
+      addBlock(type, pos)
     },
     [diagram, addBlock, screenToFlowPosition],
   )
 
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    // Only clear when leaving the entire canvas wrapper (not crossing child elements)
     if ((e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) return
-    setDropGhost(null)
     setDragBlockType(null)
-    lastSnapRef.current = { x: -1e9, y: -1e9 }
+    setDragPreview(null)
   }, [])
 
   // ── Click on canvas pane background → deselect all ────────────────────────
@@ -487,7 +530,8 @@ export function DiagramCanvas() {
       tabIndex={-1}
     >
       <ReactFlow
-        nodes={nodes}
+        className="react-flow"
+        nodes={nodesWithPreview}
         edges={edges}
         nodeTypes={NODE_TYPES}
         edgeTypes={EDGE_TYPES}
@@ -503,7 +547,7 @@ export function DiagramCanvas() {
         isValidConnection={isValidConnection}
         onInit={(instance) => { rfInstance.current = instance }}
         // Connection mode: closest handles for shortest path
-        connectionMode="loose"
+        connectionMode={ConnectionMode.Loose}
         // Zoom: 10% – 400%
         minZoom={0.1}
         maxZoom={4}
@@ -522,6 +566,7 @@ export function DiagramCanvas() {
         nodeOrigin={[0, 0]}
         snapToGrid={true}
         snapGrid={[GRID_SIZE, GRID_SIZE]}
+        connectionLineComponent={ConnectionPreviewLine}
         proOptions={{ hideAttribution: true }}
       >
         <Background
@@ -531,8 +576,6 @@ export function DiagramCanvas() {
           color={gridColor}
         />
       </ReactFlow>
-
-      {dropGhost && <DropGhost {...dropGhost} />}
 
       {pendingQuickAdd && (
         <QuickAddMenu

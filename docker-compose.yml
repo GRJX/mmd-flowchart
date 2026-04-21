@@ -1,0 +1,10 @@
+services:
+  mmd:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "3100:80"
+    restart: unless-stopped
+

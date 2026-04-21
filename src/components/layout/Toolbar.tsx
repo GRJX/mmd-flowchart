@@ -9,10 +9,11 @@ import {
   ZoomIn,
   Undo2,
   Redo2,
-  Sun,
-  Moon,
   ChevronDown,
   GitBranch,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 
@@ -29,7 +30,7 @@ interface ToolbarProps {
 }
 
 export function Toolbar({ onOpenFolder, onNewDiagram, onSave, onZoomIn, onZoomOut, onFitView, onResetZoom, onExportPng, onExportSvg }: ToolbarProps) {
-  const { theme, toggleTheme, canvasViewport, diagram, undoStack, redoStack, undo, redo } = useAppStore()
+  const { canvasViewport, diagram, undoStack, redoStack, undo, redo, theme, themeOverride, toggleTheme, resetThemeOverride } = useAppStore()
   const [showExportMenu, setShowExportMenu] = useState(false)
   const exportWrapRef = useRef<HTMLDivElement>(null)
 
@@ -197,20 +198,22 @@ export function Toolbar({ onOpenFolder, onNewDiagram, onSave, onZoomIn, onZoomOu
 
       <div className="toolbar-divider" />
 
-      {/* Dark Mode toggle */}
+      {/* Theme toggle */}
       <button
-        className="toolbar-btn toolbar-btn--theme"
+        className="toolbar-btn"
+        title={themeOverride ? `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode (click to follow system)` : `Follow system theme — currently ${theme}`}
+        aria-label="Toggle theme"
         onClick={toggleTheme}
-        title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        aria-label={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        aria-pressed={theme === 'light'}
+        onContextMenu={(e) => { e.preventDefault(); resetThemeOverride() }}
       >
-        {theme === 'dark' ? (
-          <Sun size={16} strokeWidth={1.75} />
-        ) : (
-          <Moon size={16} strokeWidth={1.75} />
-        )}
+        {themeOverride === null
+          ? <Monitor size={16} strokeWidth={1.75} />
+          : theme === 'dark'
+            ? <Moon size={16} strokeWidth={1.75} />
+            : <Sun size={16} strokeWidth={1.75} />
+        }
       </button>
+
     </div>
   )
 }

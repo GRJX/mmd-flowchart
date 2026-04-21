@@ -1,45 +1,43 @@
-import type { NodeProps } from '@xyflow/react'
-import { useInlineEdit } from './StartNode'
+import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { useNodeData, useInlineEdit, InlineLabelEdit } from './nodeHelpers'
 import { ConnectionHandles } from './ConnectionHandles'
 import { CommentDot } from './CommentDot'
 import { NodeAddStem } from './NodeAddStem'
 
+const STEM_BTN_HALF = 11
+const NODE_H = 96
+
 export function ActionNode({ id, data, selected }: NodeProps) {
-  const d = data as { label: string; comments?: unknown[]; canBeSource?: boolean; canBeTarget?: boolean; hasViolation?: boolean }
-  const label = d.label
-  const comments = d.comments ?? []
-  const canBeSource  = d.canBeSource  ?? true
-  const canBeTarget  = d.canBeTarget  ?? true
-  const hasViolation = d.hasViolation ?? false
-  const { editing, draft, setDraft, startEdit, commitEdit, cancelEdit, inputRef } =
-    useInlineEdit({ id, initialLabel: label })
+  const { label, comments, canBeSource, canBeTarget, hasViolation, hasBottomConnection } = useNodeData(data)
+  const showStem = canBeSource && !hasBottomConnection
+  const edit = useInlineEdit({ id, initialLabel: label })
 
   return (
-    <div
-      className={`node node--action ${selected ? 'node--selected' : ''} ${hasViolation ? 'node--violation' : ''}`}
-      onDoubleClick={startEdit}
-    >
-      {editing ? (
-        <input
-          ref={inputRef}
-          className="node-label-input"
-          value={draft}
-          autoFocus
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commitEdit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); commitEdit() }
-            if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
-            e.stopPropagation()
-          }}
-          onClick={(e) => e.stopPropagation()}
+    // Outer wrapper grows to include the stem; source handle lands at stem tip.
+    <div className="node node--action-wrap">
+      <div
+        className={`node--action ${selected ? 'node--selected' : ''} ${hasViolation ? 'node--violation' : ''}`}
+        onDoubleClick={edit.startEdit}
+      >
+        <InlineLabelEdit label={label} {...edit} />
+      </div>
+      {showStem && <NodeAddStem nodeId={id} direction="bottom" inline />}
+      {/* Source handle: centered on the + button, rendered only when stem is visible */}
+      {showStem && (
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          id="bottom-src"
+          className="conn-handle"
+          style={{ bottom: STEM_BTN_HALF }}
         />
-      ) : (
-        <span className="node-label">{label}</span>
       )}
-      <ConnectionHandles canBeSource={canBeSource} canBeTarget={canBeTarget} />
+      <ConnectionHandles
+        sources={[]}
+        targets={canBeTarget ? (showStem ? ['top', 'right', 'left'] : ['top', 'right', 'bottom', 'left']) : []}
+        handleStyles={{ left: { top: NODE_H / 2 }, right: { top: NODE_H / 2 } }}
+      />
       <CommentDot blockId={id} count={comments.length} />
-      {canBeSource && <NodeAddStem nodeId={id} direction="bottom" />}
     </div>
   )
 }

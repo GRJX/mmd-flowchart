@@ -1,6 +1,5 @@
 import { useAppStore } from '../../store/useAppStore'
 import type { Block } from '../../types/diagram'
-import { AlertTriangle } from 'lucide-react'
 
 const BLOCK_TYPE_LABELS: Record<string, string> = {
   start: 'Start',
@@ -34,8 +33,6 @@ export function BlockProperties({ block }: BlockPropertiesProps) {
       if (conn.type === 'no') nTargetLabel = targetLabel
     }
   }
-  const decisionIncomplete = block.type === 'decision' && (!yTargetLabel || !nTargetLabel)
-
   const commentCount = block.comments.length
 
   // Label for the description field (Decision shows "Condition")
@@ -89,21 +86,9 @@ export function BlockProperties({ block }: BlockPropertiesProps) {
         </div>
       )}
 
-      {/* Decision: Y / N path targets + incomplete warning */}
+      {/* Decision: Y / N path targets */}
       {block.type === 'decision' && (
         <>
-          {decisionIncomplete && (
-            <div className="prop-incomplete-warning">
-              <AlertTriangle size={12} />
-              <span>
-                Missing {!yTargetLabel && !nTargetLabel
-                  ? 'Y and N paths'
-                  : !yTargetLabel
-                  ? 'Y path'
-                  : 'N path'}
-              </span>
-            </div>
-          )}
           <div className="prop-row">
             <span className="prop-label">Y Path</span>
             <span

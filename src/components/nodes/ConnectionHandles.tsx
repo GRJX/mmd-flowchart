@@ -1,58 +1,53 @@
-import { Fragment } from 'react'
 import { Handle, Position } from '@xyflow/react'
 
+type Dir = 'top' | 'right' | 'bottom' | 'left'
+
 interface Props {
-  /** Whether this node type can initiate connections (be a source). */
-  canBeSource?: boolean
-  /** Whether this node type can receive connections (be a target). */
-  canBeTarget?: boolean
+  /** Directions that expose a source (output) handle. Default: none. */
+  sources?: Dir[]
+  /** Directions that expose a target (input) handle. Default: all four. */
+  targets?: Dir[]
+  /**
+   * Per-direction style overrides for handles.
+   * Use this when the node wrapper is larger than the visual shape (e.g. includes
+   * a stem), so handles can be pinned to the original shape's edges instead of
+   * the wrapper's 50% midpoint.
+   */
+  handleStyles?: Partial<Record<Dir, React.CSSProperties>>
 }
 
-const POSITIONS = [
-  { pos: Position.Top,    id: 'top'    },
-  { pos: Position.Right,  id: 'right'  },
-  { pos: Position.Bottom, id: 'bottom' },
-  { pos: Position.Left,   id: 'left'   },
-]
+const DIR_TO_POSITION: Record<Dir, Position> = {
+  top:    Position.Top,
+  right:  Position.Right,
+  bottom: Position.Bottom,
+  left:   Position.Left,
+}
 
-/**
- * Renders 4 connection points (top / right / bottom / left) on a node.
- * Handles are positioned exactly on the block edges, or circle circumference for circular nodes.
- */
-export function ConnectionHandles({ canBeSource = true, canBeTarget = true}: Props) {
+const ALL_DIRS: Dir[] = ['top', 'right', 'bottom', 'left']
+
+export function ConnectionHandles({ sources = [], targets = ALL_DIRS, handleStyles }: Props) {
   return (
     <>
-      {POSITIONS.map(({ pos, id }) => (
-        <Fragment key={id}>
-          {canBeSource && (
-            <Handle
-              type="source"
-              position={pos}
-              id={`${id}-src`}
-              className="conn-handle"
-              style={getHandleStyle(pos)}
-            />
-          )}
-          {canBeTarget && (
-            <Handle
-              type="target"
-              position={pos}
-              id={`${id}-tgt`}
-              className="conn-handle conn-handle--target"
-              style={getHandleStyle(pos)}
-            />
-          )}
-        </Fragment>
+      {sources.map((dir) => (
+        <Handle
+          key={`${dir}-src`}
+          type="source"
+          position={DIR_TO_POSITION[dir]}
+          id={`${dir}-src`}
+          className="conn-handle"
+          style={handleStyles?.[dir]}
+        />
+      ))}
+      {targets.map((dir) => (
+        <Handle
+          key={`${dir}-tgt`}
+          type="target"
+          position={DIR_TO_POSITION[dir]}
+          id={`${dir}-tgt`}
+          className="conn-handle conn-handle--target"
+          style={handleStyles?.[dir]}
+        />
       ))}
     </>
   )
-}
-
-function getHandleStyle(pos: Position): React.CSSProperties {
-  switch (pos) {
-    case Position.Top:    return { top: 0, }
-    case Position.Right:  return { right: 0,}
-    case Position.Bottom: return { bottom: 0,}
-    case Position.Left:   return { left: 0, }
-  }
 }

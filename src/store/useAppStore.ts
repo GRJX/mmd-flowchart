@@ -12,7 +12,8 @@ import type {
 } from "../types/diagram";
 import { readDirectoryEntries } from "../lib/fileSystem";
 import { saveDirectoryHandle } from "../lib/indexedDb";
-import { createBlock, MAX_INPUTS, MAX_OUTPUTS } from "../lib/blockFactory";
+import { createBlock, canAddOutput, canAcceptInput, decisionSlotsUsed } from "../lib/blockFactory";
+import { BLOCK_CONFIG } from "../lib/blockConfig";
 
 // ── File tree helpers (module-level) ─────────────────────────────────────────
 
@@ -71,16 +72,15 @@ export interface Toast {
 
 export type Theme = "light" | "dark";
 
-const THEME_KEY = "mmd-theme";
+const THEME_STORAGE_KEY = "mmd-theme-override";
 
-function loadTheme(): Theme {
-  try {
-    const stored = localStorage.getItem(THEME_KEY);
-    if (stored === "light" || stored === "dark") return stored;
-  } catch {
-    // localStorage not available
-  }
-  return "dark";
+function getSystemTheme(): Theme {
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
+function getStoredThemeOverride(): Theme | null {
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  return stored === "light" || stored === "dark" ? stored : null;
 }
 
 function applyTheme(theme: Theme) {
@@ -96,8 +96,10 @@ function applyTheme(theme: Theme) {
 interface AppStore {
   // ── Theme ──────────────────────────────────────────────────────────────────
   theme: Theme;
+  themeOverride: Theme | null;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
+  resetThemeOverride: () => void;
 
   // ── Toast ──────────────────────────────────────────────────────────────────
   toasts: Toast[];
@@ -171,6 +173,8 @@ interface AppStore {
     sourceId: string,
     targetId: string,
     type: ConnectionType,
+    sourceHandle?: string,
+    targetHandle?: string,
   ) => string | null;
   deleteConnection: (id: string) => void;
   updateConnectionType: (id: string, type: ConnectionType) => void;
@@ -198,26 +202,39 @@ interface AppStore {
 
 // ── Store implementation ───────────────────────────────────────────────────────
 
-const initialTheme = loadTheme();
+const initialOverride = getStoredThemeOverride();
+const initialTheme = initialOverride ?? getSystemTheme();
 applyTheme(initialTheme);
+
+// Keep the theme in sync when the OS preference changes, unless user has a manual override
+window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", (e) => {
+  if (useAppStore.getState().themeOverride !== null) return;
+  const next: Theme = e.matches ? "light" : "dark";
+  applyTheme(next);
+  useAppStore.setState({ theme: next });
+});
 
 export const useAppStore = create<AppStore>((set, get) => ({
   // ── Theme ──────────────────────────────────────────────────────────────────
   theme: initialTheme,
+  themeOverride: initialOverride,
 
   setTheme: (theme) => {
     applyTheme(theme);
-    try {
-      localStorage.setItem(THEME_KEY, theme);
-    } catch {
-      // ignore
-    }
-    set({ theme });
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+    set({ theme, themeOverride: theme });
   },
 
   toggleTheme: () => {
     const next: Theme = get().theme === "dark" ? "light" : "dark";
     get().setTheme(next);
+  },
+
+  resetThemeOverride: () => {
+    localStorage.removeItem(THEME_STORAGE_KEY);
+    const system = getSystemTheme();
+    applyTheme(system);
+    set({ theme: system, themeOverride: null });
   },
 
   // ── Toast ──────────────────────────────────────────────────────────────────
@@ -540,21 +557,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   // ── Connection mutations ───────────────────────────────────────────────────
-  addConnection: (sourceId, targetId, type) => {
+  addConnection: (sourceId, targetId, type, sourceHandle, targetHandle) => {
     const { diagram } = get();
     if (!diagram) return null;
     const src = diagram.blocks.get(sourceId);
     const tgt = diagram.blocks.get(targetId);
     if (!src || !tgt) return null;
-    // Enforce per-block connection limits
-    const srcOutCount = Array.from(diagram.connections.values()).filter(
-      (c) => c.sourceId === sourceId,
-    ).length;
-    if (srcOutCount >= MAX_OUTPUTS[src.type]) return null;
-    const tgtInCount = Array.from(diagram.connections.values()).filter(
-      (c) => c.targetId === targetId,
-    ).length;
-    if (tgtInCount >= MAX_INPUTS[tgt.type]) return null;
+    if (!canAddOutput(diagram.connections, sourceId, src.type))   return null;
+    if (!canAcceptInput(diagram.connections, targetId, tgt.type)) return null;
     const before = takeSnapshot(diagram);
     const id = crypto.randomUUID();
     const connection: Connection = {
@@ -564,6 +574,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
       type,
       waypoints: [],
       dataField: null,
+      ...(sourceHandle ? { sourceHandle } : {}),
+      ...(targetHandle ? { targetHandle } : {}),
     };
     const connections = new Map(diagram.connections);
     connections.set(id, connection);
@@ -638,40 +650,41 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     const GRID = 16;
     const snapVal = (v: number) => Math.round(v / GRID) * GRID;
-    const GAP = 240;
-    const SHIFT_STEP = 128;
+    // Gap between node edges (consistent regardless of block type)
+    const EDGE_GAP = 48;
+    const SHIFT_STEP = 144;
 
-    // Compute candidate position: bottom stem goes down, right stem goes right
+    const { width: srcW, height: srcH } = BLOCK_CONFIG[sourceBlock.type].dims;
+    const { width: newW, height: newH } = BLOCK_CONFIG[type].dims;
+
+    // New node centered on the axis perpendicular to the stem direction,
+    // placed EDGE_GAP pixels beyond the source block's visual edge.
     let candidate: { x: number; y: number };
     if (direction === "bottom") {
       candidate = {
-        x: snapVal(sourceBlock.position.x),
-        y: snapVal(sourceBlock.position.y + GAP),
+        x: snapVal(sourceBlock.position.x + srcW / 2 - newW / 2),
+        y: snapVal(sourceBlock.position.y + srcH + EDGE_GAP),
       };
     } else {
       candidate = {
-        x: snapVal(sourceBlock.position.x + GAP),
-        y: snapVal(sourceBlock.position.y),
+        x: snapVal(sourceBlock.position.x + srcW + EDGE_GAP),
+        y: snapVal(sourceBlock.position.y + srcH / 2 - newH / 2),
       };
     }
 
     // Shift in the perpendicular axis to avoid collisions
     const existingBlocks = Array.from(diagram.blocks.values());
-    let attempts = 0;
-    while (
-      attempts < 8 &&
+    const isOccupied = (pos: { x: number; y: number }) =>
       existingBlocks.some(
-        (b) =>
-          b.id !== sourceNodeId &&
-          Math.abs(b.position.x - candidate.x) < 100 &&
-          Math.abs(b.position.y - candidate.y) < 80,
-      )
-    ) {
-      if (direction === "bottom") {
-        candidate = { x: snapVal(candidate.x + SHIFT_STEP), y: candidate.y };
-      } else {
-        candidate = { x: candidate.x, y: snapVal(candidate.y + SHIFT_STEP) };
-      }
+        (b) => b.id !== sourceNodeId &&
+          Math.abs(b.position.x - pos.x) < newW &&
+          Math.abs(b.position.y - pos.y) < newH,
+      );
+    let attempts = 0;
+    while (attempts < 8 && isOccupied(candidate)) {
+      candidate = direction === "bottom"
+        ? { x: snapVal(candidate.x + SHIFT_STEP), y: candidate.y }
+        : { x: candidate.x, y: snapVal(candidate.y + SHIFT_STEP) };
       attempts++;
     }
 
@@ -681,23 +694,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const newBlocks = new Map(diagram.blocks);
     newBlocks.set(newBlock.id, newBlock);
 
-    // Enforce source output limit before creating auto-connection
-    const srcOutCount = Array.from(diagram.connections.values()).filter(
-      (c) => c.sourceId === sourceNodeId,
-    ).length;
-    if (srcOutCount >= MAX_OUTPUTS[sourceBlock.type]) return;
+    if (!canAddOutput(diagram.connections, sourceNodeId, sourceBlock.type)) return;
 
     // Determine connection type:
     // Decision right-stem = Y (yes) path, bottom-stem = N (no) path
     let connType: Connection["type"] = "default";
     if (sourceBlock.type === "decision") {
       connType = direction === "right" ? "yes" : "no";
-      // If that specific slot is already taken, abort
-      const slotTaken = Array.from(diagram.connections.values()).some(
-        (c) => c.sourceId === sourceNodeId && c.type === connType,
-      );
-      if (slotTaken) return;
+      const slots = decisionSlotsUsed(diagram.connections, sourceNodeId);
+      if (slots[connType]) return;
     }
+
+    // Store the exact handles so edge routing is always correct:
+    //   bottom stem → exits bottom, enters top of new node
+    //   right  stem → exits right, enters left of new node
+    const sourceHandle = direction === "right" ? "right-src" : "bottom-src";
+    const targetHandle = direction === "right" ? "left-tgt"  : "top-tgt";
 
     const connId = crypto.randomUUID();
     const connection: Connection = {
@@ -707,6 +719,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
       type: connType,
       waypoints: [],
       dataField: null,
+      sourceHandle,
+      targetHandle,
     };
     const newConnections = new Map(diagram.connections);
     newConnections.set(connId, connection);

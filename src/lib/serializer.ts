@@ -14,12 +14,8 @@
  *       ...
  */
 
-import type {
-  Block,
-  BlockType,
-  Connection,
-  DiagramFile,
-} from "../types/diagram";
+import type { Block, Connection, DiagramFile } from "../types/diagram";
+import { BLOCK_CONFIG } from "./blockConfig";
 
 // ── MetadataV1 types (§5.2) ────────────────────────────────────────────────────
 
@@ -37,7 +33,12 @@ interface MetadataV1 {
   meta: Record<string, MetadataV1BlockMeta>;
   connections: Record<
     string,
-    { waypoints: Array<{ x: number; y: number }>; dataField?: string | null }
+    {
+      waypoints: Array<{ x: number; y: number }>;
+      dataField?: string | null;
+      sourceHandle?: string;
+      targetHandle?: string;
+    }
   >;
 }
 
@@ -59,17 +60,8 @@ function escapeMermaidLabel(label: string): string {
 
 function nodeDefLine(block: Block): string {
   const lbl = escapeMermaidLabel(block.label);
-  switch (block.type) {
-    case "start":
-    case "end":
-      return `    ${block.id}([${lbl}])`;
-    case "action":
-      return `    ${block.id}[${lbl}]`;
-    case "decision":
-      return `    ${block.id}{${lbl}}`;
-    case "result":
-      return `    ${block.id}[/${lbl}/]`;
-  }
+  const { mermaidOpen, mermaidClose } = BLOCK_CONFIG[block.type];
+  return `    ${block.id}${mermaidOpen}${lbl}${mermaidClose}`;
 }
 
 function edgeDefLine(conn: Connection): string {
@@ -250,6 +242,8 @@ export function serializeDiagram(diagram: DiagramFile): SerializeResult {
     metaConns[key] = {
       waypoints: conn.waypoints,
       ...(conn.dataField != null ? { dataField: conn.dataField } : {}),
+      ...(conn.sourceHandle ? { sourceHandle: conn.sourceHandle } : {}),
+      ...(conn.targetHandle ? { targetHandle: conn.targetHandle } : {}),
     };
   }
 
