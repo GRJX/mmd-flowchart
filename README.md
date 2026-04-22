@@ -35,7 +35,7 @@ Open `http://localhost:3100` in Chrome.
 │              │                              │                   │
 │  Mappenpad   │   Nodes (blokken)            │  Blok-palette     │
 │  ├ map/      │   Edges (verbindingen)       │  Blok-properties  │
-│  │ ├ a.mmd   │   Grid 16px                  │  Verbinding-props │
+│  │ ├ a.mmd   │   Grid 8px                   │  Verbinding-props │
 │  │ └ b.mmd   │   Quick-add stems (+)        │  Commentaar       │
 │  └ c.mmd     │   QuickAdd-menu (radiaal)    │                   │
 │              │   YN-picker (beslissing)     │                   │
@@ -47,5 +47,5 @@ Open `http://localhost:3100` in Chrome.
 
 ## Documentatie
 
-- [FO.md](FO.md) — gedetailleerde functionele beschrijving van alle features, bloktypen, verbindingsregels en interacties.
-- [USERFLOWS.md](USERFLOWS.md) — stapsgewijze user flows als Mermaid-diagrammen (nieuw diagram, nodes toevoegen, verwijderen, opslaan, exporteren, etc.).
+- [docs/FO.md](docs/FO.md) — gedetailleerde functionele beschrijving van alle features, bloktypen, verbindingsregels en interacties.
+- [docs/USERFLOWS.md](docs/USERFLOWS.md) — stapsgewijze user flows als Mermaid-diagrammen (nieuw diagram, nodes toevoegen, verwijderen, opslaan, exporteren, etc.).
