@@ -9,81 +9,80 @@ Alle interacties beschreven als stapsgewijze flows in Mermaid-syntax.
 ```mermaid
 flowchart TD
     A([Start]) --> B[Klik op 'New Diagram' in toolbar]
-    B --> C[Dialoogvenster verschijnt:\nVoer bestandsnaam in]
-    C --> D{Bestandsnaam\ningevoerd?}
+    B --> C["Dialoogvenster verschijnt:<br>Voer bestandsnaam in"]
+    C --> D{"Bestandsnaam<br>ingevoerd?"}
     D -- Nee --> C
     D -- Ja --> E[Klik 'Create' of druk Enter]
-    E --> F[.mmd bestand aangemaakt\nin geselecteerde map]
-    F --> G[Diagram geladen in canvas\nmet één Start-node]
+    E --> F[".mmd bestand aangemaakt<br>in geselecteerde map"]
+    F --> G["Diagram geladen in canvas<br>met één Start-blok"]
     G --> H([Klaar — diagram is bewerkbaar])
 ```
 
 ---
 
-## 2. Node toevoegen of verbinden via de stem
+## 2. Blok toevoegen of verbinden via de stem
 
-Elk blok dat nog verbindingen kan aanmaken, toont een **stem**: een lijn met pijlpunt in de kleur van verbindingslijnen. Aan het uiteinde van de lijn zit het **verbindingspunt** (source handle) én de **+**-knop.
+De stem verschijnt **alleen bij nieuw op het canvas geplaatste blokken** als visuele hint om direct door te bouwen. Aan het uiteinde van de stemlijn zit het **verbindingspunt** (source handle) én de **+**-knop.
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B{Wat doet de gebruiker\nbij de stem?}
+    A([Start]) --> B{"Wat doet de gebruiker<br>bij de stem?"}
 
-    B -- Klik op + knop --> C[Radiaalmenu verschijnt\nmet 4 opties:\nAction · Decision · Result · End]
+    B -- "Klik op + knop" --> C["Radiaalmenu verschijnt<br>met 4 opties:<br>Decision · Action · Result · End"]
     C --> D{Kies een type}
-    D -- Klik op type --> E[Nieuwe node aangemaakt\n120px recht onder de bronnode\nop dezelfde X-positie]
-    E --> F[Verbinding automatisch\naangemaakt van bron naar nieuwe node]
-    F --> G{Bron is een\nDecision-node?}
-    G -- Ja --> H[Padtype automatisch toegewezen\nY = rechter stem\nN = onderste stem]
+    D -- "Klik op type" --> E["Nieuw blok aangemaakt<br>~120px verwijderd<br>op vrije gridpositie"]
+    E --> F["Verbinding automatisch<br>aangemaakt van bron naar nieuw blok"]
+    F --> G{"Bron is een<br>Decision-blok?"}
+    G -- Ja --> H["Padtype automatisch toegewezen:<br>Y = rechter stem<br>N = onderste stem"]
     G -- Nee --> I[Verbindingstype = default]
     H --> J([Klaar])
     I --> J
-    D -- Escape / klik buiten menu --> K([Menu gesloten\ngeen actie])
+    D -- "Escape / klik buiten menu" --> K([Menu gesloten — geen actie])
 
-    B -- Sleep van verbindingspunt\nop lijnuiteinde --> L[Preview-lijn verschijnt direct:\northogonaal gestippeld pad\ndat de exacte route toont]
-    L --> M[Sleep naar doelnode]
+    B -- "Sleep van verbindingspunt<br>op lijnuiteinde" --> L["Preview-lijn verschijnt direct:<br>orthogonaal gestippeld pad<br>dat de exacte route toont"]
+    L --> M[Sleep naar doelblok]
     M --> N{Verbinding geldig?}
-    N -- Ja --> O[Verbinding aangemaakt\nvanaf exact het gebruikte punt]
+    N -- Ja --> O["Verbinding aangemaakt<br>vanafexact het gebruikte punt"]
     N -- Nee --> P([Verbinding geannuleerd])
-    N --> J
+    O --> J
 ```
 
 **Positielogica (quick-add):**
-- De nieuwe node krijgt dezelfde X-positie als de bronnode.
-- De Y-positie is: `bronnode.y + 120px` (altijd recht naar beneden).
-- Als die positie bezet is, wordt 120px opzij geprobeerd (tot 8 pogingen).
+- Het nieuwe blok wordt gecentreerd onder het huidige blok geplaatst.
+- Als die positie bezet is, wordt een vrije positie naast of verder weg geprobeerd (tot 8 pogingen, telkens 120px opzij).
 
 **Verbindingspunt op de lijnpunt:**
-- Het source handle zit op het uiteinde van de stemlijn, niet op de node-rand.
-- Hierdoor is de stem visueel én functioneel de vervanger van het verbindingspunt op die zijde.
+- Het source handle zit op het uiteinde van de stemlijn, niet op de blok-rand.
+- De stem verdwijnt zodra het bijbehorende pad aangemaakt is. Als een bestaande verbinding later verwijderd wordt, keert de stem **niet** terug.
 
 ---
 
-## 3. Node verplaatsen (slepen)
+## 3. Blok verplaatsen (slepen)
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B[Klik en houd vast op een node]
-    B --> C[Node volgt de cursor]
+    A([Start]) --> B[Klik en houd vast op een blok]
+    B --> C[Blok volgt de cursor]
     C --> D[Laat los op gewenste positie]
-    D --> E[Positie snapt aan 16px grid]
-    E --> F[Verbindingen hertekend\nnaar nieuwe positie]
-    F --> G[Positie opgeslagen\nundo-entry aangemaakt]
+    D --> E[Positie snapt aan 8px grid]
+    E --> F["Verbindingen hertekend<br>naar nieuwe positie"]
+    F --> G["Positie opgeslagen<br>undo-entry aangemaakt"]
     G --> H([Klaar])
 ```
 
 ---
 
-## 4. Node verwijderen
+## 4. Blok verwijderen
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B[Selecteer één of meer nodes\nvia klik of marquee-selectie]
+    A([Start]) --> B["Selecteer één of meer blokken<br>via klik of marquee-selectie"]
     B --> C[Druk Delete of Backspace]
-    C --> D{Heeft een geselecteerde\nnode commentaar?}
-    D -- Ja --> E[Bevestigingsdialoog:\nVerwijderen inclusief commentaar?]
+    C --> D{"Heeft een geselecteerd<br>blok commentaar?"}
+    D -- Ja --> E["Bevestigingsdialoog:<br>Verwijderen inclusief commentaar?"]
     E --> F{Gebruiker kiest}
     F -- Annuleer --> G([Geen actie])
-    F -- Bevestig --> H[Node en alle bijbehorende\nverbindingen verwijderd]
+    F -- Bevestig --> H["Blok en alle bijbehorende<br>verbindingen verwijderd"]
     D -- Nee --> H
     H --> I[Undo-entry aangemaakt]
     I --> J([Klaar])
@@ -95,20 +94,18 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B[Hover over een bronnode]
-    B --> C[Verbindingspunten worden zichtbaar\nop de randen van de node]
-    C --> D[Klik en sleep van een bronpunt\nnaar een doelnode]
-    D --> E{Is de verbinding\ngeldig?}
-    E -- Nee\nlimiet bereikt of\nongeldige combinatie --> F[Sleep afgebroken\ngeen verbinding aangemaakt]
-    E -- Ja --> G{Bron is een\nDecision-node?}
-    G -- Ja --> H[YN-picker verschijnt:\nKies Y-pad of N-pad]
-    H --> I{Gebruiker kiest}
-    I -- Annuleer / Escape --> J([Geen verbinding aangemaakt])
-    I -- Y of N --> K[Verbinding aangemaakt\nmet gekozen padtype]
-    G -- Nee --> L[Verbinding aangemaakt\nals default-type]
-    K --> M[Undo-entry aangemaakt\nAuto-save gestart]
-    L --> M
-    M --> N([Klaar])
+    A([Start]) --> B[Hover over een bronblok]
+    B --> C["Verbindingspunten worden zichtbaar<br>op de randen van het blok"]
+    C --> D["Klik en sleep van een bronpunt<br>naar een doelblok"]
+    D --> E{"Is de verbinding<br>geldig?"}
+    E -- "Nee —<br>limiet bereikt of<br>ongeldige combinatie" --> F["Sleep afgebroken<br>geen verbinding aangemaakt"]
+    E -- Ja --> G{"Bron is een<br>Decision-blok?"}
+    G -- Ja --> H["Label automatisch ingesteld<br>op basis van handle-richting:<br>rechts = Y · onder = N"]
+    H --> I["Verbinding aangemaakt<br>met automatisch padtype"]
+    G -- Nee --> J["Verbinding aangemaakt<br>als default-type"]
+    I --> K["Undo-entry aangemaakt<br>Auto-save gestart"]
+    J --> K
+    K --> L([Klaar])
 ```
 
 ---
@@ -117,17 +114,17 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B{Hoe slaat de\ngebruiker op?}
-    B -- Handmatig:\nCtrl+S of Save-knop --> C{Bestand extern\ngewijzigd?}
-    C -- Ja --> D[Dialoog:\nOverschrijven of herladen?]
+    A([Start]) --> B{"Hoe slaat de<br>gebruiker op?"}
+    B -- "Handmatig:<br>Ctrl+S of Save-knop" --> C{"Bestand extern<br>gewijzigd?"}
+    C -- Ja --> D["Dialoog:<br>Overschrijven of herladen?"]
     D --> E{Keuze}
-    E -- Overschrijven --> F[Diagram weggeschreven\nnaar schijf]
-    E -- Herladen --> G[Bestand opnieuw ingeladen\nWijzigingen gaan verloren]
+    E -- Overschrijven --> F["Diagram weggeschreven<br>naar schijf"]
+    E -- Herladen --> G["Bestand opnieuw ingeladen<br>Wijzigingen gaan verloren"]
     C -- Nee --> F
-    B -- Auto-save:\n2 sec. na laatste wijziging --> F
-    F --> H{Opslaan gelukt?}
-    H -- Nee\ngeen Start-node\nof andere fout --> I[Foutmelding getoond]
-    H -- Ja --> J[isDirty = false\nTimestamp bijgewerkt]
+    B -- "Auto-save:<br>2 sec. na laatste wijziging" --> H{"Diagram geldig<br>om op te slaan?"}
+    F --> H
+    H -- "Nee —<br>geen Start-blok of<br>meer dan één Start-blok" --> I[Foutmelding getoond]
+    H -- Ja --> J["isDirty = false<br>Timestamp bijgewerkt"]
     J --> K([Klaar])
 ```
 
@@ -137,21 +134,24 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B[Klik 'Open Folder'\nin toolbar of sidebar]
-    B --> C[Browser toont\nmapper-kiezer]
-    C --> D{Gebruiker kiest\neen map?}
+    A([Start]) --> B["Klik 'Open Folder'<br>in toolbar of sidebar"]
+    B --> C["Browser toont<br>mappenkiezer"]
+    C --> D{"Gebruiker kiest<br>een map?"}
     D -- Annuleer --> E([Geen actie])
-    D -- Map gekozen --> F[Browser vraagt toestemming\nvoor de map]
-    F --> G{Toestemming\nverleend?}
+    D -- "Map gekozen" --> F["Browser vraagt toestemming<br>voor de map"]
+    F --> G{"Toestemming<br>verleend?"}
     G -- Nee --> E
-    G -- Ja --> H[Map-handle opgeslagen\nin IndexedDB]
-    H --> I[Bestandsstructuur geladen\nin sidebar]
+    G -- Ja --> H["Map-handle opgeslagen<br>in IndexedDB"]
+    H --> I["Bestandsstructuur geladen<br>in sidebar"]
     I --> J[Klik op een .mmd bestand]
-    J --> K{Bestand ondersteund\nen ≤ 200 blokken?}
-    K -- Nee --> L[Diagram geopend\nin read-only modus]
-    K -- Ja --> M[Diagram geopend\nin canvas]
-    M --> N([Klaar — diagram bewerkbaar])
-    L --> O([Klaar — alleen lezen])
+    J --> K{"Bestand extern<br>gewijzigd?"}
+    K -- Ja --> L["Melding: bestand is gewijzigd<br>Meest recente versie wordt geladen"]
+    K -- Nee --> M{"Bestand ondersteund<br>en ≤ 200 blokken?"}
+    L --> M
+    M -- Nee --> N["Diagram geopend<br>in read-only modus"]
+    M -- Ja --> O["Diagram geopend<br>in canvas"]
+    O --> P([Klaar — diagram bewerkbaar])
+    N --> Q([Klaar — alleen lezen])
 ```
 
 ---
@@ -160,31 +160,31 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B[Klik op een verbindingspijl\nin het canvas]
-    B --> C[Verbinding geselecteerd\nRight panel toont verbindingseigenschappen]
+    A([Start]) --> B["Klik op een verbindingspijl<br>in het canvas"]
+    B --> C["Verbinding geselecteerd<br>Right panel toont verbindingseigenschappen"]
     C --> D{Hoe verwijderen?}
-    D -- Delete of Backspace --> E[Verbinding verwijderd]
-    D -- Verwijder-knop\nin right panel --> E
-    E --> F[Undo-entry aangemaakt\nAuto-save gestart]
+    D -- "Delete of Backspace" --> E[Verbinding verwijderd]
+    D -- "Verwijder-knop<br>in right panel" --> E
+    E --> F["Undo-entry aangemaakt<br>Auto-save gestart"]
     F --> G([Klaar])
 ```
 
 ---
 
-## 9. Commentaar toevoegen aan een node
+## 9. Commentaar toevoegen aan een blok
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B[Selecteer een node]
-    B --> C[Right panel toont\nblok-properties]
+    A([Start]) --> B[Selecteer een blok]
+    B --> C["Right panel toont<br>blok-properties"]
     C --> D[Klik op 'Commentaar'-knop]
     D --> E[Commentaarpaneel opent]
-    E --> F[Typ opmerking in tekstveld\nmax. 2000 tekens]
+    E --> F["Typ opmerking in tekstveld<br>(max. 2000 tekens)"]
     F --> G{Hoe toevoegen?}
-    G -- Enter --> H[Opmerking toegevoegd\nmet timestamp]
-    G -- Klik 'Toevoegen'-knop --> H
+    G -- Enter --> H["Opmerking toegevoegd<br>met timestamp"]
+    G -- "Klik 'Toevoegen'-knop" --> H
     H --> I[Opmerking zichtbaar in lijst]
-    I --> J{Nog een\nopmerking?}
+    I --> J{"Nog een<br>opmerking?"}
     J -- Ja --> F
     J -- Nee --> K([Klaar])
 ```
@@ -196,36 +196,36 @@ flowchart TD
 ```mermaid
 flowchart TD
     A([Start]) --> B{Welke actie?}
-    B -- Ctrl+Z of Undo-knop --> C{Undo-stack\nniet leeg?}
-    C -- Nee --> D[Undo-knop uitgeschakeld\ngeen actie]
-    C -- Ja --> E[Vorige diagramtoestand\nhersteld]
+    B -- "Ctrl+Z of Undo-knop" --> C{"Undo-stack<br>niet leeg?"}
+    C -- Nee --> D["Undo-knop uitgeschakeld<br>geen actie"]
+    C -- Ja --> E["Vorige diagramtoestand<br>hersteld"]
     E --> F[Redo-stack bijgewerkt]
     F --> G([Klaar])
-    B -- Ctrl+Y of Redo-knop --> H{Redo-stack\nniet leeg?}
-    H -- Nee --> I[Redo-knop uitgeschakeld\ngeen actie]
-    H -- Ja --> J[Teruggedraaide toestand\nopnieuw toegepast]
+    B -- "Ctrl+Y of Redo-knop" --> H{"Redo-stack<br>niet leeg?"}
+    H -- Nee --> I["Redo-knop uitgeschakeld<br>geen actie"]
+    H -- Ja --> J["Teruggedraaide toestand<br>opnieuw toegepast"]
     J --> K[Undo-stack bijgewerkt]
     K --> G
 ```
 
 ---
 
-## 11. Node label bewerken (inline)
+## 11. Blok-label bewerken (inline)
 
 Alleen **Action**, **Decision** en **Result** hebben een bewerkbaar label. De labels van **Start** ("Start") en **End** ("End") zijn vast.
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B{Bloktype\nbewerkbaar?}
-    B -- Start of End --> C([Geen actie\nlabel is vast])
-    B -- Action / Decision / Result --> D[Dubbelklik op het label]
-    D --> E[Inline tekstveld verschijnt\nhuidige tekst geselecteerd]
+    A([Start]) --> B{"Bloktype<br>bewerkbaar?"}
+    B -- "Start of End" --> C(["Geen actie —<br>label is vast"])
+    B -- "Action / Decision / Result" --> D[Dubbelklik op het label]
+    D --> E["Inline tekstveld verschijnt<br>huidige tekst geselecteerd"]
     E --> F[Typ nieuwe tekst]
     F --> G{Bevestigen?}
-    G -- Enter of klik buiten node --> H{Tekst gewijzigd?}
-    H -- Ja --> I[Label bijgewerkt\nUndo-entry aangemaakt]
+    G -- "Enter of klik buiten blok" --> H{Tekst gewijzigd?}
+    H -- Ja --> I["Label bijgewerkt<br>Undo-entry aangemaakt"]
     H -- Nee --> J([Geen actie])
-    G -- Escape --> K[Bewerking geannuleerd\noriginele tekst hersteld]
+    G -- Escape --> K["Bewerking geannuleerd<br>originele tekst hersteld"]
     I --> L([Klaar])
     K --> L
 ```
@@ -238,16 +238,16 @@ flowchart TD
 flowchart TD
     A([Start]) --> B{Huidige themamodus?}
 
-    B -- Automatisch\nmonitor-icoon --> C[Klik op themaknop]
-    C --> D[Handmatige override actief\nThema omgewisseld\nOpgeslagen in localStorage]
+    B -- "Automatisch<br>(monitor-icoon)" --> C[Klik op themaknop]
+    C --> D["Handmatige override actief<br>Thema omgewisseld<br>Opgeslagen in localStorage"]
     D --> E{Gewenst resultaat?}
     E -- Ja --> F([Klaar])
-    E -- Terug naar systeeminstelling --> G[Rechtsklik op themaknop]
-    G --> H[Override verwijderd\nEditor volgt systeem weer\nIconoon wordt monitor]
+    E -- "Terug naar systeeminstelling" --> G[Rechtsklik op themaknop]
+    G --> H["Override verwijderd<br>Editor volgt systeem weer<br>Icoon wordt monitor"]
     H --> F
 
-    B -- Handmatig\nzon of maan-icoon --> I[Klik op themaknop]
-    I --> J[Thema omgewisseld\nLocalStorage bijgewerkt]
+    B -- "Handmatig<br>(zon of maan-icoon)" --> I[Klik op themaknop]
+    I --> J["Thema omgewisseld<br>localStorage bijgewerkt"]
     J --> E
 ```
 
@@ -257,14 +257,55 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B[Klik op 'Export'\nin toolbar]
-    B --> C[Dropdown toont:\nPNG · SVG]
+    A([Start]) --> B["Klik op 'Export'<br>in toolbar"]
+    B --> C["Dropdown toont:<br>PNG · SVG"]
     C --> D{Kies formaat}
-    D -- PNG --> E[Canvas vastgelegd als bitmap\nAchtergrond: wit of donker\nop basis van thema]
+    D -- PNG --> E["Canvas vastgelegd als bitmap<br>Achtergrond: wit of donker<br>op basis van thema"]
     D -- SVG --> F[Canvas vastgelegd als vector]
-    E --> G[Bestand gedownload:\ndiagramnaam.png]
-    F --> H[Bestand gedownload:\ndiagramnaam.svg]
+    E --> G["Bestand gedownload:<br>diagramnaam.png"]
+    F --> H["Bestand gedownload:<br>diagramnaam.svg"]
     G --> I([Klaar])
     H --> I
-    D -- Klik buiten menu --> J([Menu gesloten\ngeen actie])
+    D -- "Klik buiten menu" --> J(["Menu gesloten —<br>geen actie"])
+```
+
+---
+
+## 14. Bestandscontextmenu (rechtermuisknop in sidebar)
+
+```mermaid
+flowchart TD
+    A([Start]) --> B{"Rechtsklik op<br>bestand of map?"}
+
+    B -- Bestand --> C{"Kies actie"}
+    C -- Hernoemen --> D["Inline naamveld verschijnt<br>huidige naam geselecteerd"]
+    D --> E{"Bevestigen?"}
+    E -- "Enter of klik buiten veld" --> F["Bestand hernoemd<br>Sidebar bijgewerkt"]
+    E -- Escape --> G([Geen actie])
+
+    C -- Verplaatsen --> H["Dialoog: kies doelmap<br>uit mappenstructuur"]
+    H --> I{"Doelmap<br>gekozen?"}
+    I -- Annuleer --> G
+    I -- Bevestig --> J["Bestand verplaatst<br>Sidebar bijgewerkt"]
+
+    C -- Verwijderen --> K["Bevestigingsdialoog:<br>Verwijderen?"]
+    K --> L{Gebruiker kiest}
+    L -- Annuleer --> G
+    L -- Bevestig --> M["Bestand verwijderd<br>Sidebar bijgewerkt"]
+
+    B -- Map --> N{"Kies actie"}
+    N -- "Nieuw diagram aanmaken" --> O["Dialoogvenster: bestandsnaam<br>Diagram aangemaakt in deze map"]
+    N -- "Submap aanmaken" --> P["Inline naamveld voor<br>nieuwe submap"]
+    P --> Q["Submap aangemaakt<br>Sidebar bijgewerkt"]
+    N -- "Map verwijderen" --> R["Bevestigingsdialoog:<br>Map inclusief inhoud verwijderen?"]
+    R --> S{Gebruiker kiest}
+    S -- Annuleer --> G
+    S -- Bevestig --> T["Map en inhoud verwijderd<br>Sidebar bijgewerkt"]
+
+    F --> U([Klaar])
+    J --> U
+    M --> U
+    O --> U
+    Q --> U
+    T --> U
 ```

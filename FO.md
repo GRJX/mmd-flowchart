@@ -15,8 +15,7 @@
 11. [Toetsenbordsneltoetsen](#11-toetsenbordsneltoetsen)
 12. [Fout- en waarschuwingsstatussen](#12-fout--en-waarschuwingsstatussen)
 13. [Read-only modus](#13-read-only-modus)
-14. [Thema](#14-thema)
-15. [Undo / Redo](#15-undo--redo)
+14. [Undo / Redo](#14-undo--redo)
 
 ---
 
@@ -35,17 +34,23 @@ De editor werkt volledig lokaal in de browser — er is geen server of account n
 
 ## 2. Bloktypen
 
-De editor ondersteunt vijf bloktypen. Elk type heeft vaste regels voor het aantal in- en uitgaande verbindingen.
+De editor ondersteunt vijf bloktypen. Alle per-type eigenschappen zijn centraal gedefinieerd als configuratie — nieuwe bloktypen toevoegen vereist alleen een nieuwe config-entry, geen conditionele logica verspreid door de codebase.
 
-### Overzicht
+### Blok-configuratietabel
 
-| Type | ID-patroon | Max. inputs | Max. outputs | Standaardlabel | Visueel |
-|---|---|---|---|---|---|
-| **Start** | `S` | 0 | 1 | "Start" | Cirkel |
-| **End** | `E1..En` | onbeperkt | 0 | "End" | Cirkel |
-| **Action** | `A1..An` | 1 | 1 | "Action/State" | Afgerond rechthoek |
-| **Decision** | `D1..Dn` | 1 | 2 | "Condition?" | Ruit (diamant) |
-| **Result** | `R1..Rn` | 1 | 1 | "Result" | Rechthoek met teal linkerzijde |
+| Type | ID-patroon | Max. inputs | Max. outputs | Label bewerkbaar | Data Field | Expected Outcome | Visueel |
+|---|---|---|---|---|---|---|---|
+| **Start** | `S` | 0 | 1 | nee | ja | nee | Cirkel |
+| **End** | `E1..En` | onbeperkt | 0 | nee | nee | nee | Cirkel |
+| **Action** | `A1..An` | 1 | 1 | ja | ja | nee | Afgerond rechthoek |
+| **Decision** | `D1..Dn` | 1 | 2 | ja | nee | nee | Ruit (diamant) |
+| **Result** | `R1..Rn` | 1 | 1 | ja | nee | ja | Rechthoek met teal linkerzijde |
+
+De config legt ook per type vast:
+- Standaardlabel bij aanmaken
+- Beschikbaar in het palette (Start uitgeschakeld als al aanwezig)
+- Beschikbaar in het QuickAddMenu (Start altijd uitgesloten)
+- Handle-posities voor uitgaande verbindingen (Decision: rechts = Y, onder = N)
 
 ### Start
 
@@ -53,6 +58,7 @@ De editor ondersteunt vijf bloktypen. Elk type heeft vaste regels voor het aanta
 - Het label "Start" is niet bewerkbaar.
 - Kan niet als doel van een verbinding dienen.
 - Heeft één uitgaande verbinding (naar het eerste blok in de flow).
+- Heeft een optioneel **Data Field** voor het vastleggen van de initiële staat of precondities van de flow (max. 2000 tekens).
 
 ### End
 
@@ -73,7 +79,7 @@ De editor ondersteunt vijf bloktypen. Elk type heeft vaste regels voor het aanta
 - Het label is bedoeld als vraagstelling (eindigt conventioneel op `?`).
 - Heeft exact twee uitgangen: één Y-pad en één N-pad.
 - Het Y-pad gaat rechts uit (right handle), het N-pad gaat omlaag (bottom handle).
-- De Y- en N-paden kunnen worden omgewisseld via de **Y/N omwisselen**-knop in de verbindingseigenschappen (right panel). Hier worden de labels omgewisseld.
+- De verbindingslabels (standaard "Y" en "N") zijn vrij aanpasbaar in de verbindingseigenschappen.
 
 ### Result
 
@@ -94,39 +100,44 @@ Elk blok heeft:
 
 ### Verbindingstypen
 
-| Type | Wanneer | Visueel | Label |
-|---|---|---|---|
-| **default** | Elk blok → elk blok (niet start als doel, niet end als bron) | Lijn met pijl | — |
-| **yes (Y)** | Decision → elk blok | Lijn met pijl | Y |
-| **no (N)** | Decision → elk blok | Lijn met pijl | N |
+| Type | Wanneer | Label (standaard) |
+|---|---|---|
+| **default** | Elk blok → elk blok (niet Start als doel, niet End als bron) | *(leeg)* |
+| **Y** | Decision → elk blok, rechter uitgang | Y |
+| **N** | Decision → elk blok, onderste uitgang | N |
+
+Elk verbindingslabel is vrij aanpasbaar: leeg laten of max. 50 tekens tekst. Voor Decision-uitgangen worden "Y" en "N" als standaard ingesteld op basis van de handle-richting.
 
 ### Regels
 
 - Een verbinding van en naar hetzelfde blok (self-loop) is niet toegestaan.
-- Wanneer de limiet is bereikt, worden verbindingspunten (handles) geblokkeerd.
+- Wanneer de limiet is bereikt, worden verbindingspunten (handles) geblokkeerd. Slepen naar een geblokkeerd punt maakt geen verbinding aan.
 
 ### Verbindingen aanmaken
 
 1. Hover over een blok — de verbindingspunten worden zichtbaar.
 2. Klik en sleep van een bronpunt naar een doelpunt (deze zitten op dezelfde posities en zijn niet visueel anders).
 3. Tijdens het slepen toont een **preview-lijn** (gestippeld, orthogonaal) exact hoe de verbinding zal lopen als je loslaat.
-4. Bij een Decision-blok als bron: rechts uit het blok is standaard Y en onder uit het blok is standaard N.
+4. Loslaten op een geldig doelpunt maakt de verbinding aan; loslaten erbuiten annuleert de actie.
 
-De verbindingslijn start en eindigt op het exacte verbindingspunt waarvandaan gesleept is. Een verbinding van het linkerpunt van node A naar het bovenpunt van node B ziet er dus ook zo uit.
-
-### Verbindingseigenschappen
-
-- **Type** — default / Y / N (alleen aanpasbaar voor Decision-uitgangen)
-
+De definitieve verbindingslijn is **orthogonaal met licht afgeronde hoeken**. De lijn start en eindigt op het exacte verbindingspunt waarvandaan gesleept is.
 
 ### YN-toewijzing
 
-Het padtype (Y of N) wordt automatisch bepaald door het verbindingspunt waarvanuit gesleept wordt:
+Het label van een nieuwe verbinding vanuit een Decision-blok wordt automatisch ingesteld op basis van de handle-richting:
 
-- **Rechts** uit het Decision-blok → Y-pad
-- **Onder** uit het Decision-blok → N-pad
+- **Rechts** uit het Decision-blok → label "Y"
+- **Onder** uit het Decision-blok → label "N"
 
-Er verschijnt geen modaal venster. Als het bijbehorende pad al bestaat, wordt het omgeleid naar het nieuwe doel. Het padtype kan achteraf altijd omgewisseld worden via **Y/N omwisselen** in de verbindingseigenschappen (right panel).
+Als het bijbehorende pad al bestaat, wordt het omgeleid naar het nieuwe doel. Het label kan achteraf altijd gewijzigd worden in de verbindingseigenschappen.
+
+### Verbindingseigenschappen
+
+- **Label** — vrij tekstveld, max. 50 tekens; standaard "Y" of "N" voor Decision-uitgangen, leeg voor overige verbindingen
+- **Van** — ID + label van het bronblok (read-only)
+- **Naar** — ID + label van het doelblok (read-only)
+- **Data Field** — optionele metadata voor deze verbinding (testcondities voor dit pad)
+- **Verwijderen** — verwijdert de verbinding
 
 ---
 
@@ -182,7 +193,6 @@ De metadata-sectie bevat alle informatie die niet in Mermaid-syntax past:
   },
   "connections": {
     "A1-D1-default": {
-      "waypoints": [],
       "dataField": null
     }
   }
@@ -269,8 +279,8 @@ Het is mogelijk om bestanden of folder te verslepen naar een andere locatie in d
 
 **Via het palette (right panel):**
 - Sleep een bloktype van het palette naar het canvas.
-- Loslaten plaatst het blok op de dichtstbijzijnde gridpositie (veelvoud van 16 px).
-- Als een blocktype in van het panel in de canvas wordt gesleept dan wordt er een preview getoont van de vorm waar deze terecht moet komen. Het blocktype is dan iets doorzichter dan het origineel om onderscheid te maken.
+- Tijdens het slepen is een **transparante preview** van het blok zichtbaar die live mee-snapt aan het grid.
+- Loslaten plaatst het blok op de dichtstbijzijnde gridpositie.
 
 **Via het quick-add-menu:**
 - Klik de **+**-knop die uit een blok steekt (stem).
@@ -304,14 +314,10 @@ Geselecteerde blokken tonen een uniforme 2 px blauwe ring (accent-kleur) rondom 
 - De labels van **Start** en **End** zijn vast en kunnen niet worden gewijzigd.
 - `Enter` bevestigt, `Escape` annuleert, klik buiten het blok bevestigt.
 
-### Verbindingen selecteren
+### Verbindingen selecteren en verwijderen
 
-- Klik op een pijl om de verbinding te selecteren.
-- Het right panel toont de verbindingseigenschappen.
-
-### Verbindingen verwijderen
-
-- Selecteer een verbinding en druk op `Delete` of `Backspace`.
+- Klik op een verbindingslijn om deze te selecteren; het right panel toont de verbindingseigenschappen.
+- Druk op `Delete` of `Backspace` om de geselecteerde verbinding te verwijderen.
 
 ---
 
@@ -319,12 +325,15 @@ Geselecteerde blokken tonen een uniforme 2 px blauwe ring (accent-kleur) rondom 
 
 ### NodeAddStem
 
-Elk blok dat nog uitgaande verbindingen kan aanmaken, toont een **stem**: een korte lijn met pijlpunt en een **+**-knop die buiten de node-rand uitsteekt. De lijn en knop hebben dezelfde kleur als de verbindingslijnen op het canvas.
+Een **stem** is een korte lijn met pijlpunt en een **+**-knop die buiten de node-rand uitsteekt. De lijn en knop hebben dezelfde kleur als de verbindingslijnen op het canvas.
 
-- **Bottom stem** (omlaag): aanwezig op Start, Action en Result zolang er nog geen uitgaande verbinding is.
-- **Right stem** (rechts): aanwezig op Decision zolang het Y-pad nog niet bestaat.
-- **Bottom stem** (omlaag): aanwezig op Decision zolang het N-pad nog niet bestaat.
-- De stem verdwijnt zodra het bijbehorende pad ingevuld is en keert terug als de verbinding verwijderd wordt.
+De stem verschijnt **alleen bij nieuw op het canvas geplaatste blokken** — als visuele hint om direct door te bouwen. Een blok is "nieuw" als het via het right panel palette is gesleept of geklikt, of als het via het QuickAddMenu op het canvas is gekomen.
+
+- **Bottom stem** (omlaag): op Start, Action en Result direct na plaatsing, zolang er nog geen uitgaande verbinding is.
+- **Right stem** (rechts): op Decision direct na plaatsing, voor het Y-pad.
+- **Bottom stem** (omlaag): op Decision direct na plaatsing, voor het N-pad.
+
+De stem verdwijnt zodra het bijbehorende pad aangemaakt is. **Als een bestaande verbinding later verwijderd wordt, keert de stem niet terug.** Verbindingspunten blijven wel altijd beschikbaar via hover op het blok.
 
 Het **verbindingspunt** (source handle) voor de bottom- en right-richting is geplaatst op het uiteinde van de stemlijn — niet op de node-rand. Dit betekent:
 - De **+**-knop opent het radiaalmenu voor een snelle node-toevoeging.
@@ -334,8 +343,8 @@ Het **verbindingspunt** (source handle) voor de bottom- en right-richting is gep
 
 Klikken op een stem opent het **radiaalmenu** op de cursorpositie:
 
-- Vier bloktypen in een neerwaartse boog: Decision · Action · Result · End.
-- Elk item toont een miniatuur van de blokpvorm.
+- Vier bloktypen in een neerwaartse boog: Decision · Action · Result · End. Start ontbreekt bewust — een diagram heeft altijd precies één Start-blok dat al bij aanmaken aanwezig is.
+- Elk item toont een miniatuur van de blokvorm.
 - Selecteer een type om:
   1. Een nieuw blok aan te maken op een vrije positie (~120px verwijderd, gridgesnapped).
   2. Een verbinding aan te maken van het bronblok naar het nieuwe blok.
@@ -346,9 +355,20 @@ Klikken op een stem opent het **radiaalmenu** op de cursorpositie:
 
 ## 8. Right panel
 
-Het right panel past zijn inhoud aan op basis van de selectie:
+Het right panel is een vaste shell aan de rechterkant van het scherm. De inhoud is uitwisselbaar op basis van de selectiecontext — de shell zelf verandert niet, alleen de content erin. Elke content-view is een zelfstandig component dat in de shell geplaatst wordt.
 
-### Blok-palette (standaard, geen selectie)
+**Content-views en wanneer ze actief zijn:**
+
+| View | Wanneer |
+|---|---|
+| Palette | Geen selectie of meervoudige selectie |
+| Blok-properties | Één blok geselecteerd |
+| Verbindingseigenschappen | Één verbinding geselecteerd |
+| Commentaarpaneel | Commentaar-knop geklikt vanuit blok-properties |
+
+Overgangen tussen views verlopen zonder herladen van de shell.
+
+### Blok-palette (standaard, geen selectie of meervoudige selectie)
 
 - Vijf sleepbare blokitems: Start, Action, Decision, Result, End.
 - **Start** is uitgeschakeld als het diagram al een Start-blok bevat.
@@ -366,20 +386,22 @@ Het right panel past zijn inhoud aan op basis van de selectie:
 
 ### Verbindingseigenschappen (één verbinding geselecteerd)
 
-- **Type** — dropdown (Y / N / Default); alleen aanpasbaar voor Decision-uitgangen
+- **Label** — bewerkbaar tekstveld, max. 50 tekens
 - **Van** — ID + label van het bronblok (read-only)
 - **Naar** — ID + label van het doelblok (read-only)
 - **Data Field** — optionele metadata voor deze verbinding (testcondities voor dit pad)
-- **Y/N omwisselen** — wisselt het padtype (Y → N of N → Y) inclusief herindeling in de store
 - **Verwijderen** — verwijdert de verbinding
 
-### Commentaarpaneel (via commentaar-knop in blok-properties)
+### Commentaarpaneel
+
+Het commentaarpaneel vervangt de blok-properties in het right panel (schuift in vanuit rechts). Bovenaan staat een **← terug**-knop die terugkeert naar de blok-properties.
 
 - Lijst van bestaande opmerkingen met datum/tijd en verwijderknop.
-- Tekstgebied voor een nieuwe opmerking.
+- Tekstgebied voor een nieuwe opmerking onderaan het paneel.
 - `Enter` verstuurt, `Shift+Enter` voegt een nieuwe regel in.
 - **Toevoegen**-knop (uitgeschakeld bij leeg veld).
 - Maximaal 2000 tekens per opmerking.
+- Het paneel blijft zichtbaar zolang het blok geselecteerd is. Bij deselecteren keert het right panel terug naar de standaardweergave (palette).
 
 ---
 
@@ -455,15 +477,15 @@ Sneltoetsen worden genegeerd wanneer de focus in een tekstveld of textarea zit.
 - Treedt op als meer verbindingen aangemaakt zijn dan het type toestaat (kan ontstaan door een extern gewijzigd bestand).
 - De editor laat het diagram nog steeds opslaan; overtollige verbindingen worden bij het laden genegeerd.
 
-### Toast-meldingen (tijdelijk, 4 seconden)
+### Meldingen (tijdelijk, 4 seconden)
 
 | Situatie | Melding |
 |---|---|
-| Metadata niet leesbaar | "Metadata could not be read. Comments and data fields were not loaded." |
-| Meerdere start-kandidaten | "Multiple start block candidates found. Using 'S'; others treated as end blocks." |
-| Diagram te groot | "This diagram has N blocks (limit 200). Opening in read-only preview." |
+| Metadata niet leesbaar | "Metadata kon niet worden gelezen. Opmerkingen en datavelden zijn niet geladen." |
+| Meerdere start-kandidaten | "Meerdere startblokken gevonden. 'S' wordt gebruikt; de overige worden als eindblok behandeld." |
+| Diagram te groot | "Dit diagram heeft N blokken (limiet 200). Geopend in alleen-lezen." |
 | Opslaan mislukt | Foutmelding afhankelijk van oorzaak |
-| Bestand niet leesbaar | "Failed to open file." |
+| Bestand niet leesbaar | "Bestand kon niet worden geopend." |
 
 ### Opslaan geblokkeerd
 
@@ -484,38 +506,11 @@ In read-only modus:
 - Wordt het diagram gerenderd via de Mermaid.js-bibliotheek (statische SVG).
 - Toont een banner met de reden voor read-only.
 - Zijn geen bewerkingen mogelijk.
-- Kan het diagram niet worden geëxporteerd via de normale exportfunctie.
+- Is exporteren niet mogelijk.
 
 ---
 
-## 14. Thema
-
-De editor ondersteunt licht en donker thema, met twee modi:
-
-**Automatisch (systeeminstelling):**
-- De editor volgt de `prefers-color-scheme`-instelling van het besturingssysteem.
-- Schakelt automatisch mee als de gebruiker de systeeminstelling wijzigt.
-- Het icoon in de toolbar toont een **monitor**-symbool.
-
-**Handmatig (gebruikersvoorkeur):**
-- Klik op de themaknop (rechts in de toolbar, na undo/redo) om te wisselen tussen licht en donker.
-- De keuze wordt opgeslagen in `localStorage` en blijft behouden bij herladen.
-- Het icoon toont een **zon** (licht) of **maan** (donker).
-- Rechtsklik op de themaknop reset naar de automatische systeeminstelling.
-
-**Donker (standaard):**
-- Canvas: `#111111`
-- Panelen: `#181818` / `#141414`
-- Blokken: donkerblauwe/groene fills
-
-**Licht:**
-- Canvas: `#ffffff`
-- Panelen: `#ebebeb` / `#e2e2e2`
-- Blokken: lichtblauwe/groene fills
-
----
-
-## 15. Undo / Redo
+## 14. Undo / Redo
 
 - Elke bewerkingsactie legt een snapshot vast van de volledige diagramtoestand (blokken + verbindingen).
 - De undo-stack bewaart maximaal **100 entries** per diagram.
@@ -528,7 +523,6 @@ De editor ondersteunt licht en donker thema, met twee modi:
 | Blok toevoegen |
 | Blok verwijderen |
 | Blok verplaatsen |
-| Blok formaat wijzigen |
 | Label bewerken |
 | Verbinding toevoegen |
 | Verbinding verwijderen |
