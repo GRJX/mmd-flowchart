@@ -41,8 +41,8 @@ De editor ondersteunt vijf bloktypen. Elk type heeft vaste regels voor het aanta
 
 | Type | ID-patroon | Max. inputs | Max. outputs | Standaardlabel | Visueel |
 |---|---|---|---|---|---|
-| **Start** | `S` | 0 | 1 | "Start" | Groene cirkel |
-| **End** | `E1..En` | onbeperkt | 0 | "End" | Rode cirkel |
+| **Start** | `S` | 0 | 1 | "Start" | Cirkel |
+| **End** | `E1..En` | onbeperkt | 0 | "End" | Cirkel |
 | **Action** | `A1..An` | 1 | 1 | "Action/State" | Afgerond rechthoek |
 | **Decision** | `D1..Dn` | 1 | 2 | "Condition?" | Ruit (diamant) |
 | **Result** | `R1..Rn` | 1 | 1 | "Result" | Rechthoek met teal linkerzijde |
@@ -73,7 +73,7 @@ De editor ondersteunt vijf bloktypen. Elk type heeft vaste regels voor het aanta
 - Het label is bedoeld als vraagstelling (eindigt conventioneel op `?`).
 - Heeft exact twee uitgangen: één Y-pad en één N-pad.
 - Het Y-pad gaat rechts uit (right handle), het N-pad gaat omlaag (bottom handle).
-- De Y- en N-paden kunnen worden omgewisseld via de **Y/N omwisselen**-knop in de verbindingseigenschappen (right panel).
+- De Y- en N-paden kunnen worden omgewisseld via de **Y/N omwisselen**-knop in de verbindingseigenschappen (right panel). Hier worden de labels omgewisseld.
 
 ### Result
 
@@ -96,9 +96,9 @@ Elk blok heeft:
 
 | Type | Wanneer | Visueel | Label |
 |---|---|---|---|
-| **default** | Elk blok → elk blok (niet start als doel, niet end als bron) | Grijze pijl | — |
-| **yes (Y)** | Decision → elk blok | Teal pijl | Y |
-| **no (N)** | Decision → elk blok | Rode pijl | N |
+| **default** | Elk blok → elk blok (niet start als doel, niet end als bron) | Lijn met pijl | — |
+| **yes (Y)** | Decision → elk blok | Lijn met pijl | Y |
+| **no (N)** | Decision → elk blok | Lijn met pijl | N |
 
 ### Regels
 
@@ -108,25 +108,25 @@ Elk blok heeft:
 ### Verbindingen aanmaken
 
 1. Hover over een blok — de verbindingspunten worden zichtbaar.
-2. Klik en sleep van een bronpunt naar een doelpunt.
+2. Klik en sleep van een bronpunt naar een doelpunt (deze zitten op dezelfde posities en zijn niet visueel anders).
 3. Tijdens het slepen toont een **preview-lijn** (gestippeld, orthogonaal) exact hoe de verbinding zal lopen als je loslaat.
-4. Bij een Decision-blok als bron: de YN-picker verschijnt om het padtype te kiezen.
+4. Bij een Decision-blok als bron: rechts uit het blok is standaard Y en onder uit het blok is standaard N.
 
-De verbindingslijn start en eindigt op het exacte verbindingspunt waarvandaan gesleept is. Een verbinding van het linkerpunt van node A naar het bovenpunt van node B ziet er dus ook zo uit — niet hardcoded van onder naar boven.
+De verbindingslijn start en eindigt op het exacte verbindingspunt waarvandaan gesleept is. Een verbinding van het linkerpunt van node A naar het bovenpunt van node B ziet er dus ook zo uit.
 
 ### Verbindingseigenschappen
 
 - **Type** — default / Y / N (alleen aanpasbaar voor Decision-uitgangen)
-- **Data Field** — optionele metadata voor testcondities op dit specifieke pad (max. 2000 tekens)
 
-### YN-picker
 
-Wanneer een verbinding handmatig getrokken wordt vanuit een Decision-blok:
+### YN-toewijzing
 
-1. Een modaal venster verschijnt met twee knoppen: **Y path** en **N path**.
-2. Als het gekozen pad al bestaat, toont de knop "Redirect Y/N path" als waarschuwing.
-3. Annuleren sluit het modaal zonder de verbinding op te slaan.
-4. Escape sluit het modaal.
+Het padtype (Y of N) wordt automatisch bepaald door het verbindingspunt waarvanuit gesleept wordt:
+
+- **Rechts** uit het Decision-blok → Y-pad
+- **Onder** uit het Decision-blok → N-pad
+
+Er verschijnt geen modaal venster. Als het bijbehorende pad al bestaat, wordt het omgeleid naar het nieuwe doel. Het padtype kan achteraf altijd omgewisseld worden via **Y/N omwisselen** in de verbindingseigenschappen (right panel).
 
 ---
 
@@ -214,7 +214,7 @@ Verbindingen worden weggeschreven via een depth-first traversal vanaf het Start-
 
 - Mappen worden boven bestanden getoond (beide alfabetisch gesorteerd).
 - Mappen zijn uitklapbaar; de status wordt bewaard zolang de sidebar open is.
-- Alleen `.mmd`-bestanden worden getoond.
+- Alleen `.mmd`-bestanden worden getoond
 
 ### Bestand openen
 
@@ -245,6 +245,9 @@ Verbindingen worden weggeschreven via een depth-first traversal vanaf het Start-
 **Op een map:**
 - Nieuw diagram aanmaken in deze map
 - Submap aanmaken
+- Map verwijderen
+
+Het is mogelijk om bestanden of folder te verslepen naar een andere locatie in de geopende mappenstructuur.
 
 ---
 
@@ -259,7 +262,7 @@ Verbindingen worden weggeschreven via een depth-first traversal vanaf het Start-
 
 ### Grid
 
-- Het canvas heeft een vaste grid van **16px**.
+- Het canvas heeft een vaste grid van **8px**.
 - Blokken snappen altijd aan het grid bij slepen en loslaten.
 
 ### Blokken toevoegen
@@ -267,11 +270,13 @@ Verbindingen worden weggeschreven via een depth-first traversal vanaf het Start-
 **Via het palette (right panel):**
 - Sleep een bloktype van het palette naar het canvas.
 - Loslaten plaatst het blok op de dichtstbijzijnde gridpositie (veelvoud van 16 px).
+- Als een blocktype in van het panel in de canvas wordt gesleept dan wordt er een preview getoont van de vorm waar deze terecht moet komen. Het blocktype is dan iets doorzichter dan het origineel om onderscheid te maken.
 
 **Via het quick-add-menu:**
 - Klik de **+**-knop die uit een blok steekt (stem).
 - Een radiaalmenu verschijnt met de beschikbare bloktypen.
 - Selecteren plaatst het nieuwe blok automatisch op een vrije positie en maakt de verbinding aan.
+- Het nieuwe blok wordt altijd gecenteerd onder het huidige blok geplaatst zodat deze op een mooie afstrond onder elkaar of naast elkaar komen te staan.
 
 ### Blokken selecteren
 
@@ -284,7 +289,7 @@ Geselecteerde blokken tonen een uniforme 2 px blauwe ring (accent-kleur) rondom 
 
 ### Blokken verplaatsen
 
-- Klik en sleep een blok (of meerdere geselecteerde blokken). Het blok snapt live aan het 16 px grid.
+- Klik en sleep een blok (of meerdere geselecteerde blokken). Het blok snapt live aan het 8 px grid.
 - Positie wordt opgeslagen zodra het blok losgelaten wordt (undo-entry aangemaakt).
 
 ### Blokken verwijderen
@@ -435,7 +440,6 @@ Beide exports berekenen de bounding box van alle blokken dynamisch (32px padding
 | `Enter` (inline edit) | Label bevestigen |
 | `Escape` (inline edit) | Bewerking annuleren |
 | `Escape` (QuickAddMenu) | Menu sluiten |
-| `Escape` (YN-picker) | Verbinding annuleren |
 | `Enter` (commentaarveld) | Opmerking toevoegen |
 | `Shift+Enter` (commentaarveld) | Nieuwe regel in opmerking |
 
