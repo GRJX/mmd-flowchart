@@ -1,0 +1,256 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ---------- Theme tokens ---------- */
+:root {
+  /* Claude-inspired palette (light) */
+  --claude-bg: #fefefe;
+  --claude-surface: #f7f7f7;
+  --claude-surface-hover: #f0f0f0;
+  --claude-border: #e1e1e1;
+  --claude-border-hover: #d1d1d1;
+  --claude-text-primary: #1a1a1a;
+  --claude-text-secondary: #666666;
+  --claude-text-tertiary: #8a8a8a;
+  --claude-accent: #d97706;
+  --claude-accent-hover: #c2670a;
+  --claude-accent-light: #fed7aa;
+  --claude-success: #059669;
+  --claude-warning: #d97706;
+  --claude-error: #dc2626;
+  --claude-shadow: rgba(0, 0, 0, 0.05);
+
+  /* shadcn tokens (light) */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+
+  /* Domain-specific tokens */
+  --node-stroke: #1a1a1a;
+  --node-fill: #ffffff;
+  --node-text: #1a1a1a;
+  --result-accent: #14b8a6;
+  --edge-stroke: #475569;
+  --edge-selected: var(--claude-accent);
+  --handle-bg: #ffffff;
+  --handle-border: var(--claude-accent);
+  --violation: #f97316;
+}
+
+.dark {
+  --claude-bg: #1a1a1a;
+  --claude-surface: #2a2a2a;
+  --claude-surface-hover: #333333;
+  --claude-border: #3a3a3a;
+  --claude-border-hover: #4a4a4a;
+  --claude-text-primary: #f5f5f5;
+  --claude-text-secondary: #b8b8b8;
+  --claude-text-tertiary: #888888;
+  --claude-accent: #f59e0b;
+  --claude-accent-hover: #e19c0a;
+  --claude-accent-light: #92400e;
+  --claude-success: #10b981;
+  --claude-warning: #f59e0b;
+  --claude-error: #ef4444;
+  --claude-shadow: rgba(0, 0, 0, 0.3);
+
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+
+  --node-stroke: #f5f5f5;
+  --node-fill: #2a2a2a;
+  --node-text: #f5f5f5;
+  --result-accent: #14b8a6;
+  --edge-stroke: #9ca3af;
+  --edge-selected: var(--claude-accent);
+  --handle-bg: #2a2a2a;
+  --handle-border: var(--claude-accent);
+  --violation: #fb923c;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+/* ---------- Typography ---------- */
+* {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+html, body, #root {
+  height: 100vh;
+  overflow: hidden;
+}
+
+body {
+  background: var(--claude-bg);
+  color: var(--claude-text-primary);
+}
+
+/* ---------- Custom scrollbar ---------- */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--claude-border) transparent;
+}
+.custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--claude-border);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--claude-text-tertiary);
+}
+
+/* ---------- Animations ---------- */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes pulseViolation {
+  0%, 100% { box-shadow: 0 0 0 0 var(--violation); }
+  50% { box-shadow: 0 0 0 6px transparent; }
+}
+@keyframes radialIn {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fadeIn { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.animate-slideIn { animation: slideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+.animate-violation { animation: pulseViolation 1.6s ease-in-out infinite; }
+.animate-radialIn { animation: radialIn 0.15s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* ---------- React Flow overrides ---------- */
+.react-flow__node {
+  font-family: 'Inter', sans-serif;
+}
+.react-flow__edge-path {
+  stroke: var(--edge-stroke);
+  stroke-width: 1.75;
+}
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:focus .react-flow__edge-path {
+  stroke: var(--edge-selected);
+  stroke-width: 2.25;
+}
+.react-flow__edge-text {
+  font-size: 12px;
+  font-weight: 500;
+  fill: var(--claude-text-primary);
+}
+.react-flow__edge-textbg {
+  fill: var(--claude-bg);
+}
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  background: var(--handle-bg);
+  border: 2px solid var(--handle-border);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.react-flow__node:hover .react-flow__handle,
+.react-flow__handle-connecting,
+.react-flow__handle-valid {
+  opacity: 1;
+}
+.react-flow__handle.handle-blocked {
+  background: var(--claude-error);
+  border-color: var(--claude-error);
+  cursor: not-allowed;
+}
+.react-flow__attribution { display: none; }
+
+/* ---------- Utility: grid background ---------- */
+.canvas-grid-bg {
+  background-image:
+    radial-gradient(circle, var(--claude-border) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+.dark .canvas-grid-bg {
+  background-image:
+    radial-gradient(circle, var(--claude-border-hover) 1px, transparent 1px);
+}
+
+@layer base {
+  * { border-color: var(--border); }
+}

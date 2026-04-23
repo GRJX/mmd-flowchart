@@ -74,15 +74,18 @@ flowchart TD
 
 ## 4. Blok verwijderen
 
+Bij een meervoudige selectie (blokken + verbindingen) toont het right panel uitsluitend een verwijder-knop; een enkele druk op Delete of op die knop verwijdert het hele pakket.
+
 ```mermaid
 flowchart TD
-    A([Start]) --> B["Selecteer één of meer blokken<br>via klik of marquee-selectie"]
-    B --> C[Druk Delete of Backspace]
-    C --> D{"Heeft een geselecteerd<br>blok commentaar?"}
+    A([Start]) --> B["Selecteer één of meer items<br>via klik, Shift+klik of Shift+sleep (marquee)"]
+    B --> C{Hoe verwijderen?}
+    C -- "Delete of Backspace" --> D{"Heeft een geselecteerd<br>blok commentaar?"}
+    C -- "Verwijder-knop in right panel" --> D
     D -- Ja --> E["Bevestigingsdialoog:<br>Verwijderen inclusief commentaar?"]
     E --> F{Gebruiker kiest}
     F -- Annuleer --> G([Geen actie])
-    F -- Bevestig --> H["Blok en alle bijbehorende<br>verbindingen verwijderd"]
+    F -- Bevestig --> H["Alle geselecteerde blokken<br>en bijbehorende verbindingen verwijderd"]
     D -- Nee --> H
     H --> I[Undo-entry aangemaakt]
     I --> J([Klaar])
@@ -90,22 +93,68 @@ flowchart TD
 
 ---
 
+## 4b. Door de flow navigeren via uitgaande paden
+
+Het right panel toont voor elk geselecteerd blok (behalve End) een lijst van uitgaande paden. Klikken op een pad selecteert het doelblok — handig om een lange flow stap voor stap te volgen.
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Selecteer een blok]
+    B --> C["Right panel toont<br>blok-properties"]
+    C --> D{"Bloktype"}
+    D -- End --> E([Geen paden getoond])
+    D -- "Start / Action / Result" --> F["Sectie 'Uitgaande paden':<br>één rij per verbinding"]
+    D -- Decision --> G["Sectie 'Uitgaande paden':<br>Y-rij (rechts) + N-rij (onder)"]
+    F --> H[Klik op een rij]
+    G --> H
+    H --> I["Selectie verschuift<br>naar het doelblok"]
+    I --> J([Klaar — panel toont nieuwe blok])
+```
+
+---
+
 ## 5. Verbinding handmatig aanmaken
+
+Alle bloktypen behalve Start hebben verbindingspunten op N, O, Z en W. Elk punt is bidirectioneel — het kan als bron én als doel dienen. Bij Decision geldt: **onder = N**, **rechts of links = Y** (rechts is default).
 
 ```mermaid
 flowchart TD
     A([Start]) --> B[Hover over een bronblok]
-    B --> C["Verbindingspunten worden zichtbaar<br>op de randen van het blok"]
-    C --> D["Klik en sleep van een bronpunt<br>naar een doelblok"]
+    B --> C["Vier verbindingspunten<br>(N, O, Z, W) zichtbaar"]
+    C --> D["Klik en sleep van een bronpunt<br>naar een punt op een doelblok"]
     D --> E{"Is de verbinding<br>geldig?"}
-    E -- "Nee —<br>limiet bereikt of<br>ongeldige combinatie" --> F["Sleep afgebroken<br>geen verbinding aangemaakt"]
+    E -- "Nee —<br>max. outputs bereikt of<br>self-loop" --> F["Sleep afgebroken<br>geen verbinding aangemaakt"]
     E -- Ja --> G{"Bron is een<br>Decision-blok?"}
-    G -- Ja --> H["Label automatisch ingesteld<br>op basis van handle-richting:<br>rechts = Y · onder = N"]
-    H --> I["Verbinding aangemaakt<br>met automatisch padtype"]
+    G -- Ja --> H["Kind bepaald door handle:<br>rechts of links = Y · onder = N"]
+    H --> I["Verbinding aangemaakt<br>met de zijdes van bron en doel<br>opgeslagen in metadata"]
     G -- Nee --> J["Verbinding aangemaakt<br>als default-type"]
     I --> K["Undo-entry aangemaakt<br>Auto-save gestart"]
     J --> K
     K --> L([Klaar])
+```
+
+---
+
+## 5b. Bestaande verbinding herverbinden
+
+Een verbinding kan aan beide uiteinden opnieuw worden aangesloten zonder opnieuw te hoeven aanmaken. Label en Data Field blijven behouden; bij een Decision-bron wordt het kind opnieuw bepaald uit de nieuwe bronzijde.
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Klik op een verbindingslijn]
+    B --> C["Sleep-ankers verschijnen<br>op bron- en doeluiteinde"]
+    C --> D{Welk anker slepen?}
+    D -- Bron-anker --> E["Sleep naar ander verbindingspunt<br>op hetzelfde of ander blok"]
+    D -- Doel-anker --> E
+    E --> F{Doel geldig?}
+    F -- "Nee — buiten handle<br>of limiet bereikt" --> G([Verbinding blijft ongewijzigd])
+    F -- Ja --> H{"Bron is een<br>Decision-blok?"}
+    H -- Ja --> I["Kind opnieuw bepaald:<br>rechts/links = Y · onder = N<br>Bestaande Y/N wordt omgeleid"]
+    H -- Nee --> J["Kind blijft 'default'"]
+    I --> K["Label en Data Field behouden<br>Sourceside / targetside bijgewerkt"]
+    J --> K
+    K --> L[Undo-entry aangemaakt]
+    L --> M([Klaar])
 ```
 
 ---
@@ -156,6 +205,27 @@ flowchart TD
 
 ---
 
+## 7b. Bestand of map verslepen in sidebar
+
+Bestanden en mappen kunnen direct naar een andere locatie in de tree gesleept worden. De verplaatsing gebeurt onder water via copy-in-doelmap + delete-uit-bronmap zodat dit ook werkt voor hele mapboomen.
+
+```mermaid
+flowchart TD
+    A([Start]) --> B["Pak een rij in de sidebar<br>(bestand of map)"]
+    B --> C{Drop op?}
+    C -- Doelmap-rij --> D{"Valide?<br>(niet op zichzelf,<br>geen descendant,<br>naam nog vrij)"}
+    C -- Lege ruimte in tree --> E[Verplaats naar root]
+    D -- Nee --> F(["Geen actie —<br>drop genegeerd"])
+    D -- Ja --> G["Content gekopieerd in doelmap<br>Bron verwijderd<br>Doelmap wordt uitgeklapt"]
+    E --> G
+    G --> H{"Open bestand in<br>(of binnen) verplaatst item?"}
+    H -- Ja --> I["Editor volgt:<br>filePath herschreven<br>auto-save schrijft naar nieuwe locatie"]
+    H -- Nee --> J([Klaar])
+    I --> J
+```
+
+---
+
 ## 8. Verbinding verwijderen
 
 ```mermaid
@@ -173,20 +243,20 @@ flowchart TD
 
 ## 9. Commentaar toevoegen aan een blok
 
+De Comments-sectie is een vast onderdeel van het blok-properties-paneel en zit onder ID / Label / Uitgaande paden. Het paneel is verdeeld in twee zones met elk hun eigen scroll: bovenin de eigenschappen, onderin de Comments-lijst met een vaste composer. Blokken met ≥ 1 comment tonen een accent-badge met het aantal in de rechterbovenhoek van het blok — zo is in één oogopslag te zien welke blokken notities bevatten.
+
 ```mermaid
 flowchart TD
     A([Start]) --> B[Selecteer een blok]
-    B --> C["Right panel toont<br>blok-properties"]
-    C --> D[Klik op 'Commentaar'-knop]
-    D --> E[Commentaarpaneel opent]
-    E --> F["Typ opmerking in tekstveld<br>(max. 2000 tekens)"]
-    F --> G{Hoe toevoegen?}
-    G -- Enter --> H["Opmerking toegevoegd<br>met timestamp"]
-    G -- "Klik 'Toevoegen'-knop" --> H
-    H --> I[Opmerking zichtbaar in lijst]
-    I --> J{"Nog een<br>opmerking?"}
-    J -- Ja --> F
-    J -- Nee --> K([Klaar])
+    B --> C["Right panel toont<br>blok-properties<br>incl. Comments-sectie"]
+    C --> D["Typ opmerking in de composer<br>onderin de Comments-sectie<br>(max. 2000 tekens)"]
+    D --> E{Hoe toevoegen?}
+    E -- Enter --> F["Opmerking toegevoegd<br>met timestamp"]
+    E -- "Klik 'Plaatsen'-knop" --> F
+    F --> G["Opmerking zichtbaar in lijst<br>Lijst scrollt indien nodig<br>Badge op canvas bijgewerkt"]
+    G --> H{"Nog een<br>opmerking?"}
+    H -- Ja --> D
+    H -- Nee --> I([Klaar])
 ```
 
 ---
@@ -234,78 +304,107 @@ flowchart TD
 
 ## 12. Thema wisselen
 
+De themaknop toont het huidige voorkeur-icoon (**zon** = light, **maan** = dark, **monitor** = system) en cyclet bij elke klik door de drie varianten: light → dark → system → light. De voorkeur wordt in localStorage bewaard; in system-modus volgt de editor live de OS-instelling.
+
 ```mermaid
 flowchart TD
-    A([Start]) --> B{Huidige themamodus?}
-
-    B -- "Automatisch<br>(monitor-icoon)" --> C[Klik op themaknop]
-    C --> D["Handmatige override actief<br>Thema omgewisseld<br>Opgeslagen in localStorage"]
-    D --> E{Gewenst resultaat?}
-    E -- Ja --> F([Klaar])
-    E -- "Terug naar systeeminstelling" --> G[Rechtsklik op themaknop]
-    G --> H["Override verwijderd<br>Editor volgt systeem weer<br>Icoon wordt monitor"]
-    H --> F
-
-    B -- "Handmatig<br>(zon of maan-icoon)" --> I[Klik op themaknop]
-    I --> J["Thema omgewisseld<br>localStorage bijgewerkt"]
-    J --> E
+    A([Start]) --> B{Huidig icoon?}
+    B -- "Zon (light)" --> C[Klik]
+    C --> D["Overgang naar dark<br>Icoon wordt maan"]
+    B -- "Maan (dark)" --> E[Klik]
+    E --> F["Overgang naar system<br>Icoon wordt monitor<br>Editor volgt nu OS"]
+    B -- "Monitor (system)" --> G[Klik]
+    G --> H["Overgang naar light<br>Icoon wordt zon"]
+    D --> I([Klaar])
+    F --> I
+    H --> I
 ```
 
 ---
 
 ## 13. Exporteren als PNG of SVG
 
+De export toont exact wat op het canvas staat: shapes houden hun vulkleur (diamonds krijgen dus een wit of donker interieur afhankelijk van thema), edge-lijnen blijven volledig zichtbaar inclusief label en pijlpunten. Onder water worden alle SVG `fill`/`stroke`-waarden net vóór de snapshot als inline-stijl gezet zodat CSS-variabelen correct meegenomen worden tijdens de clone.
+
 ```mermaid
 flowchart TD
     A([Start]) --> B["Klik op 'Export'<br>in toolbar"]
     B --> C["Dropdown toont:<br>PNG · SVG"]
     C --> D{Kies formaat}
-    D -- PNG --> E["Canvas vastgelegd als bitmap<br>Achtergrond: wit of donker<br>op basis van thema"]
-    D -- SVG --> F[Canvas vastgelegd als vector]
+    D -- PNG --> E["Bitmap, achtergrond wit/donker<br>afhankelijk van thema,<br>2x pixel-ratio"]
+    D -- SVG --> F["Vector, transparante achtergrond"]
     E --> G["Bestand gedownload:<br>diagramnaam.png"]
     F --> H["Bestand gedownload:<br>diagramnaam.svg"]
     G --> I([Klaar])
     H --> I
-    D -- "Klik buiten menu" --> J(["Menu gesloten —<br>geen actie"])
+    D -- "Klik buiten menu of Escape" --> J(["Menu gesloten —<br>geen actie"])
 ```
 
 ---
 
 ## 14. Bestandscontextmenu (rechtermuisknop in sidebar)
 
+Verplaatsen gebeurt niet via het menu maar via drag-and-drop (zie flow 7b).
+
 ```mermaid
 flowchart TD
-    A([Start]) --> B{"Rechtsklik op<br>bestand of map?"}
+    A([Start]) --> B{"Rechtsklik op…"}
 
     B -- Bestand --> C{"Kies actie"}
-    C -- Hernoemen --> D["Inline naamveld verschijnt<br>huidige naam geselecteerd"]
-    D --> E{"Bevestigen?"}
-    E -- "Enter of klik buiten veld" --> F["Bestand hernoemd<br>Sidebar bijgewerkt"]
-    E -- Escape --> G([Geen actie])
-
-    C -- Verplaatsen --> H["Dialoog: kies doelmap<br>uit mappenstructuur"]
-    H --> I{"Doelmap<br>gekozen?"}
-    I -- Annuleer --> G
-    I -- Bevestig --> J["Bestand verplaatst<br>Sidebar bijgewerkt"]
-
-    C -- Verwijderen --> K["Bevestigingsdialoog:<br>Verwijderen?"]
+    C -- Hernoemen --> D["Inline tekstveld in de tree<br>basenaam geselecteerd"]
+    D --> E{Bevestigen?}
+    E -- Enter --> F["Bestand hernoemd<br>open bestand volgt mee"]
+    E -- "Escape of blur" --> G([Geen actie])
+    C -- Verwijderen --> K["Bevestigingsdialoog"]
     K --> L{Gebruiker kiest}
     L -- Annuleer --> G
-    L -- Bevestig --> M["Bestand verwijderd<br>Sidebar bijgewerkt"]
+    L -- Bevestig --> M["Bestand verwijderd<br>Editor sluit als dit het open bestand was"]
 
     B -- Map --> N{"Kies actie"}
-    N -- "Nieuw diagram aanmaken" --> O["Dialoogvenster: bestandsnaam<br>Diagram aangemaakt in deze map"]
-    N -- "Submap aanmaken" --> P["Inline naamveld voor<br>nieuwe submap"]
-    P --> Q["Submap aangemaakt<br>Sidebar bijgewerkt"]
-    N -- "Map verwijderen" --> R["Bevestigingsdialoog:<br>Map inclusief inhoud verwijderen?"]
+    N -- "Nieuw diagram hier…" --> O["NewDiagramDialog opent met<br>targetFolder = deze map"]
+    N -- "Nieuwe map hier…" --> P["NewSubfolderDialog opent"]
+    P --> Q["Submap aangemaakt<br>doelmap uitgeklapt"]
+    N -- Hernoemen --> D
+    N -- Verwijderen --> R["Bevestigingsdialoog<br>(recursief)"]
     R --> S{Gebruiker kiest}
     S -- Annuleer --> G
-    S -- Bevestig --> T["Map en inhoud verwijderd<br>Sidebar bijgewerkt"]
+    S -- Bevestig --> T["Map + inhoud verwijderd<br>Editor sluit indien nodig"]
 
-    F --> U([Klaar])
-    J --> U
-    M --> U
-    O --> U
-    Q --> U
-    T --> U
+    B -- "Lege tree-achtergrond" --> U{"Kies actie"}
+    U -- "Nieuw diagram hier…" --> O
+    U -- "Nieuwe map hier…" --> P
+
+    F --> V([Klaar])
+    M --> V
+    O --> V
+    Q --> V
+    T --> V
 ```
+
+---
+
+## 15. Externe-wijziging-detectie
+
+De editor vergelijkt de `lastModified` van het open bestand met wat lokaal als laatst-opgeslagen bekend is. Checks gebeuren op twee momenten: vlak vóór een write en bij tab-refocus / visibility-change.
+
+```mermaid
+flowchart TD
+    A([Trigger]) --> B{"Welk moment?"}
+    B -- "Save (auto of Cmd+S)" --> C["Lees lastModified op schijf"]
+    C --> D{"Nieuwer dan<br>lastSavedAt?"}
+    D -- Nee --> E[Schrijf naar schijf]
+    D -- Ja --> F["Sticky toast:<br>'Bestand is extern gewijzigd…'<br>acties: Overschrijven · Herladen"]
+    F --> G{Keuze}
+    G -- Overschrijven --> H["saveCurrentDiagram({force: true})<br>write gaat door"]
+    G -- Herladen --> I["openFile(path)<br>disk-versie geladen<br>lokale wijzigingen verloren"]
+    G -- "Toast sluiten" --> J([Geen actie])
+
+    B -- "Tab refocus / visibility" --> K["Lees lastModified op schijf"]
+    K --> L{"Nieuwer?"}
+    L -- Nee --> M([Klaar])
+    L -- Ja --> N["Sticky toast:<br>'Dit bestand is extern gewijzigd.'<br>actie: Herladen"]
+    N --> O{Keuze}
+    O -- Herladen --> I
+    O -- "Toast sluiten" --> J
+```
+

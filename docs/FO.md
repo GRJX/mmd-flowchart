@@ -42,15 +42,15 @@ De editor ondersteunt vijf bloktypen. Alle per-type eigenschappen zijn centraal 
 |---|---|---|---|---|---|---|---|
 | **Start** | `S` | 0 | 1 | nee | ja | nee | Cirkel |
 | **End** | `E1..En` | onbeperkt | 0 | nee | nee | nee | Cirkel |
-| **Action** | `A1..An` | 1 | 1 | ja | ja | nee | Afgerond rechthoek |
-| **Decision** | `D1..Dn` | 1 | 2 | ja | nee | nee | Ruit (diamant) |
-| **Result** | `R1..Rn` | 1 | 1 | ja | nee | ja | Rechthoek met teal linkerzijde |
+| **Action** | `A1..An` | onbeperkt | 1 | ja | ja | nee | Afgerond rechthoek |
+| **Decision** | `D1..Dn` | onbeperkt | 2 | ja | nee | nee | Ruit (diamant) |
+| **Result** | `R1..Rn` | onbeperkt | 1 | ja | nee | ja | Rechthoek met teal linkerzijde |
 
 De config legt ook per type vast:
 - Standaardlabel bij aanmaken
 - Beschikbaar in het palette (Start uitgeschakeld als al aanwezig)
 - Beschikbaar in het QuickAddMenu (Start altijd uitgesloten)
-- Handle-posities voor uitgaande verbindingen (Decision: rechts = Y, onder = N)
+- **Verbindingspunten (handles):** Start heeft alleen een uitgaand punt (onder). Alle overige bloktypen hebben verbindingspunten op **alle vier de zijdes** (N, O, Z, W). Elk zichtbaar punt is **bidirectioneel**: het kan zowel als bron als als doel van een verbinding dienen. Bij een Decision bepaalt de richting het kind: onder = N, rechts of links = Y (de default-zijde voor Y is rechts, links is alternatief); de bovenzijde dient uitsluitend als inkomend punt.
 
 ### Start
 
@@ -65,34 +65,37 @@ De config legt ook per type vast:
 - Er kunnen meerdere End-blokken zijn (één per afsluitend pad).
 - Het label "End" is niet bewerkbaar.
 - Kan niet als bron van een verbinding dienen.
-- Ontvangt onbeperkt inkomende verbindingen.
+- Ontvangt onbeperkt inkomende verbindingen op elk van de vier zijdes.
 
 ### Action
 
 - Vertegenwoordigt een processtap of toestand.
 - Heeft een bewerkbaar label.
 - Heeft een optioneel **Data Field** voor testdata of precondities (max. 2000 tekens).
+- Ontvangt onbeperkt inkomende verbindingen. De uitgaande verbinding kan vanuit elk van de vier zijdes vertrekken.
 
 ### Decision
 
 - Vertegenwoordigt een voorwaarde met twee uitgaande paden: **Y** (ja) en **N** (nee).
 - Het label is bedoeld als vraagstelling (eindigt conventioneel op `?`).
 - Heeft exact twee uitgangen: één Y-pad en één N-pad.
-- Het Y-pad gaat rechts uit (right handle), het N-pad gaat omlaag (bottom handle).
-- De verbindingslabels (standaard "Y" en "N") zijn vrij aanpasbaar in de verbindingseigenschappen.
+- Het N-pad vertrekt vanaf de **onderste** handle. Het Y-pad vertrekt default vanaf de **rechter** handle; bij voorkeur-layouts mag dit ook vanaf de **linker** handle — beide richtingen worden als Y-kind geïnterpreteerd. Een nieuwe Y-verbinding vervangt een bestaande Y-verbinding, ongeacht van welke zijde die vertrekt.
+- De verbindingslabels (standaard "Y" en "N") zijn vrij aanpasbaar in de verbindingseigenschappen; de Y/N-semantiek blijft behouden via de metadata.
+- Ontvangt onbeperkt inkomende verbindingen op elk van de vier zijdes.
 
 ### Result
 
 - Documenteert een testuitkomst of tussenresultaat.
 - Heeft een bewerkbaar label.
 - Heeft een optioneel **Expected Outcome** veld (beschrijving van het verwachte resultaat).
+- Ontvangt onbeperkt inkomende verbindingen. De uitgaande verbinding kan vanuit elk van de vier zijdes vertrekken.
 
 ### Blok-properties (gemeenschappelijk)
 
 Elk blok heeft:
 - **ID** — stabiel, leesbaar (`S`, `A1`, `D2`, …); read-only
 - **Label** — bewerkbaar via inline-edit (dubbelklik) of het right panel
-- **Commentaar** — lijst van tijdgestempelde notities; beheerd via het commentaarpaneel
+- **Commentaar** — lijst van tijdgestempelde notities; beheerd via het commentaarpaneel. Blokken met ≥ 1 comment tonen een accent-badge met het aantal in de rechterbovenhoek van het blok.
 
 ---
 
@@ -103,15 +106,17 @@ Elk blok heeft:
 | Type | Wanneer | Label (standaard) |
 |---|---|---|
 | **default** | Elk blok → elk blok (niet Start als doel, niet End als bron) | *(leeg)* |
-| **Y** | Decision → elk blok, rechter uitgang | Y |
+| **Y** | Decision → elk blok, rechter of linker uitgang | Y |
 | **N** | Decision → elk blok, onderste uitgang | N |
 
-Elk verbindingslabel is vrij aanpasbaar: leeg laten of max. 50 tekens tekst. Voor Decision-uitgangen worden "Y" en "N" als standaard ingesteld op basis van de handle-richting.
+Elk verbindingslabel is vrij aanpasbaar: leeg laten of max. 50 tekens tekst. Voor Decision-uitgangen worden "Y" en "N" als standaard ingesteld op basis van de handle-richting, maar de gebruiker kan ze overschrijven zonder dat de Y/N-semantiek verloren gaat (de kind wordt in de metadata vastgelegd).
 
 ### Regels
 
 - Een verbinding van en naar hetzelfde blok (self-loop) is niet toegestaan.
-- Wanneer de limiet is bereikt, worden verbindingspunten (handles) geblokkeerd. Slepen naar een geblokkeerd punt maakt geen verbinding aan.
+- Een blok heeft hooguit zoveel uitgaande verbindingen als zijn `maxOutputs` toelaat (Start en Action/Result: 1; Decision: 2 — één Y, één N).
+- Action, Decision, Result en End ontvangen **onbeperkt** inkomende verbindingen. De aangesloten zijde (N/O/Z/W) bepaalt waar de lijn aan het blok vastzit.
+- Wanneer de output-limiet is bereikt, worden uitgaande verbindingspunten geblokkeerd. Slepen naar een geblokkeerd punt maakt geen verbinding aan.
 
 ### Verbindingen aanmaken
 
@@ -122,20 +127,30 @@ Elk verbindingslabel is vrij aanpasbaar: leeg laten of max. 50 tekens tekst. Voo
 
 De definitieve verbindingslijn is **orthogonaal met licht afgeronde hoeken**. De lijn start en eindigt op het exacte verbindingspunt waarvandaan gesleept is.
 
+### Verbindingen herverbinden
+
+Een bestaande verbinding kan aan beide uiteinden opnieuw worden aangesloten:
+
+1. Klik op de verbindingslijn — aan beide uiteinden verschijnt een sleep-anker.
+2. Sleep het bron- of doelanker los en laat het los op een ander verbindingspunt (eventueel op een ander blok).
+3. De verbinding behoudt haar label en Data Field; bij een Decision wordt het kind (Y/N) opnieuw bepaald op basis van de nieuwe bronzijde.
+
+Wordt het anker buiten een geldig verbindingspunt losgelaten, dan blijft de oorspronkelijke verbinding ongewijzigd.
+
 ### YN-toewijzing
 
-Het label van een nieuwe verbinding vanuit een Decision-blok wordt automatisch ingesteld op basis van de handle-richting:
+Het kind van een nieuwe verbinding vanuit een Decision-blok wordt automatisch bepaald op basis van de handle-richting:
 
-- **Rechts** uit het Decision-blok → label "Y"
-- **Onder** uit het Decision-blok → label "N"
+- **Rechts** of **links** uit het Decision-blok → kind "yes", label "Y"
+- **Onder** uit het Decision-blok → kind "no", label "N"
 
-Als het bijbehorende pad al bestaat, wordt het omgeleid naar het nieuwe doel. Het label kan achteraf altijd gewijzigd worden in de verbindingseigenschappen.
+Als het bijbehorende pad al bestaat, wordt het omgeleid naar het nieuwe doel (ook wanneer de nieuwe Y vanaf de andere zijde vertrekt dan de bestaande). Het label kan achteraf altijd gewijzigd worden in de verbindingseigenschappen.
 
 ### Verbindingseigenschappen
 
-- **Label** — vrij tekstveld, max. 50 tekens; standaard "Y" of "N" voor Decision-uitgangen, leeg voor overige verbindingen
-- **Van** — ID + label van het bronblok (read-only)
-- **Naar** — ID + label van het doelblok (read-only)
+- **Label** — vrij tekstveld, max. 50 tekens; standaard "Y" of "N" voor Decision-uitgangen, leeg voor overige verbindingen. Voor Y/N-verbindingen blijft het kind (yes/no) ongewijzigd ook als de gebruiker de tekst aanpast.
+- **Van** — ID + label van het bronblok (read-only, klikbaar om naar het blok te springen)
+- **Naar** — ID + label van het doelblok (read-only, klikbaar om naar het blok te springen)
 - **Data Field** — optionele metadata voor deze verbinding (testcondities voor dit pad)
 - **Verwijderen** — verwijdert de verbinding
 
@@ -193,7 +208,10 @@ De metadata-sectie bevat alle informatie die niet in Mermaid-syntax past:
   },
   "connections": {
     "A1-D1-default": {
-      "dataField": null
+      "dataField": null,
+      "kind": "default",
+      "sourceSide": "bottom",
+      "targetSide": "top"
     }
   }
 }
@@ -237,7 +255,8 @@ Verbindingen worden weggeschreven via een depth-first traversal vanaf het Start-
 
 - **Auto-save:** 2 seconden na de laatste wijziging wordt automatisch opgeslagen (zonder melding).
 - **Handmatig:** via de **Save**-knop of `Ctrl/Cmd+S`.
-- Bij handmatig opslaan wordt gecontroleerd op externe wijzigingen; de gebruiker kan kiezen tussen overschrijven of herladen.
+- Elke save controleert eerst of het bestand op schijf nieuwer is dan `lastSavedAt`. Zo ja, wordt de write geannuleerd en toont de editor een sticky toast met **Overschrijven** (forceren) en **Herladen** (lokale wijzigingen weggooien, disk-versie inladen).
+- Bij tab-focus / visibility-change checkt de editor dezelfde timestamp en toont een Herladen-toast wanneer het bestand extern gewijzigd is.
 - Opslaan mislukt als het diagram geen geldig Start-blok heeft.
 
 ### Nieuw diagram
@@ -248,16 +267,33 @@ Verbindingen worden weggeschreven via een depth-first traversal vanaf het Start-
 ### Bestandscontextmenu (rechtermuisknop in sidebar)
 
 **Op een bestand:**
-- Hernoemen
-- Verplaatsen naar een andere map
-- Verwijderen
+- Hernoemen (inline — basenaam geselecteerd, Enter = bevestig, Escape = annuleer)
+- Verwijderen (met bevestigingsdialoog)
 
 **Op een map:**
-- Nieuw diagram aanmaken in deze map
-- Submap aanmaken
-- Map verwijderen
+- Nieuw diagram hier…
+- Nieuwe map hier…
+- Hernoemen
+- Verwijderen (recursief, met bevestigingsdialoog)
 
-Het is mogelijk om bestanden of folder te verslepen naar een andere locatie in de geopende mappenstructuur.
+**Op de lege tree-achtergrond (rechtsklik buiten een rij):**
+- Nieuw diagram hier… (= root)
+- Nieuwe map hier… (= root)
+
+Verplaatsen gebeurt via drag-and-drop, niet via het menu.
+
+### Drag-and-drop in sidebar
+
+Bestanden en mappen kunnen direct in de tree gesleept worden naar een andere map:
+
+- Sleep een rij (bestand of map) en drop op een doelmap, of op de lege ruimte onder de tree om naar de root te verplaatsen.
+- De doelmap licht op tijdens een hover.
+- Na drop wordt de doelmap automatisch uitgeklapt zodat het item direct zichtbaar is.
+- De editor volgt de verplaatsing: als het open bestand (of een bestand binnen de verplaatste map) meeverhuist, wordt het pad in de editor automatisch bijgewerkt — auto-save blijft schrijven naar de nieuwe locatie.
+
+**Geblokkeerd:**
+- Drop op zichzelf of op een eigen submap (folder-in-descendant).
+- Drop waarbij in de doelmap al een item met dezelfde naam bestaat (name-conflict).
 
 ---
 
@@ -266,7 +302,7 @@ Het is mogelijk om bestanden of folder te verslepen naar een andere locatie in d
 ### Navigatie
 
 - **Zoomen:** scrollwiel of zoom-knoppen in de toolbar (10% – 400%)
-- **Pannen:** klik-en-sleep op de achtergrond
+- **Pannen:** klik-en-sleep op de canvas-achtergrond (zonder modifier)
 - **Fit to screen:** past het zoom-niveau aan zodat alle blokken zichtbaar zijn (Ctrl/Cmd+Shift+F)
 - **Zoom resetten:** dubbelklik op het zoompercentage in de toolbar
 
@@ -291,11 +327,11 @@ Het is mogelijk om bestanden of folder te verslepen naar een andere locatie in d
 ### Blokken selecteren
 
 - **Enkelvoudig:** klik op een blok.
-- **Meervoudig:** Shift+klik of marquee-selectie (sleep over de canvas-achtergrond).
+- **Meervoudig:** Shift+klik (toevoegen/verwijderen aan selectie) of **Shift+sleep** op de canvas-achtergrond voor marquee-selectie.
 - **Alles:** `Ctrl/Cmd+A`.
 - **Deselecteren:** klik op de canvas-achtergrond.
 
-Geselecteerde blokken tonen een uniforme 2 px blauwe ring (accent-kleur) rondom de vorm, ongeacht het bloktype.
+Geselecteerde blokken tonen een accent-outline die **de vorm van het blok volgt**: een cirkel om Start/End, een afgeronde rand om Action/Result, en een accent-stroke om het ruit-silhouet bij Decision. Zo voelt de selectie-indicator natuurlijk bij elk bloktype.
 
 ### Blokken verplaatsen
 
@@ -361,14 +397,14 @@ Het right panel is een vaste shell aan de rechterkant van het scherm. De inhoud 
 
 | View | Wanneer |
 |---|---|
-| Palette | Geen selectie of meervoudige selectie |
-| Blok-properties | Één blok geselecteerd |
+| Palette | Geen selectie |
+| Blok-properties | Één blok geselecteerd (bevat de Comments-sectie inline) |
 | Verbindingseigenschappen | Één verbinding geselecteerd |
-| Commentaarpaneel | Commentaar-knop geklikt vanuit blok-properties |
+| Meervoudige selectie | Meer dan één item geselecteerd — toont alleen een verwijder-knop |
 
 Overgangen tussen views verlopen zonder herladen van de shell.
 
-### Blok-palette (standaard, geen selectie of meervoudige selectie)
+### Blok-palette (standaard, geen selectie)
 
 - Vijf sleepbare blokitems: Start, Action, Decision, Result, End.
 - **Start** is uitgeschakeld als het diagram al een Start-blok bevat.
@@ -376,32 +412,32 @@ Overgangen tussen views verlopen zonder herladen van de shell.
 
 ### Blok-properties (één blok geselecteerd)
 
-- **Type** — read-only label van het bloktype
-- **ID** — read-only monospace ID
-- **Label / Condition** — bewerkbaar tekstveld (bewerkbaar label of conditietekst voor Decision)
-- **Data Field** *(Action, Start, End)* — optionele metadata (testdata, precondities), max. 2000 tekens
-- **Expected Outcome** *(Result)* — verwacht testresultaat, max. 2000 tekens
-- **Y-pad / N-pad** *(Decision)* — read-only weergave van het doelblok; toont `—` als het pad ontbreekt
-- **Commentaar-knop** — opent het commentaarpaneel; toont het aantal bestaande opmerkingen
+Het paneel heeft een vaste verticale indeling:
+
+1. **Header** — bloktype + subtitle.
+2. **Eigenschappen (scrollbaar, bovenste helft):**
+   - **ID** — read-only monospace ID
+   - **Label / Condition** — bewerkbaar tekstveld (bewerkbaar label of conditietekst voor Decision)
+   - **Data Field** *(Action, Start)* — optionele metadata (testdata, precondities), max. 2000 tekens
+   - **Expected Outcome** *(Result)* — verwacht testresultaat, max. 2000 tekens
+   - **Uitgaande paden** *(alle bloktypen behalve End)* — lijst van klikbare doelblokken, één rij per uitgaande verbinding. Voor Decision staat er een **Y**- of **N**-badge voor; voor overige verbindingen een generieke pijlbadge. Klikken springt de selectie naar het doelblok.
+3. **Comments-sectie (onderste helft, eigen scroll):**
+   - Kopje **Comments** met aantal ernaast.
+   - Scrollbare lijst van bestaande opmerkingen (datum/tijd + verwijderen on hover).
+   - Composer onderaan: textarea + **Plaatsen**-knop. `Enter` verstuurt, `Shift+Enter` = nieuwe regel. Max. 2000 tekens.
+4. **Verwijderen-knop** (niet zichtbaar voor Start).
 
 ### Verbindingseigenschappen (één verbinding geselecteerd)
 
-- **Label** — bewerkbaar tekstveld, max. 50 tekens
-- **Van** — ID + label van het bronblok (read-only)
-- **Naar** — ID + label van het doelblok (read-only)
+- **Label** — bewerkbaar tekstveld, max. 50 tekens. Voor Y/N-verbindingen blijft het onderliggende kind ongewijzigd.
+- **Van / Naar** — ID + label van bron- en doelblok; klikbaar om naar dat blok te springen
 - **Data Field** — optionele metadata voor deze verbinding (testcondities voor dit pad)
 - **Verwijderen** — verwijdert de verbinding
 
-### Commentaarpaneel
+### Meervoudige selectie (> 1 item)
 
-Het commentaarpaneel vervangt de blok-properties in het right panel (schuift in vanuit rechts). Bovenaan staat een **← terug**-knop die terugkeert naar de blok-properties.
-
-- Lijst van bestaande opmerkingen met datum/tijd en verwijderknop.
-- Tekstgebied voor een nieuwe opmerking onderaan het paneel.
-- `Enter` verstuurt, `Shift+Enter` voegt een nieuwe regel in.
-- **Toevoegen**-knop (uitgeschakeld bij leeg veld).
-- Maximaal 2000 tekens per opmerking.
-- Het paneel blijft zichtbaar zolang het blok geselecteerd is. Bij deselecteren keert het right panel terug naar de standaardweergave (palette).
+- Toont een korte samenvatting (aantal blokken / aantal verbindingen).
+- Bevat uitsluitend een **Verwijderen**-knop die de hele selectie wegtrekt. Per-item bewerken gebeurt op één item tegelijk.
 
 ---
 
@@ -422,9 +458,11 @@ De toolbar bevat de volgende elementen (van links naar rechts):
 | **Zoom In** | Zoom vergroten |
 | **Undo** | Laatste actie terugdraaien (`Ctrl/Cmd+Z`) |
 | **Redo** | Teruggedraaide actie opnieuw uitvoeren (`Ctrl/Cmd+Y`) |
-| **Thema** | Wisselen tussen licht en donker; rechtsklik reset naar systeeminstelling |
+| **Thema** | Cyclet door **licht** → **donker** → **systeem**. Het icoon laat de huidige voorkeur zien (zon / maan / monitor). |
 
 Alle knoppen behalve **Open Folder**, **New Diagram** en **Thema** zijn uitgeschakeld zolang er geen diagram open is.
+
+**New Diagram** zit alleen in de toolbar — het zit niet dubbel in de sidebar-header, die houdt enkel de mapnaam + bestandsaantal.
 
 ---
 
@@ -441,7 +479,9 @@ Alle knoppen behalve **Open Folder**, **New Diagram** en **Thema** zijn uitgesch
 - Maakt een vectorafbeelding van het huidige diagram.
 - Bestandsnaam: `{diagramnaam}.svg`.
 
-Beide exports berekenen de bounding box van alle blokken dynamisch (32px padding) en schalen het beeld voor optimale kwaliteit.
+Beide exports gebruiken xyflow's ingebouwde `getNodesBounds` + `getViewportForBounds` om de capture-regio exact op het diagram af te stemmen (32px padding). De transform wordt als clone-only `style.transform` aan `html-to-image` meegegeven — er wordt dus niets op het live DOM gemuteerd voor de snapshot. Dit voorkomt zowel lege ruimte in de SVG als afgesneden blokken in de PNG, ongeacht het huidige zoom-/pan-niveau op het canvas.
+
+De export toont de vormen en lijnen exact zoals op het canvas: de diamond-binnenkant blijft gevuld met `--node-fill`, de edges houden hun `--edge-stroke`-kleur, inclusief labels en pijlpunten. Dit wordt geregeld door vóór de snapshot alle presentation-styles (fill/stroke/stroke-width) als inline-stijl op de SVG-elementen te promoveren — `getComputedStyle` lost de CSS-variabelen in het live DOM correct op, waar `html-to-image` dat tijdens de clone niet altijd doet.
 
 ---
 
@@ -456,8 +496,6 @@ Beide exports berekenen de bounding box van alle blokken dynamisch (32px padding
 | `Ctrl/Cmd+Shift+F` | Fit to screen |
 | `Ctrl/Cmd+A` | Alles selecteren |
 | `Delete` / `Backspace` | Geselecteerde blokken of verbindingen verwijderen |
-| `Pijltjestoetsen` | Geselecteerde blokken 8px verplaatsen |
-| `Shift+Pijltjestoetsen` | Geselecteerde blokken 1px verplaatsen |
 | `Dubbelklik op label` | Inline bewerken starten (alleen Action, Decision, Result) |
 | `Enter` (inline edit) | Label bevestigen |
 | `Escape` (inline edit) | Bewerking annuleren |
@@ -477,15 +515,19 @@ Sneltoetsen worden genegeerd wanneer de focus in een tekstveld of textarea zit.
 - Treedt op als meer verbindingen aangemaakt zijn dan het type toestaat (kan ontstaan door een extern gewijzigd bestand).
 - De editor laat het diagram nog steeds opslaan; overtollige verbindingen worden bij het laden genegeerd.
 
-### Meldingen (tijdelijk, 4 seconden)
+### Meldingen (tijdelijk, 4 seconden, via toast-systeem)
+
+Toasts stacken rechtsonder. Elke toast heeft optioneel een of meer actie-knoppen (bv. Herladen, Overschrijven); sticky toasts (zonder auto-dismiss) worden gebruikt voor confirmation-achtige flows zoals externe-wijziging-conflict.
 
 | Situatie | Melding |
 |---|---|
-| Metadata niet leesbaar | "Metadata kon niet worden gelezen. Opmerkingen en datavelden zijn niet geladen." |
-| Meerdere start-kandidaten | "Meerdere startblokken gevonden. 'S' wordt gebruikt; de overige worden als eindblok behandeld." |
+| Niet-ondersteund diagramtype | "Diagramtype {X} wordt niet ondersteund. Geopend in alleen-lezen." |
 | Diagram te groot | "Dit diagram heeft N blokken (limiet 200). Geopend in alleen-lezen." |
-| Opslaan mislukt | Foutmelding afhankelijk van oorzaak |
-| Bestand niet leesbaar | "Bestand kon niet worden geopend." |
+| Opslaan mislukt | "Opslaan mislukt: {fout}" |
+| Extern gewijzigd (op save) | Sticky: "Het bestand is extern gewijzigd…" met acties **Overschrijven** / **Herladen** |
+| Extern gewijzigd (op refocus) | Sticky: "Dit bestand is extern gewijzigd." met actie **Herladen** |
+| Verplaatsen geblokkeerd | "Kan map niet in zichzelf verplaatsen." / "…naar een eigen submap." / "Er bestaat al een item met deze naam." |
+| Hernoemen/verwijderen/submap mislukt | Specifieke fout-melding |
 
 ### Opslaan geblokkeerd
 
