@@ -72,6 +72,53 @@ flowchart TD
 
 ---
 
+## 3b. Blokken dupliceren (Ctrl/Cmd+D)
+
+Een snelle manier om bestaande blokken — al dan niet in groep — direct te kopiëren binnen het canvas. Handig voor herhalende patronen (bv. een set van Action → Decision → Result die je nog een paar keer wilt). Verbindingen die volledig binnen de selectie liggen worden mee-gekopieerd; verbindingen naar buiten de selectie blijven bij het origineel.
+
+```mermaid
+flowchart TD
+    A([Start]) --> B["Selecteer één of meer blokken<br>via klik, Shift+klik of Shift+sleep (marquee)"]
+    B --> C["Druk op Ctrl/Cmd+D"]
+    C --> D{"Bevat de selectie<br>uitsluitend Start?"}
+    D -- Ja --> E([Geen actie — Start is singleton])
+    D -- Nee --> F["Singletons gefilterd<br>uit selectie"]
+    F --> G["Voor elk blok:<br>nieuw uniek id toegekend<br>positie +24 px (gesnapt aan grid)<br>commentaren krijgen nieuwe id's"]
+    G --> H{"Verbindingen waarbij<br>bron én doel gedupliceerd zijn?"}
+    H -- Ja --> I["Verbindingen mee-gekopieerd<br>met nieuwe endpoints en kind behouden"]
+    H -- Nee --> J["Verbindingen overslaan"]
+    I --> K["Selectie verspringt naar nieuwe blokken<br>Undo-entry aangemaakt<br>Auto-save gestart"]
+    J --> K
+    K --> L([Klaar — verder slepen of opnieuw dupliceren])
+```
+
+---
+
+## 3c. Kopiëren en plakken (Ctrl/Cmd+C / Ctrl/Cmd+V)
+
+Naast direct dupliceren is er een echte klembord-flow: kopieer eerst, plak vervolgens één of meerdere keren. Het klembord houdt een snapshot vast die los staat van het origineel — verwijder of bewerk het origineel daarna en je plak nog steeds wat je gekopieerd had. Het klembord leeft alleen in de huidige sessie van het geopende bestand; bij bestand wisselen of refreshen is het leeg.
+
+```mermaid
+flowchart TD
+    A([Start]) --> B["Selecteer één of meer blokken"]
+    B --> C["Druk op Ctrl/Cmd+C"]
+    C --> D{"Bevat selectie<br>niet-singleton blokken?"}
+    D -- Nee --> E([Klembord blijft leeg<br>browser-kopie loopt door])
+    D -- Ja --> F["Snapshot opgeslagen in klembord:<br>blokken + interne verbindingen<br>pasteCount = 0"]
+    F --> G["Druk op Ctrl/Cmd+V"]
+    G --> H{"Klembord leeg?"}
+    H -- Ja --> I([Geen actie])
+    H -- Nee --> J["pasteCount += 1<br>offset = 24 px × pasteCount"]
+    J --> K["Nieuwe blokken aangemaakt<br>op originele positie + offset<br>nieuwe id's en comment-id's"]
+    K --> L["Interne verbindingen mee-geplakt<br>met nieuwe endpoints"]
+    L --> M["Selectie verspringt naar geplakte blokken<br>Undo-entry aangemaakt<br>Auto-save gestart"]
+    M --> N{"Nogmaals plakken?"}
+    N -- Ja --> G
+    N -- Nee --> O([Klaar])
+```
+
+---
+
 ## 4. Blok verwijderen
 
 Bij een meervoudige selectie (blokken + verbindingen) toont het right panel uitsluitend een verwijder-knop; een enkele druk op Delete of op die knop verwijdert het hele pakket.
@@ -282,7 +329,7 @@ flowchart TD
 
 ## 11. Blok-label bewerken (inline)
 
-Alleen **Action**, **Decision** en **Result** hebben een bewerkbaar label. De labels van **Start** ("Start") en **End** ("End") zijn vast.
+Alleen **Action**, **Decision** en **Result** hebben een bewerkbaar label. De labels van **Start** ("Start") en **End** ("End") zijn vast. Speciale tekens (`"`, `<`, `>`, `&`) zijn vrij te typen — ze worden bij het opslaan transparant naar mermaid-entities geëscapet en bij het laden weer terug-gedecodeerd. Zie FO.md §4 "Label-escaping".
 
 ```mermaid
 flowchart TD
@@ -290,10 +337,10 @@ flowchart TD
     B -- "Start of End" --> C(["Geen actie —<br>label is vast"])
     B -- "Action / Decision / Result" --> D[Dubbelklik op het label]
     D --> E["Inline tekstveld verschijnt<br>huidige tekst geselecteerd"]
-    E --> F[Typ nieuwe tekst]
+    E --> F["Typ nieuwe tekst<br>(quotes en HTML-tekens toegestaan)"]
     F --> G{Bevestigen?}
     G -- "Enter of klik buiten blok" --> H{Tekst gewijzigd?}
-    H -- Ja --> I["Label bijgewerkt<br>Undo-entry aangemaakt"]
+    H -- Ja --> I["Label bijgewerkt<br>Undo-entry aangemaakt<br>Bij save: speciale tekens<br>geëscapet naar mermaid-entities"]
     H -- Nee --> J([Geen actie])
     G -- Escape --> K["Bewerking geannuleerd<br>originele tekst hersteld"]
     I --> L([Klaar])

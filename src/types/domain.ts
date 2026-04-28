@@ -25,6 +25,11 @@ export interface Block {
   height: number;
   dataField: string | null;
   expectedOutcome: string | null;
+  /** Decision-only: data/context per uitgaand pad. Voor andere bloktypen
+   *  altijd `null`. Gepersisteerd via metadata zodat de gebruikersinhoud
+   *  los staat van mermaid-syntax. */
+  yesDataField: string | null;
+  noDataField: string | null;
   comments: Comment[];
 }
 
@@ -38,7 +43,6 @@ export interface Connection {
   target: string;
   kind: ConnectionKind;
   label: string;
-  dataField: string | null;
   /** Which side of the source block the wire leaves from. */
   sourceSide: HandleSide;
   /** Which side of the target block the wire enters. */

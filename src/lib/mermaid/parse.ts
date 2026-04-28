@@ -68,6 +68,19 @@ interface EdgeLine {
 const EDGE_RE =
   /^([A-Za-z][A-Za-z0-9_]*)\s*(?:--\s*(?:"([^"]*)"|([^-][^-]*?))\s*-->|-->)\s*([A-Za-z][A-Za-z0-9_]*)$/;
 
+/**
+ * Reverse of `mermaidEscape` in serialize.ts. Numeric HTML entities the
+ * serializer emitted (`#amp; #quot; #lt; #gt;`) are decoded back to the
+ * literal characters so the editor model holds plain text.
+ */
+function mermaidUnescape(s: string): string {
+  return s
+    .replace(/#quot;/g, '"')
+    .replace(/#lt;/g, "<")
+    .replace(/#gt;/g, ">")
+    .replace(/#amp;/g, "&");
+}
+
 function parseEdgeLine(line: string): EdgeLine | null {
   const m = EDGE_RE.exec(line);
   if (!m) return null;
@@ -75,7 +88,8 @@ function parseEdgeLine(line: string): EdgeLine | null {
   const target = m[4]!;
   const labelQuoted = m[2];
   const labelBare = m[3]?.trim();
-  const rawLabel = labelQuoted ?? labelBare ?? null;
+  const raw = labelQuoted ?? labelBare ?? null;
+  const rawLabel = raw == null ? null : mermaidUnescape(raw);
   return { source, target, rawLabel };
 }
 
@@ -89,7 +103,7 @@ function tryParseNodeDecl(
       const { id, label } = pat.extract(m);
       const shape =
         i === 0 ? "stadium" : i === 1 ? "diamond" : i === 2 ? "parallelogram" : "rect";
-      return { id, label, shape };
+      return { id, label: mermaidUnescape(label), shape };
     }
   }
   return null;
@@ -138,16 +152,22 @@ export function parseMmd(source: string): ParseResult {
     const cfg = getBlockConfig(type);
     const m = meta?.meta?.[node.id];
     const label = cfg.labelEditable ? node.label : cfg.defaultLabel;
+    // Geen enkel bloktype heeft (nog) een resize-UI, dus de defaults uit
+    // `blockConfig.ts` zijn altijd autoritief. Daardoor schalen bestaande
+    // bestanden vanzelf mee als de defaults wijzigen — voorkomt knikken in
+    // verbindingen na een tweak van bv. Action/Result-hoogte.
 
     blocks[node.id] = {
       id: node.id,
       type,
       label,
       position: m?.position ?? { x: 0, y: 0 },
-      width: m?.width ?? cfg.defaultSize.width,
-      height: m?.height ?? cfg.defaultSize.height,
+      width: cfg.defaultSize.width,
+      height: cfg.defaultSize.height,
       dataField: cfg.supportsDataField ? m?.dataField ?? null : null,
       expectedOutcome: cfg.supportsExpectedOutcome ? m?.expectedOutcome ?? null : null,
+      yesDataField: type === "decision" ? m?.yesDataField ?? null : null,
+      noDataField: type === "decision" ? m?.noDataField ?? null : null,
       comments: m?.comments ?? [],
     };
 
@@ -170,10 +190,12 @@ export function parseMmd(source: string): ParseResult {
           type,
           label: cfg.defaultLabel,
           position: m?.position ?? { x: 0, y: 0 },
-          width: m?.width ?? cfg.defaultSize.width,
-          height: m?.height ?? cfg.defaultSize.height,
+          width: cfg.defaultSize.width,
+          height: cfg.defaultSize.height,
           dataField: cfg.supportsDataField ? m?.dataField ?? null : null,
           expectedOutcome: cfg.supportsExpectedOutcome ? m?.expectedOutcome ?? null : null,
+          yesDataField: type === "decision" ? m?.yesDataField ?? null : null,
+          noDataField: type === "decision" ? m?.noDataField ?? null : null,
           comments: m?.comments ?? [],
         };
         seenIds.add(id);
@@ -200,6 +222,8 @@ export function parseMmd(source: string): ParseResult {
         label: endCfg.defaultLabel,
         width: endCfg.defaultSize.width,
         height: endCfg.defaultSize.height,
+        yesDataField: null,
+        noDataField: null,
       };
     }
   }
@@ -211,16 +235,24 @@ export function parseMmd(source: string): ParseResult {
       if (!e) continue;
       if (!blocks[e.source] || !blocks[e.target]) continue;
 
-      // Derive a tentative kind from the label. For decision edges with
-      // renamed labels, fall back to whatever kind the metadata recorded
-      // for this source-target pair (Y or N) so semantics survive.
+      // Derive a tentative kind from the label, then prefer the persisted
+      // metadata kind for decision edges. The label is just a visual hint —
+      // the user may have rewritten "Y" → "Ja" or even "Y" → "N" without
+      // intending to flip the semantic branch. When metadata exists for
+      // this source→target pair we treat its `kind` as authoritative.
       let kind = mapLabelToKind(e.rawLabel);
-      if (blocks[e.source]!.type === "decision" && kind === "default") {
-        for (const [mid, cMeta] of Object.entries(meta?.connections ?? {})) {
-          if (!cMeta.kind || cMeta.kind === "default") continue;
-          if (mid.startsWith(`${e.source}-${e.target}-`)) {
-            kind = cMeta.kind;
-            break;
+      if (blocks[e.source]!.type === "decision") {
+        const matches = Object.entries(meta?.connections ?? {}).filter(
+          ([mid]) => mid.startsWith(`${e.source}-${e.target}-`),
+        );
+        if (matches.length === 1 && matches[0]![1].kind) {
+          kind = matches[0]![1].kind;
+        } else if (matches.length > 1 && kind === "default") {
+          for (const [, cMeta] of matches) {
+            if (cMeta.kind && cMeta.kind !== "default") {
+              kind = cMeta.kind;
+              break;
+            }
           }
         }
       }
@@ -251,7 +283,6 @@ export function parseMmd(source: string): ParseResult {
         target: e.target,
         kind,
         label,
-        dataField: cMeta?.dataField ?? null,
         sourceSide: cMeta?.sourceSide ?? defaultSourceSide,
         targetSide: cMeta?.targetSide ?? "top",
       };

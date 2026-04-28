@@ -47,6 +47,21 @@ export function useShortcuts() {
       } else if (key === "a") {
         e.preventDefault();
         useDiagramStore.getState().selectAll();
+      } else if (key === "d" && !e.shiftKey && !e.altKey) {
+        const { selection, duplicateBlocks, readOnlyReason } = useDiagramStore.getState();
+        if (readOnlyReason || selection.blockIds.length === 0) return;
+        e.preventDefault();
+        duplicateBlocks(selection.blockIds);
+      } else if (key === "c" && !e.shiftKey && !e.altKey) {
+        const { selection } = useDiagramStore.getState();
+        if (selection.blockIds.length === 0) return;
+        e.preventDefault();
+        useDiagramStore.getState().copySelection();
+      } else if (key === "v" && !e.shiftKey && !e.altKey) {
+        const { clipboard, readOnlyReason } = useDiagramStore.getState();
+        if (readOnlyReason || !clipboard) return;
+        e.preventDefault();
+        useDiagramStore.getState().paste();
       } else if (key === "f" && e.shiftKey) {
         e.preventDefault();
         void flow.fitView({ padding: FIT_PADDING, duration: FIT_DURATION_MS });

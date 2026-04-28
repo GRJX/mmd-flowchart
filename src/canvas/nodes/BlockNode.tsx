@@ -99,7 +99,7 @@ function BlockNodeInner(props: NodeProps<BlockNode>) {
           className="pointer-events-none absolute z-10 inline-flex h-5 min-w-5 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full bg-[var(--claude-accent)] px-1.5 text-[10px] font-semibold text-white shadow-sm"
           style={
             block.type === "decision"
-              ? { top: "25%", right: "25%" }
+              ? { top: "23%", right: "23%" }
               : { top: 0, right: 0 }
           }
           title={`${commentCount} comment${commentCount === 1 ? "" : "s"}`}

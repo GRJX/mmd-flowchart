@@ -17,6 +17,9 @@ export const META_END = "%% MMD_META_END";
 export interface BlockMeta {
   dataField: string | null;
   expectedOutcome: string | null;
+  /** Decision-only — context bij het Y- en N-pad (zie FO §2 Decision). */
+  yesDataField?: string | null;
+  noDataField?: string | null;
   position: { x: number; y: number };
   width?: number;
   height?: number;
@@ -24,7 +27,6 @@ export interface BlockMeta {
 }
 
 export interface ConnectionMeta {
-  dataField: string | null;
   sourceSide?: HandleSide;
   targetSide?: HandleSide;
   /** Persisted kind so decision Y/N semantics survive even when the user
@@ -81,7 +83,7 @@ export function buildMetaBlock(
 ): string {
   const meta: Record<string, BlockMeta> = {};
   for (const b of Object.values(blocks)) {
-    meta[b.id] = {
+    const entry: BlockMeta = {
       dataField: b.dataField,
       expectedOutcome: b.expectedOutcome,
       position: { x: b.position.x, y: b.position.y },
@@ -89,12 +91,16 @@ export function buildMetaBlock(
       height: b.height,
       comments: b.comments,
     };
+    if (b.type === "decision") {
+      entry.yesDataField = b.yesDataField;
+      entry.noDataField = b.noDataField;
+    }
+    meta[b.id] = entry;
   }
 
   const connMeta: Record<string, ConnectionMeta> = {};
   for (const c of Object.values(connections)) {
     connMeta[c.id] = {
-      dataField: c.dataField,
       sourceSide: c.sourceSide,
       targetSide: c.targetSide,
       kind: c.kind,

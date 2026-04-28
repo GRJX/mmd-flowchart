@@ -62,11 +62,39 @@ function numericIdCompare(a: Block, b: Block): number {
   return a.id.localeCompare(b.id);
 }
 
+/**
+ * Map of characters that break mermaid rendering inside (quoted or bare)
+ * labels. We replace each with the equivalent numeric HTML entity, which
+ * mermaid renders back to the original character. `parse.ts` reverses the
+ * mapping on load so the editor model never sees the escaped form.
+ *
+ *   "  → #quot;   – terminates the string in mermaid
+ *   <  → #lt;     – starts an HTML tag
+ *   >  → #gt;     – closes an HTML tag
+ *   &  → #amp;    – starts an HTML entity
+ *
+ * Whitespace (newlines / tabs) is collapsed to a single space because the
+ * line-based mermaid grammar splits on real line breaks even inside quotes.
+ */
+const MERMAID_ENTITIES: Record<string, string> = {
+  "&": "#amp;",
+  '"': "#quot;",
+  "<": "#lt;",
+  ">": "#gt;",
+};
+
+function mermaidEscape(s: string): string {
+  return s.replace(/[\r\n\t]+/g, " ").replace(/[&"<>]/g, (ch) => MERMAID_ENTITIES[ch]!);
+}
+
+function quoteIfNeeded(s: string): string {
+  // After escaping, the chars that still trigger quoting are whitespace and
+  // mermaid's shape/edge punctuation.
+  return /\s|[()\[\]{}|/\\:%=+,;]/.test(s) ? `"${s}"` : s;
+}
+
 function escapeLabel(label: string): string {
-  // Quote if the label contains special characters; escape any quotes inside.
-  const needsQuotes = /["'()\[\]{}|/\\<>#:%&=+,;]/.test(label) || /\s/.test(label);
-  const cleaned = label.replace(/"/g, '\\"');
-  return needsQuotes ? `"${cleaned}"` : cleaned;
+  return quoteIfNeeded(mermaidEscape(label));
 }
 
 function nodeDecl(block: Block): string {
@@ -101,7 +129,7 @@ function mermaidEdgeLabel(conn: Connection): string | null {
   if (conn.kind === "yes" && !lbl) lbl = "Y";
   if (conn.kind === "no" && !lbl) lbl = "N";
   if (!lbl) return null;
-  return /\s|[-"'(){}\[\]<>]/.test(lbl) ? `"${lbl.replace(/"/g, '\\"')}"` : lbl;
+  return quoteIfNeeded(mermaidEscape(lbl));
 }
 
 /**

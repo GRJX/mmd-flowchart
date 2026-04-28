@@ -40,11 +40,13 @@ De editor ondersteunt vijf bloktypen. Alle per-type eigenschappen zijn centraal 
 
 | Type | ID-patroon | Max. inputs | Max. outputs | Label bewerkbaar | Data Field | Expected Outcome | Visueel |
 |---|---|---|---|---|---|---|---|
-| **Start** | `S` | 0 | 1 | nee | ja | nee | Cirkel |
-| **End** | `E1..En` | onbeperkt | 0 | nee | nee | nee | Cirkel |
-| **Action** | `A1..An` | onbeperkt | 1 | ja | ja | nee | Afgerond rechthoek |
-| **Decision** | `D1..Dn` | onbeperkt | 2 | ja | nee | nee | Ruit (diamant) |
-| **Result** | `R1..Rn` | onbeperkt | 1 | ja | nee | ja | Rechthoek met teal linkerzijde |
+| **Start** | `S` | 0 | 1 | nee | ja | nee | Cirkel — groene tint |
+| **End** | `E1..En` | onbeperkt | 0 | nee | nee | nee | Cirkel — neutrale (slate) tint |
+| **Action** | `A1..An` | onbeperkt | 1 | ja | ja | nee | Afgerond rechthoek — blauwe tint |
+| **Decision** | `D1..Dn` | onbeperkt | 2 | ja | ja (×2 — Ja-pad / Nee-pad) | nee | Ruit (diamant) — amber tint |
+| **Result** | `R1..Rn` | onbeperkt | 1 | ja | nee | ja | Afgerond rechthoek — teal tint |
+
+Vorm is het primaire onderscheid; de subtiele kleur-tint disambigueert vooral Action vs Result (allebei rounded rect). Alle tints worden centraal beheerd via `--node-fill-<type>` CSS-vars in [`src/styles/globals.css`](../src/styles/globals.css) — zowel light als dark mode.
 
 De config legt ook per type vast:
 - Standaardlabel bij aanmaken
@@ -82,6 +84,7 @@ De config legt ook per type vast:
 - Het N-pad vertrekt vanaf de **onderste** handle. Het Y-pad vertrekt default vanaf de **rechter** handle; bij voorkeur-layouts mag dit ook vanaf de **linker** handle — beide richtingen worden als Y-kind geïnterpreteerd. Een nieuwe Y-verbinding vervangt een bestaande Y-verbinding, ongeacht van welke zijde die vertrekt.
 - De verbindingslabels (standaard "Y" en "N") zijn vrij aanpasbaar in de verbindingseigenschappen; de Y/N-semantiek blijft behouden via de metadata.
 - Ontvangt onbeperkt inkomende verbindingen op elk van de vier zijdes.
+- Heeft twee optionele **Data / context**-velden (max. 2000 tekens elk), één per uitgaand pad: **Ja-pad** en **Nee-pad**. Deze velden leven op het Decision-blok (niet op de verbinding) en zijn bedoeld voor testcondities of context die specifiek bij dat pad horen.
 
 ### Result
 
@@ -133,7 +136,7 @@ Een bestaande verbinding kan aan beide uiteinden opnieuw worden aangesloten:
 
 1. Klik op de verbindingslijn — aan beide uiteinden verschijnt een sleep-anker.
 2. Sleep het bron- of doelanker los en laat het los op een ander verbindingspunt (eventueel op een ander blok).
-3. De verbinding behoudt haar label en Data Field; bij een Decision wordt het kind (Y/N) opnieuw bepaald op basis van de nieuwe bronzijde.
+3. De verbinding behoudt haar label; bij een Decision wordt het kind (Y/N) opnieuw bepaald op basis van de nieuwe bronzijde.
 
 Wordt het anker buiten een geldig verbindingspunt losgelaten, dan blijft de oorspronkelijke verbinding ongewijzigd.
 
@@ -151,8 +154,9 @@ Als het bijbehorende pad al bestaat, wordt het omgeleid naar het nieuwe doel (oo
 - **Label** — vrij tekstveld, max. 50 tekens; standaard "Y" of "N" voor Decision-uitgangen, leeg voor overige verbindingen. Voor Y/N-verbindingen blijft het kind (yes/no) ongewijzigd ook als de gebruiker de tekst aanpast.
 - **Van** — ID + label van het bronblok (read-only, klikbaar om naar het blok te springen)
 - **Naar** — ID + label van het doelblok (read-only, klikbaar om naar het blok te springen)
-- **Data Field** — optionele metadata voor deze verbinding (testcondities voor dit pad)
 - **Verwijderen** — verwijdert de verbinding
+
+> Verbindingen hebben zelf géén data/context-veld. Voor een Decision wordt de context per pad opgeslagen op het Decision-blok (zie §2).
 
 ---
 
@@ -187,6 +191,21 @@ flowchart TD
 | Decision | `D1{Label}` |
 | Result | `R1[/Label/]` |
 
+### Label-escaping
+
+Mermaid breekt op een aantal tekens binnen labels (zowel node-labels als edge-labels). De editor laat de gebruiker vrij typen — het in-memory model bevat altijd de letterlijke tekst — en escapet enkel **op serialize naar `.mmd`** met mermaid's numerieke HTML-entities. Op load worden ze weer gedecodeerd.
+
+| Letterlijk | In `.mmd` | Reden |
+|---|---|---|
+| `&` | `#amp;` | Start van HTML-entity |
+| `"` | `#quot;` | Sluit het quoted-label-statement |
+| `<` | `#lt;` | Wordt als HTML-tag geïnterpreteerd |
+| `>` | `#gt;` | Wordt als HTML-tag geïnterpreteerd |
+
+Daarnaast worden harde regeleinden en tabs in een label op serialize gecollapseerd tot één spatie — de regel-gebaseerde mermaid-grammatica splitst anders midden in een label door.
+
+Round-trip (open → wijzig niets → save) is lossless. Edge-case: als de gebruiker letterlijk een tekenreeks als `#quot;` typt, wordt die op load teruggemapt naar `"`. Dit is een geaccepteerd verlies, omdat het patroon zeldzaam is en escapen-van-de-escape de `.mmd` onleesbaar zou maken.
+
 ### Embedded metadata (MMD_META)
 
 De metadata-sectie bevat alle informatie die niet in Mermaid-syntax past:
@@ -204,11 +223,20 @@ De metadata-sectie bevat alle informatie die niet in Mermaid-syntax past:
       "comments": [
         { "id": "uuid", "text": "notitie", "timestamp": "2026-04-20T10:00:00.000Z" }
       ]
+    },
+    "D1": {
+      "dataField": null,
+      "expectedOutcome": null,
+      "yesDataField": "context bij Ja-pad",
+      "noDataField": null,
+      "position": { "x": 200, "y": 320 },
+      "width": 160,
+      "height": 112,
+      "comments": []
     }
   },
   "connections": {
     "A1-D1-default": {
-      "dataField": null,
       "kind": "default",
       "sourceSide": "bottom",
       "targetSide": "top"
@@ -216,6 +244,8 @@ De metadata-sectie bevat alle informatie die niet in Mermaid-syntax past:
   }
 }
 ```
+
+`yesDataField` en `noDataField` worden alleen weggeschreven voor Decision-blokken; bij andere bloktypen worden ze weggelaten en op load als `null` geïnitialiseerd.
 
 ### Volgorde in het bestand
 
@@ -310,6 +340,8 @@ Bestanden en mappen kunnen direct in de tree gesleept worden naar een andere map
 
 - Het canvas heeft een vaste grid van **8px**.
 - Blokken snappen altijd aan het grid bij slepen en loslaten.
+- **Blok-afmetingen zijn óók veelvouden van 8.** De `defaultSize.width` en `defaultSize.height` per type in [`src/config/blockConfig.ts`](../src/config/blockConfig.ts) moeten daarom altijd deelbaar door 8 zijn — anders valt het verticale center van een blok niet op een grid-lijn en krijg je knikken in horizontale verbindingen tussen blokken met verschillende hoogte.
+- Voor recht-aansluitende horizontale verbindingen tussen twee bloktypen moeten beide types **dezelfde `height`** hebben. Action, Decision en Result delen daarom 112px hoogte; Start/End delen 64px (de cirkel hoeft alleen aan zichzelf gelijk te zijn — in de praktijk worden Start/End los van de andere blokken op andere y-niveaus geplaatst).
 
 ### Blokken toevoegen
 
@@ -343,6 +375,29 @@ Geselecteerde blokken tonen een accent-outline die **de vorm van het blok volgt*
 - Selecteer een of meer blokken en druk op `Delete` of `Backspace`.
 - Als een blok commentaar bevat, verschijnt een bevestigingsdialoog.
 - Alle verbindingen van/naar het verwijderde blok worden mee verwijderd.
+
+### Blokken dupliceren
+
+Twee patronen, allebei beschikbaar afhankelijk van de werkstroom:
+
+**Direct dupliceren (`Ctrl/Cmd+D`)** — kopieert de selectie meteen één positie naast het origineel.
+
+**Kopiëren en plakken (`Ctrl/Cmd+C` → `Ctrl/Cmd+V`)** — neemt een **snapshot** van de selectie in een in-memory klembord. Elke `Ctrl/Cmd+V` plakt opnieuw — handig om hetzelfde patroon meerdere keren neer te zetten. Het klembord overleeft alleen binnen het huidige bestand: het wordt gewist bij **bestand wisselen**, **map sluiten** of een **page-refresh**.
+
+Gemeenschappelijke regels voor beide patronen:
+
+- Elke selectie wordt gekopieerd inclusief label, data-velden, verwachte uitkomst en commentaren (commentaren krijgen nieuwe id's zodat ze los te bewerken zijn).
+- Verbindingen worden mee-gekopieerd **alleen** wanneer beide endpoints in de selectie zaten — verbindingen naar buiten de selectie blijven bij het origineel.
+- Nieuwe blokken krijgen automatisch een nieuw uniek id (`A2`, `D3`, …) en worden geplaatst met een offset rechts en omlaag, gesnapt aan het 8 px-grid.
+- Het Start-blok kan niet gedupliceerd worden (singleton); zo'n selectie wordt stilzwijgend overgeslagen.
+- Na het dupliceren of plakken is de **selectie verplaatst naar de nieuwe blokken** zodat ze direct verder versleept of opnieuw gedupliceerd kunnen worden.
+- Eén undo-stap maakt de hele duplicatie/plak-actie ongedaan.
+
+Specifiek voor copy/paste:
+
+- `Ctrl/Cmd+C` zonder block-selectie laat de standaard browser-kopieer-actie staan (zodat tekst in inputs/textareas normaal te kopiëren blijft).
+- `Ctrl/Cmd+V` faalt stil als het klembord leeg is.
+- Successieve plak-acties **stapelen op**: paste #1 = +24 px offset, paste #2 = +48 px, enzovoort. Een nieuwe `Ctrl/Cmd+C` reset deze teller, zodat de eerstvolgende paste opnieuw met +24 px begint.
 
 ### Labels bewerken
 
@@ -420,7 +475,8 @@ Het paneel heeft een vaste verticale indeling:
    - **Label / Condition** — bewerkbaar tekstveld (bewerkbaar label of conditietekst voor Decision)
    - **Data Field** *(Action, Start)* — optionele metadata (testdata, precondities), max. 2000 tekens
    - **Expected Outcome** *(Result)* — verwacht testresultaat, max. 2000 tekens
-   - **Uitgaande paden** *(alle bloktypen behalve End)* — lijst van klikbare doelblokken, één rij per uitgaande verbinding. Voor Decision staat er een **Y**- of **N**-badge voor; voor overige verbindingen een generieke pijlbadge. Klikken springt de selectie naar het doelblok.
+   - **Data / context — Ja-pad** en **Data / context — Nee-pad** *(Decision)* — twee aparte 4-regelige textareas, max. 2000 tekens elk. Hier komt de context per uitgaand pad te staan; deze velden leven op het Decision-blok zelf en blijven gekoppeld aan de Y/N-semantiek (niet aan de visuele label-tekst).
+   - **Uitgaande paden** *(alle bloktypen behalve End)* — lijst van klikbare doelblokken, één rij per uitgaande verbinding. Een badge voor de rij toont het feitelijke verbindingslabel (volgt bv. een hernoeming "Y" → "Ja"); valt terug op **Y** / **N** / **→** als het label leeg is. Klikken springt de selectie naar het doelblok.
 3. **Comments-sectie (onderste helft, eigen scroll):**
    - Kopje **Comments** met aantal ernaast.
    - Scrollbare lijst van bestaande opmerkingen (datum/tijd + verwijderen on hover).
@@ -431,8 +487,9 @@ Het paneel heeft een vaste verticale indeling:
 
 - **Label** — bewerkbaar tekstveld, max. 50 tekens. Voor Y/N-verbindingen blijft het onderliggende kind ongewijzigd.
 - **Van / Naar** — ID + label van bron- en doelblok; klikbaar om naar dat blok te springen
-- **Data Field** — optionele metadata voor deze verbinding (testcondities voor dit pad)
 - **Verwijderen** — verwijdert de verbinding
+
+> Verbindingen hebben zelf geen data/context-veld meer. Bij Decision-blokken vind je context per pad in het **Decision**-blokpaneel onder *Data / context — Ja-pad* en *Data / context — Nee-pad*.
 
 ### Meervoudige selectie (> 1 item)
 
@@ -495,6 +552,9 @@ De export toont de vormen en lijnen exact zoals op het canvas: de diamond-binnen
 | `Ctrl/Cmd+S` | Handmatig opslaan |
 | `Ctrl/Cmd+Shift+F` | Fit to screen |
 | `Ctrl/Cmd+A` | Alles selecteren |
+| `Ctrl/Cmd+D` | Geselecteerde blokken dupliceren (inclusief interne verbindingen) |
+| `Ctrl/Cmd+C` | Geselecteerde blokken kopiëren naar klembord |
+| `Ctrl/Cmd+V` | Klembord plakken (offset stapelt op bij herhaaldelijk plakken) |
 | `Delete` / `Backspace` | Geselecteerde blokken of verbindingen verwijderen |
 | `Dubbelklik op label` | Inline bewerken starten (alleen Action, Decision, Result) |
 | `Enter` (inline edit) | Label bevestigen |

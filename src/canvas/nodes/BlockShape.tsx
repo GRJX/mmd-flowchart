@@ -6,12 +6,20 @@ import { cn } from "@/lib/utils";
  * Visual shapes for each block type (FO §2). The selected state is rendered
  * as an outline that follows the actual shape (circle / rounded-rect /
  * diamond / parallelogram) so the focus ring feels native to each type.
+ *
+ * Each type also gets a subtle background tint (`--node-fill-<type>` in
+ * `globals.css`). Shape is the primary recognition cue; the tint is the
+ * secondary cue that disambiguates Action vs Result (both rounded rects).
  */
 interface Props {
   type: BlockType;
   selected: boolean;
   violation: boolean;
   children: ReactNode;
+}
+
+export function nodeFillVar(type: BlockType): string {
+  return `var(--node-fill-${type})`;
 }
 
 export function BlockShape({ type, selected, children }: Props) {
@@ -24,16 +32,19 @@ export function BlockShape({ type, selected, children }: Props) {
     : "border-[var(--node-stroke)]";
   const borderWidth = { borderWidth: selected ? 3 : 2 } as const;
 
+  const fill = nodeFillVar(type);
+  const fillStyle = { ...borderWidth, background: fill } as const;
+
   switch (type) {
     case "start":
     case "end":
       return (
         <div
           className={cn(
-            "flex h-full w-full items-center justify-center rounded-full bg-[var(--node-fill)] text-[var(--node-text)] shadow-sm",
+            "flex h-full w-full items-center justify-center rounded-full text-[var(--node-text)] shadow-sm",
             borderCls,
           )}
-          style={borderWidth}
+          style={fillStyle}
         >
           {children}
         </div>
@@ -43,10 +54,10 @@ export function BlockShape({ type, selected, children }: Props) {
       return (
         <div
           className={cn(
-            "flex h-full w-full items-center justify-center rounded-xl bg-[var(--node-fill)] text-[var(--node-text)] shadow-sm",
+            "flex h-full w-full items-center justify-center rounded-xl text-[var(--node-text)] shadow-sm",
             borderCls,
           )}
-          style={borderWidth}
+          style={fillStyle}
         >
           {children}
         </div>
@@ -63,9 +74,9 @@ export function BlockShape({ type, selected, children }: Props) {
             <polygon
               points="50,2 98,50 50,98 2,50"
               className={cn(
-                "fill-[var(--node-fill)]",
                 selected ? "stroke-[var(--claude-accent)]" : "stroke-[var(--node-stroke)]",
               )}
+              fill={fill}
               strokeWidth={selected ? 3 : 2}
               vectorEffect="non-scaling-stroke"
               strokeLinejoin="round"
@@ -81,16 +92,12 @@ export function BlockShape({ type, selected, children }: Props) {
       return (
         <div
           className={cn(
-            "relative flex h-full w-full items-center justify-center rounded-md bg-[var(--node-fill)] text-[var(--node-text)] shadow-sm overflow-hidden",
+            "flex h-full w-full items-center justify-center rounded-xl text-[var(--node-text)] shadow-sm",
             borderCls,
           )}
-          style={borderWidth}
+          style={fillStyle}
         >
-          <span
-            className="absolute left-0 top-0 h-full w-2"
-            style={{ background: "var(--result-accent)" }}
-          />
-          <span className="px-3 pl-5">{children}</span>
+          {children}
         </div>
       );
   }

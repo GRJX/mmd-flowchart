@@ -54,6 +54,16 @@ interface Snapshot {
   diagram: Diagram;
 }
 
+/**
+ * Clipboard entry for copy/paste. Holds independent snapshots of the copied
+ * blocks (and internal connections) so later edits to the originals — or
+ * even deleting them — don't change what gets pasted.
+ */
+export interface ClipboardEntry {
+  blocks: Block[];
+  connections: Connection[];
+}
+
 export interface DiagramState {
   filePath: string | null;
   fileName: string | null;
@@ -67,6 +77,12 @@ export interface DiagramState {
 
   undoStack: Snapshot[];
   redoStack: Snapshot[];
+
+  /** In-memory clipboard for Ctrl/Cmd+C / Ctrl/Cmd+V. Not persisted, not in
+   *  undo history. `pasteCount` tracks how many times the current clipboard
+   *  has been pasted so each paste lands a bit further from the originals. */
+  clipboard: ClipboardEntry | null;
+  pasteCount: number;
 
   /** ---- Loading ---- */
   loadDiagram: (args: {
@@ -98,12 +114,24 @@ export interface DiagramState {
     label?: string;
   }) => string | null;
   removeBlocks: (ids: string[]) => void;
+  /** Duplicate the given blocks (skip singletons). Connections whose both
+   *  endpoints are in `ids` are duplicated too. Returns the new block IDs. */
+  duplicateBlocks: (ids: string[]) => string[];
+  /** Snapshot the current block selection (and internal connections) into
+   *  the clipboard. Returns true when at least one block was copied. */
+  copySelection: () => boolean;
+  /** Paste the clipboard. Each call increments `pasteCount` so successive
+   *  pastes are offset further from the originals. Returns the new IDs. */
+  paste: () => string[];
   moveBlocks: (moves: { id: string; position: Position }[]) => void;
   setBlockPositionLive: (id: string, position: Position) => void;
   setBlockLabel: (id: string, label: string) => void;
   setBlockSize: (id: string, size: { width: number; height: number }) => void;
   setBlockDataField: (id: string, value: string | null) => void;
   setBlockExpectedOutcome: (id: string, value: string | null) => void;
+  /** Decision-only — data/context bij het Y- of N-pad. */
+  setBlockYesDataField: (id: string, value: string | null) => void;
+  setBlockNoDataField: (id: string, value: string | null) => void;
   clearNewFlag: (id: string) => void;
 
   /** ---- Connection mutations ---- */
@@ -124,7 +152,6 @@ export interface DiagramState {
     targetSide?: HandleSide;
   }) => string | null;
   setConnectionLabel: (id: string, label: string) => void;
-  setConnectionDataField: (id: string, value: string | null) => void;
 
   /** ---- Comments ---- */
   addComment: (blockId: string, text: string) => void;
@@ -187,6 +214,8 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
     readOnlyReason: null,
     undoStack: [],
     redoStack: [],
+    clipboard: null,
+    pasteCount: 0,
 
     loadDiagram: ({ filePath, fileName, diagram, readOnlyReason, lastSavedAt }) => {
       set({
@@ -200,6 +229,8 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
         lastSavedAt,
         undoStack: [],
         redoStack: [],
+        clipboard: null,
+        pasteCount: 0,
       });
     },
 
@@ -215,6 +246,8 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
         lastSavedAt: null,
         undoStack: [],
         redoStack: [],
+        clipboard: null,
+        pasteCount: 0,
       });
     },
 
@@ -284,6 +317,8 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
         height: cfg.defaultSize.height,
         dataField: null,
         expectedOutcome: null,
+        yesDataField: null,
+        noDataField: null,
         comments: [],
       };
 
@@ -326,6 +361,143 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
           connectionIds: selection.connectionIds,
         },
       });
+    },
+
+    duplicateBlocks: (ids) => {
+      if (!ids.length) return [];
+      const { diagram } = get();
+
+      const sources: Block[] = [];
+      for (const id of ids) {
+        const b = diagram.blocks[id];
+        if (!b) continue;
+        if (getBlockConfig(b.type).singleton) continue;
+        sources.push(b);
+      }
+      if (!sources.length) return [];
+
+      const idMap = new Map<string, string>();
+      const workingBlocks: Record<string, Block> = { ...diagram.blocks };
+      const newBlocks: Block[] = [];
+      const OFFSET = 24;
+      for (const b of sources) {
+        const newId = allocateBlockId(b.type, workingBlocks);
+        const cloned: Block = {
+          ...b,
+          id: newId,
+          position: snapPosition({ x: b.position.x + OFFSET, y: b.position.y + OFFSET }),
+          comments: b.comments.map((c) => ({ ...c, id: uuid() })),
+        };
+        workingBlocks[newId] = cloned;
+        newBlocks.push(cloned);
+        idMap.set(b.id, newId);
+      }
+
+      const newConnections: Record<string, Connection> = {};
+      for (const c of Object.values(diagram.connections)) {
+        const ns = idMap.get(c.source);
+        const nt = idMap.get(c.target);
+        if (!ns || !nt) continue;
+        const newId = makeConnectionId(ns, nt, c.kind);
+        newConnections[newId] = { ...c, id: newId, source: ns, target: nt };
+      }
+
+      pushHistory();
+      set({
+        diagram: {
+          blocks: workingBlocks,
+          connections: { ...diagram.connections, ...newConnections },
+        },
+        isDirty: true,
+        selection: {
+          blockIds: newBlocks.map((b) => b.id),
+          connectionIds: [],
+        },
+      });
+
+      return newBlocks.map((b) => b.id);
+    },
+
+    copySelection: () => {
+      const { diagram, selection } = get();
+      const ids = selection.blockIds;
+      if (!ids.length) return false;
+
+      const idSet = new Set<string>();
+      const blocks: Block[] = [];
+      for (const id of ids) {
+        const b = diagram.blocks[id];
+        if (!b) continue;
+        if (getBlockConfig(b.type).singleton) continue;
+        idSet.add(id);
+        blocks.push({
+          ...b,
+          position: { ...b.position },
+          comments: b.comments.map((c) => ({ ...c })),
+        });
+      }
+      if (!blocks.length) return false;
+
+      const connections: Connection[] = [];
+      for (const c of Object.values(diagram.connections)) {
+        if (idSet.has(c.source) && idSet.has(c.target)) {
+          connections.push({ ...c });
+        }
+      }
+
+      set({ clipboard: { blocks, connections }, pasteCount: 0 });
+      return true;
+    },
+
+    paste: () => {
+      const { clipboard, pasteCount, diagram } = get();
+      if (!clipboard || !clipboard.blocks.length) return [];
+
+      const nextCount = pasteCount + 1;
+      const offset = 24 * nextCount;
+
+      const idMap = new Map<string, string>();
+      const workingBlocks: Record<string, Block> = { ...diagram.blocks };
+      const newBlocks: Block[] = [];
+      for (const b of clipboard.blocks) {
+        if (getBlockConfig(b.type).singleton) continue;
+        const newId = allocateBlockId(b.type, workingBlocks);
+        const cloned: Block = {
+          ...b,
+          id: newId,
+          position: snapPosition({ x: b.position.x + offset, y: b.position.y + offset }),
+          comments: b.comments.map((c) => ({ ...c, id: uuid() })),
+        };
+        workingBlocks[newId] = cloned;
+        newBlocks.push(cloned);
+        idMap.set(b.id, newId);
+      }
+      if (!newBlocks.length) return [];
+
+      const newConnections: Record<string, Connection> = {};
+      for (const c of clipboard.connections) {
+        const ns = idMap.get(c.source);
+        const nt = idMap.get(c.target);
+        if (!ns || !nt) continue;
+        const newId = makeConnectionId(ns, nt, c.kind);
+        newConnections[newId] = { ...c, id: newId, source: ns, target: nt };
+      }
+
+      pushHistory();
+      set({
+        diagram: {
+          blocks: workingBlocks,
+          connections: { ...diagram.connections, ...newConnections },
+        },
+        isDirty: true,
+        pasteCount: nextCount,
+        selection: {
+          blockIds: newBlocks.map((b) => b.id),
+          connectionIds: [],
+        },
+      });
+
+      return newBlocks.map((b) => b.id);
     },
 
     moveBlocks: (moves) => {
@@ -400,6 +572,28 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       mutateWithHistory(() => ({
         ...diagram,
         blocks: { ...diagram.blocks, [id]: { ...b, expectedOutcome: value } },
+      }));
+    },
+
+    setBlockYesDataField: (id, value) => {
+      const { diagram } = get();
+      const b = diagram.blocks[id];
+      if (!b || b.type !== "decision") return;
+      if (b.yesDataField === value) return;
+      mutateWithHistory(() => ({
+        ...diagram,
+        blocks: { ...diagram.blocks, [id]: { ...b, yesDataField: value } },
+      }));
+    },
+
+    setBlockNoDataField: (id, value) => {
+      const { diagram } = get();
+      const b = diagram.blocks[id];
+      if (!b || b.type !== "decision") return;
+      if (b.noDataField === value) return;
+      mutateWithHistory(() => ({
+        ...diagram,
+        blocks: { ...diagram.blocks, [id]: { ...b, noDataField: value } },
       }));
     },
 
@@ -485,7 +679,6 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
         target,
         kind: effKind,
         label: autoLabel,
-        dataField: null,
         sourceSide: effSourceSide,
         targetSide: effTargetSide,
       };
@@ -589,7 +782,6 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
         target,
         kind: effKind,
         label: nextLabel,
-        dataField: old.dataField,
         sourceSide: effSourceSide,
         targetSide: effTargetSide,
       };
@@ -623,16 +815,6 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       mutateWithHistory(() => ({
         ...diagram,
         connections: { ...diagram.connections, [id]: { ...c, label } },
-      }));
-    },
-
-    setConnectionDataField: (id, value) => {
-      const { diagram } = get();
-      const c = diagram.connections[id];
-      if (!c || c.dataField === value) return;
-      mutateWithHistory(() => ({
-        ...diagram,
-        connections: { ...diagram.connections, [id]: { ...c, dataField: value } },
       }));
     },
 

@@ -1,31 +1,29 @@
 import { useEffect, useState } from "react";
 import { useDiagramStore } from "@/store/diagramStore";
-import { Input, Label, TextArea } from "@/ui/Field";
+import { Input, Label } from "@/ui/Field";
 import { Button } from "@/ui/Button";
-import { MAX_DATAFIELD_LENGTH, MAX_EDGE_LABEL_LENGTH } from "@/types/domain";
+import { MAX_EDGE_LABEL_LENGTH } from "@/types/domain";
 
 /**
  * Connection properties view (FO §8). All edge labels are editable — the
  * kind (Y/N) is determined by the decision handle the wire leaves from, not
  * by the label text. Decision edges get "Y"/"N" as default labels but the
- * user may rewrite them freely.
+ * user may rewrite them freely. Per-connection data/context lives op het
+ * Decision-blok zelf (yesDataField / noDataField), niet op de verbinding.
  */
 export function ConnectionProperties({ connectionId }: { connectionId: string }) {
   const connection = useDiagramStore((s) => s.diagram.connections[connectionId]);
   const blocks = useDiagramStore((s) => s.diagram.blocks);
   const readOnly = useDiagramStore((s) => s.readOnlyReason !== null);
   const setConnectionLabel = useDiagramStore((s) => s.setConnectionLabel);
-  const setConnectionDataField = useDiagramStore((s) => s.setConnectionDataField);
   const removeConnection = useDiagramStore((s) => s.removeConnection);
   const selectBlock = useDiagramStore((s) => s.selectBlock);
 
   const [label, setLabel] = useState(connection?.label ?? "");
-  const [dataField, setDataField] = useState(connection?.dataField ?? "");
 
   useEffect(() => {
     setLabel(connection?.label ?? "");
-    setDataField(connection?.dataField ?? "");
-  }, [connection?.id, connection?.label, connection?.dataField]);
+  }, [connection?.id, connection?.label]);
 
   if (!connection) {
     return (
@@ -40,11 +38,6 @@ export function ConnectionProperties({ connectionId }: { connectionId: string })
 
   const commitLabel = () => {
     setConnectionLabel(connection.id, label);
-  };
-
-  const commitDataField = () => {
-    const trimmed = dataField.trim();
-    setConnectionDataField(connection.id, trimmed ? trimmed : null);
   };
 
   return (
@@ -107,20 +100,6 @@ export function ConnectionProperties({ connectionId }: { connectionId: string })
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="conn-datafield" hint={`${dataField.length}/${MAX_DATAFIELD_LENGTH}`}>
-            Data / context
-          </Label>
-          <TextArea
-            id="conn-datafield"
-            value={dataField}
-            onChange={(e) => setDataField(e.target.value.slice(0, MAX_DATAFIELD_LENGTH))}
-            onBlur={commitDataField}
-            disabled={readOnly}
-            rows={4}
-            placeholder="Optioneel — context bij deze overgang"
-          />
-        </div>
       </div>
 
       {!readOnly && (

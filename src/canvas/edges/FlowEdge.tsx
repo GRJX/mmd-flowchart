@@ -2,6 +2,7 @@ import { memo } from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
+  Position,
   getSmoothStepPath,
   type EdgeProps,
 } from "@xyflow/react";
@@ -37,6 +38,32 @@ function FlowEdgeInner(props: EdgeProps<FlowEdgeType>) {
     borderRadius: 10,
   });
 
+  // Plaats het label op een vaste afstand van de source-handle, langs de
+  // richting waarin de edge vertrekt. Daardoor zit het label altijd vlak na
+  // de uitgang van het bron-blok — onafhankelijk van de totale lengte van
+  // de verbinding. `labelX`/`labelY` (het smoothstep-midden) worden alleen
+  // nog gebruikt als fallback voor onbekende oriëntaties.
+  const LABEL_OFFSET = 8;
+  let labelPosX = sourceX;
+  let labelPosY = sourceY;
+  switch (sourcePosition) {
+    case Position.Top:
+      labelPosY = sourceY - LABEL_OFFSET;
+      break;
+    case Position.Right:
+      labelPosX = sourceX + LABEL_OFFSET;
+      break;
+    case Position.Bottom:
+      labelPosY = sourceY + LABEL_OFFSET;
+      break;
+    case Position.Left:
+      labelPosX = sourceX - LABEL_OFFSET;
+      break;
+    default:
+      labelPosX = labelX;
+      labelPosY = labelY;
+  }
+
   const label = data?.connection.label ?? "";
 
   return (
@@ -51,7 +78,7 @@ function FlowEdgeInner(props: EdgeProps<FlowEdgeType>) {
               selected && "border-[var(--claude-accent)] text-[var(--claude-accent)]",
             )}
             style={{
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              transform: `translate(-50%, -50%) translate(${labelPosX}px, ${labelPosY}px)`,
               pointerEvents: "all",
             }}
           >

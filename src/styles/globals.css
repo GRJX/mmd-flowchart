@@ -55,7 +55,14 @@
   --node-stroke: #1a1a1a;
   --node-fill: #ffffff;
   --node-text: #1a1a1a;
-  --result-accent: #14b8a6;
+  /* Per-type fill tints. Subtle so the shape & label still drive recognition;
+   * the tint is a secondary cue (especially useful where shapes overlap, e.g.
+   * Action vs Result both being rounded rectangles). */
+  --node-fill-start: #dcfce7;     /* green-100 */
+  --node-fill-action: #dbeafe;    /* blue-100 */
+  --node-fill-decision: #fef3c7;  /* amber-100 */
+  --node-fill-result: #ccfbf1;    /* teal-100 */
+  --node-fill-end: #e2e8f0;       /* slate-200 */
   --edge-stroke: #475569;
   --edge-selected: var(--claude-accent);
   --handle-bg: #ffffff;
@@ -110,7 +117,13 @@
   --node-stroke: #f5f5f5;
   --node-fill: #2a2a2a;
   --node-text: #f5f5f5;
-  --result-accent: #14b8a6;
+  /* Pre-mixed dark tints (10–14% saturation over the dark fill).
+   * Hand-tuned rather than derived so dark mode stays low-contrast. */
+  --node-fill-start: #213a2c;
+  --node-fill-action: #1f2d4a;
+  --node-fill-decision: #3d2f15;
+  --node-fill-result: #1d3d36;
+  --node-fill-end: #2e2e2e;
   --edge-stroke: #9ca3af;
   --edge-selected: var(--claude-accent);
   --handle-bg: #2a2a2a;
