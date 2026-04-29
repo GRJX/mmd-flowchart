@@ -3,6 +3,7 @@ import {
   Background,
   BackgroundVariant,
   ReactFlow,
+  ViewportPortal,
   useReactFlow,
   type Connection as RFConnection,
   type NodeChange,
@@ -13,7 +14,12 @@ import {
   MarkerType,
 } from "@xyflow/react";
 import { useDiagramStore } from "@/store/diagramStore";
-import { GRID_SIZE, type BlockType } from "@/types/domain";
+import {
+  GRID_SIZE,
+  MACRO_PITCH_X,
+  MACRO_PITCH_Y,
+  type BlockType,
+} from "@/types/domain";
 import { DRAG_MIME } from "@/panel/Palette";
 import { sideFromHandleId } from "@/lib/ids";
 import {
@@ -32,7 +38,12 @@ const edgeTypes = { flowEdge: FlowEdgeComponent };
 
 const defaultEdgeOptions = {
   type: "flowEdge" as const,
-  markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
+  markerEnd: {
+    type: MarkerType.ArrowClosed,
+    width: 18,
+    height: 18,
+    color: "var(--edge-stroke)",
+  },
 };
 
 export function Canvas() {
@@ -40,6 +51,7 @@ export function Canvas() {
   const newBlockIds = useDiagramStore((s) => s.newBlockIds);
   const selection = useDiagramStore((s) => s.selection);
   const readOnly = useDiagramStore((s) => s.readOnlyReason !== null);
+  const macroGridVisible = useDiagramStore((s) => s.macroGridVisible);
 
   const moveBlocks = useDiagramStore((s) => s.moveBlocks);
   const setBlockPositionLive = useDiagramStore((s) => s.setBlockPositionLive);
@@ -300,6 +312,71 @@ export function Canvas() {
           size={1}
           color="var(--claude-border)"
         />
+        {macroGridVisible && (() => {
+          const start = diagram.blocks["S"];
+          if (!start) return null;
+          // Eigen SVG-overlay i.p.v. xyflow's <Background> zodat we exact
+          // controle hebben over de positie van de lijnen. De portal
+          // erft de viewport-transform, dus we kunnen world-coordinaten
+          // gebruiken; non-scaling-stroke houdt lijndikte constant bij
+          // in/uitzoomen.
+          const sx = start.position.x + start.width / 2;
+          const sy = start.position.y + start.height / 2;
+          const RANGE = 60; // cellen in elke richting — ruim voor 200 blokken
+          const minX = sx - (RANGE + 0.5) * MACRO_PITCH_X;
+          const maxX = sx + (RANGE + 0.5) * MACRO_PITCH_X;
+          const minY = sy - (RANGE + 0.5) * MACRO_PITCH_Y;
+          const maxY = sy + (RANGE + 0.5) * MACRO_PITCH_Y;
+          const verticalXs: number[] = [];
+          const horizontalYs: number[] = [];
+          // Cel-grenzen liggen op Start.center ± (k − ½) · pitch.
+          for (let k = -RANGE; k <= RANGE + 1; k++) {
+            verticalXs.push(sx + (k - 0.5) * MACRO_PITCH_X);
+            horizontalYs.push(sy + (k - 0.5) * MACRO_PITCH_Y);
+          }
+          return (
+            <ViewportPortal>
+              <svg
+                style={{
+                  position: "absolute",
+                  left: minX,
+                  top: minY,
+                  width: maxX - minX,
+                  height: maxY - minY,
+                  pointerEvents: "none",
+                  zIndex: -1,
+                }}
+              >
+                {verticalXs.map((x) => (
+                  <line
+                    key={`v${x}`}
+                    x1={x - minX}
+                    x2={x - minX}
+                    y1={0}
+                    y2={maxY - minY}
+                    stroke="var(--claude-border-hover)"
+                    strokeWidth={1}
+                    strokeDasharray="2 4"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                ))}
+                {horizontalYs.map((y) => (
+                  <line
+                    key={`h${y}`}
+                    x1={0}
+                    x2={maxX - minX}
+                    y1={y - minY}
+                    y2={y - minY}
+                    stroke="var(--claude-border-hover)"
+                    strokeWidth={1}
+                    strokeDasharray="2 4"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                ))}
+              </svg>
+            </ViewportPortal>
+          );
+        })()}
       </ReactFlow>
     </div>
   );

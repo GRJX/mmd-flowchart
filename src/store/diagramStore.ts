@@ -5,6 +5,8 @@ import { allocateBlockId, makeConnectionId } from "@/lib/ids";
 import { snapPosition, isoNow } from "@/lib/utils";
 import {
   UNDO_STACK_LIMIT,
+  MACRO_PITCH_X,
+  MACRO_PITCH_Y,
   type Block,
   type BlockType,
   type Comment,
@@ -84,6 +86,10 @@ export interface DiagramState {
   clipboard: ClipboardEntry | null;
   pasteCount: number;
 
+  /** Visibility van het macro-grid overlay (Align). Editor-only state, niet
+   *  in undo-history. */
+  macroGridVisible: boolean;
+
   /** ---- Loading ---- */
   loadDiagram: (args: {
     filePath: string | null;
@@ -123,6 +129,12 @@ export interface DiagramState {
   /** Paste the clipboard. Each call increments `pasteCount` so successive
    *  pastes are offset further from the originals. Returns the new IDs. */
   paste: () => string[];
+  /** Snap alle blokken naar het centrum van hun dichtstbijzijnde macro-grid
+   *  cel (origin = Start.center). Botsingen worden in BFS-volgorde naar de
+   *  dichtstbijzijnde vrije cel verplaatst. Eén undo-entry voor het geheel. */
+  alignBlocksToMacroGrid: () => void;
+  /** Toggle de zichtbaarheid van het macro-grid overlay op de canvas. */
+  toggleMacroGrid: () => void;
   moveBlocks: (moves: { id: string; position: Position }[]) => void;
   setBlockPositionLive: (id: string, position: Position) => void;
   setBlockLabel: (id: string, label: string) => void;
@@ -216,6 +228,7 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
     redoStack: [],
     clipboard: null,
     pasteCount: 0,
+    macroGridVisible: false,
 
     loadDiagram: ({ filePath, fileName, diagram, readOnlyReason, lastSavedAt }) => {
       set({
@@ -250,6 +263,8 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
         pasteCount: 0,
       });
     },
+
+    toggleMacroGrid: () => set({ macroGridVisible: !get().macroGridVisible }),
 
     markSaved: (ts) => set({ isDirty: false, lastSavedAt: ts }),
 
@@ -498,6 +513,90 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       });
 
       return newBlocks.map((b) => b.id);
+    },
+
+    alignBlocksToMacroGrid: () => {
+      const { diagram } = get();
+      const start = diagram.blocks["S"];
+      if (!start) return;
+
+      const sx = start.position.x + start.width / 2;
+      const sy = start.position.y + start.height / 2;
+
+      // Stap 1 — bereken voor elk niet-Start blok zijn ideale celindex.
+      const others = Object.values(diagram.blocks).filter((b) => b.id !== "S");
+      if (!others.length) return;
+
+      const ideal = new Map<string, [number, number]>();
+      for (const b of others) {
+        const cx = b.position.x + b.width / 2;
+        const cy = b.position.y + b.height / 2;
+        ideal.set(b.id, [
+          Math.round((cx - sx) / MACRO_PITCH_X),
+          Math.round((cy - sy) / MACRO_PITCH_Y),
+        ]);
+      }
+
+      // Stap 2 — sorteer op afstand tot Start (cellen dichterbij claimen
+      // eerst). Tiebreaker: blok-id, voor deterministische resolutie.
+      others.sort((a, b) => {
+        const [ai, aj] = ideal.get(a.id)!;
+        const [bi, bj] = ideal.get(b.id)!;
+        const da = ai * ai + aj * aj;
+        const db = bi * bi + bj * bj;
+        if (da !== db) return da - db;
+        return a.id.localeCompare(b.id);
+      });
+
+      // Stap 3 — claim cellen, BFS-uit voor botsingen.
+      const occupied = new Set<string>(["0,0"]); // Start zit in (0,0)
+      const updates: Record<string, Block> = {};
+
+      for (const b of others) {
+        const [ti, tj] = ideal.get(b.id)!;
+        let ci = ti;
+        let cj = tj;
+        if (occupied.has(`${ti},${tj}`)) {
+          let radius = 1;
+          let found = false;
+          while (!found && radius < 200) {
+            for (let dj = -radius; dj <= radius && !found; dj++) {
+              for (let di = -radius; di <= radius && !found; di++) {
+                if (Math.max(Math.abs(di), Math.abs(dj)) !== radius) continue;
+                const key = `${ti + di},${tj + dj}`;
+                if (!occupied.has(key)) {
+                  ci = ti + di;
+                  cj = tj + dj;
+                  found = true;
+                }
+              }
+            }
+            radius++;
+          }
+        }
+        occupied.add(`${ci},${cj}`);
+
+        const newCx = sx + ci * MACRO_PITCH_X;
+        const newCy = sy + cj * MACRO_PITCH_Y;
+        const newPos = {
+          x: newCx - b.width / 2,
+          y: newCy - b.height / 2,
+        };
+        if (newPos.x !== b.position.x || newPos.y !== b.position.y) {
+          updates[b.id] = { ...b, position: newPos };
+        }
+      }
+
+      if (!Object.keys(updates).length) return;
+
+      pushHistory();
+      set({
+        diagram: {
+          ...diagram,
+          blocks: { ...diagram.blocks, ...updates },
+        },
+        isDirty: true,
+      });
     },
 
     moveBlocks: (moves) => {

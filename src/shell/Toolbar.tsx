@@ -4,6 +4,8 @@ import {
   Download,
   FilePlus,
   FolderOpen,
+  Grid3x3,
+  LayoutGrid,
   Maximize,
   Minus,
   Monitor,
@@ -36,6 +38,10 @@ export function Toolbar() {
   const canRedo = useDiagramStore((s) => s.redoStack.length > 0);
   const undo = useDiagramStore((s) => s.undo);
   const redo = useDiagramStore((s) => s.redo);
+  const alignBlocks = useDiagramStore((s) => s.alignBlocksToMacroGrid);
+  const macroGridVisible = useDiagramStore((s) => s.macroGridVisible);
+  const toggleMacroGrid = useDiagramStore((s) => s.toggleMacroGrid);
+  const hasStart = useDiagramStore((s) => Boolean(s.diagram.blocks["S"]));
 
   const root = useFolderStore((s) => s.root);
   const openNewDialog = useFolderStore((s) => s.openNewDiagramDialog);
@@ -116,6 +122,23 @@ export function Toolbar() {
       <div className="mx-1 h-5 w-px bg-[var(--claude-border)]" />
 
       <IconButton
+        icon={<LayoutGrid size={15} />}
+        onClick={alignBlocks}
+        disabled={!hasFile || readOnly || !hasStart}
+        title="Align — snap blokken naar het macro-grid"
+      />
+      <IconButton
+        icon={<Grid3x3 size={15} />}
+        onClick={toggleMacroGrid}
+        disabled={!hasFile}
+        active={macroGridVisible}
+        title={
+          macroGridVisible
+            ? "Verberg macro-grid overlay"
+            : "Toon macro-grid overlay"
+        }
+      />
+      <IconButton
         icon={<Maximize size={15} />}
         onClick={onFit}
         disabled={!hasFile}
@@ -188,11 +211,14 @@ function IconButton({
   onClick,
   disabled,
   title,
+  active,
 }: {
   icon: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
   title: string;
+  /** Toon de knop als "ingedrukt"/aan-stand. Voor toggle-knoppen. */
+  active?: boolean;
 }) {
   return (
     <button
@@ -204,7 +230,9 @@ function IconButton({
         "flex h-7 w-7 items-center justify-center rounded",
         disabled
           ? "text-[var(--claude-text-tertiary)] opacity-50"
-          : "text-[var(--claude-text-secondary)] hover:bg-[var(--claude-surface-hover)]",
+          : active
+            ? "bg-[var(--claude-accent-light)] text-[var(--claude-accent)]"
+            : "text-[var(--claude-text-secondary)] hover:bg-[var(--claude-surface-hover)]",
       )}
     >
       {icon}

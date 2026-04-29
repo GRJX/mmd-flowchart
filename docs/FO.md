@@ -343,6 +343,31 @@ Bestanden en mappen kunnen direct in de tree gesleept worden naar een andere map
 - **Blok-afmetingen zijn óók veelvouden van 8.** De `defaultSize.width` en `defaultSize.height` per type in [`src/config/blockConfig.ts`](../src/config/blockConfig.ts) moeten daarom altijd deelbaar door 8 zijn — anders valt het verticale center van een blok niet op een grid-lijn en krijg je knikken in horizontale verbindingen tussen blokken met verschillende hoogte.
 - Voor recht-aansluitende horizontale verbindingen tussen twee bloktypen moeten beide types **dezelfde `height`** hebben. Action, Decision en Result delen daarom 112px hoogte; Start/End delen 64px (de cirkel hoeft alleen aan zichzelf gelijk te zijn — in de praktijk worden Start/End los van de andere blokken op andere y-niveaus geplaatst).
 
+### Macro-grid (Align)
+
+Naast het 8 px micro-grid is er een **macro-grid** voor het uitlijnen van complete diagrammen — handig om snel een rommelig schets om te zetten in een nette layout.
+
+- **Cel-afmeting:** 160 × 112 (gelijk aan het standaard Action/Decision/Result-blok).
+- **Goot rondom:** 40 px aan elke kant van een cel, gereserveerd voor verbindingen.
+- **Cel-pitch (afstand tussen cel-centra):** **240 px horizontaal** en **192 px verticaal** (cel + 2× goot). Beide veelvouden van 8 dus alles blijft op het micro-grid landen.
+- **Origin:** het centrum van het Start-blok = midden van macro-cel (0, 0). Het macro-grid is dus per diagram uniek; elk Start zet z'n eigen raster op.
+- **Constanten:** `MACRO_CELL_WIDTH`, `MACRO_CELL_HEIGHT`, `MACRO_GUTTER`, `MACRO_PITCH_X`, `MACRO_PITCH_Y` in [`src/types/domain.ts`](../src/types/domain.ts).
+
+#### Align-knop (toolbar, links van Fit-to-screen)
+
+- Werkt op **alle blokken** in het diagram (Start blijft staan).
+- Per blok wordt het centrum naar de dichtstbijzijnde macro-cel geprojecteerd. Bloktypen met afwijkende afmetingen (Start/End op 64×64) hangen visueel gecentreerd in hun cel.
+- **Botsingen** worden in BFS-volgorde opgelost: cellen dichter bij Start claimen eerst (sortering op kwadratische afstand tot origin, tiebreaker op blok-id), latere blokken zoeken outward in Chebyshev-distance naar de eerste vrije cel.
+- Verbindingen worden niet aangeraakt — `sourceSide`/`targetSide` blijven hetzelfde, ReactFlow herberekent automatisch de orthogonal smoothstep-paden.
+- Hele actie is **één undo-stap**.
+- Disabled wanneer er geen Start-blok is, geen bestand open is, of het diagram read-only is.
+
+#### Macro-grid overlay (toggle-knop)
+
+- Naast de Align-knop staat een toggle die het macro-grid als **gestippelde accent-kleur lijnen** over de canvas legt. Verticale lijnen op cel-pitch (240px), horizontale op 192px, beide met origin door Start.center.
+- De overlay is editor-state — niet gepersisteerd in `.mmd`-metadata, niet in undo. Toggle blijft binnen de huidige sessie aan/uit; bij file-switch resetten we 'm niet (handig voor "nu wil ik even uitlijnen, doe alle bestanden achter elkaar").
+- De toggle gebruikt het bestaande `<Background>`-mechanisme van ReactFlow zodat de grid pant en zoomt met de canvas.
+
 ### Blokken toevoegen
 
 **Via het palette (right panel):**

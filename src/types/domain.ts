@@ -74,3 +74,15 @@ export const MAX_EDGE_LABEL_LENGTH = 50;
 export const GRID_SIZE = 8;
 export const UNDO_STACK_LIMIT = 100;
 export const AUTOSAVE_DEBOUNCE_MS = 2000;
+
+/**
+ * Macro-grid (FO §6 — Align). De Align-knop snapt elk blok naar het centrum
+ * van een cel in dit grid; cellen meten 160×112 met 40px goot rondom voor
+ * verbindingen. Origin = centrum van het Start-blok. Pitch is de afstand
+ * tussen twee aanliggende cel-centra (cel + 2× goot).
+ */
+export const MACRO_CELL_WIDTH = 160;
+export const MACRO_CELL_HEIGHT = 112;
+export const MACRO_GUTTER = 40;
+export const MACRO_PITCH_X = MACRO_CELL_WIDTH + 2 * MACRO_GUTTER; // 240
+export const MACRO_PITCH_Y = MACRO_CELL_HEIGHT + 2 * MACRO_GUTTER; // 192

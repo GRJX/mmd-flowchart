@@ -94,6 +94,31 @@ flowchart TD
 
 ---
 
+## 3d. Macro-grid uitlijnen (Align)
+
+Een snelle "tidy up" van een rommelig diagram: alle blokken springen naar het dichtstbijzijnde celcentrum van een 240×192 macro-grid (relatief aan Start). Verbindingen blijven verbonden — ReactFlow herberekent de paden automatisch. Naast de Align-knop staat een toggle om het grid op de canvas te tonen, zodat je vooraf weet waar dingen heen gaan.
+
+```mermaid
+flowchart TD
+    A([Start-toestand]) --> B{Welke knop?}
+    B -- "Toggle grid-overlay (Grid3x3-icoon)" --> C["Macro-grid wordt op canvas getekend<br>Lijnen op pitch 240 / 192<br>Origin door Start.center"]
+    C --> D([Visuele preview — geen blok-mutatie])
+    B -- "Align (LayoutGrid-icoon)" --> E{"Bestand open?<br>Read-only?<br>Start aanwezig?"}
+    E -- "Nee" --> F([Knop disabled — geen actie])
+    E -- "Ja, alle vinkjes" --> G["Bereken voor elk niet-Start blok:<br>ideale celindex = round((center − Start.center) / pitch)"]
+    G --> H["Sorteer blokken op afstand tot Start<br>(tiebreaker: blok-id)"]
+    H --> I["Voor elk blok in volgorde:<br>cel bezet?"]
+    I -- Nee --> J["Claim cel<br>position = Start.center + i·pitch − size/2"]
+    I -- Ja --> K["BFS naar dichtstbijzijnde vrije cel<br>(Chebyshev-distance)"]
+    K --> J
+    J --> L{Meer blokken?}
+    L -- Ja --> I
+    L -- Nee --> M["Eén undo-entry weggezet<br>isDirty = true<br>Auto-save start"]
+    M --> N([Klaar — diagram is uitgelijnd])
+```
+
+---
+
 ## 3c. Kopiëren en plakken (Ctrl/Cmd+C / Ctrl/Cmd+V)
 
 Naast direct dupliceren is er een echte klembord-flow: kopieer eerst, plak vervolgens één of meerdere keren. Het klembord houdt een snapshot vast die los staat van het origineel — verwijder of bewerk het origineel daarna en je plak nog steeds wat je gekopieerd had. Het klembord leeft alleen in de huidige sessie van het geopende bestand; bij bestand wisselen of refreshen is het leeg.
