@@ -233,6 +233,11 @@ body {
 .react-flow__edge-textbg {
   fill: var(--claude-bg);
 }
+/* Connection handles: visueel 10×10 zodat xyflow z'n edge-endpoints exact
+ * op het zichtbare puntje aansluit. De hit-area wordt verdubbeld naar
+ * 20×20 via een onzichtbare ::before-pseudo (`inset: -5px`); muis-events
+ * op die pseudo bubbelen naar de handle-div, dus klik-en-sleep werkt al
+ * 5px buiten het puntje zonder dat de edge-positie verschuift. */
 .react-flow__handle {
   width: 10px;
   height: 10px;
@@ -240,6 +245,11 @@ body {
   border: 2px solid var(--handle-border);
   opacity: 0;
   transition: opacity 120ms ease;
+}
+.react-flow__handle::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
 }
 .react-flow__node:hover .react-flow__handle,
 .react-flow__handle-connecting,
@@ -252,6 +262,16 @@ body {
   cursor: not-allowed;
 }
 .react-flow__attribution { display: none; }
+
+/* Verberg de blauwe groeps-bounding-box die xyflow rond een marquee-
+ * selectie tekent. Onze accent-border per blok is genoeg om te zien
+ * welke blokken geselecteerd zijn; de extra rect verbergt verbindingen
+ * eronder en is niet nodig voor de interactie. */
+.react-flow__nodesselection-rect,
+.react-flow__nodesselection {
+  background: transparent;
+  border: none;
+}
 
 /* ---------- Utility: grid background ---------- */
 .canvas-grid-bg {
