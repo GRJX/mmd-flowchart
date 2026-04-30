@@ -216,6 +216,8 @@ export async function createNewDiagram(args: {
           height: 96,
           dataField: null,
           expectedOutcome: null,
+          yesDataField: null,
+          noDataField: null,
           comments: [],
         },
       },

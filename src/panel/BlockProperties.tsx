@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useDiagramStore } from "@/store/diagramStore";
 import { getBlockConfig } from "@/config/blockConfig";
-import { Input, Label, ReadOnlyField, TextArea } from "@/ui/Field";
+import { Label, ReadOnlyField, TextArea } from "@/ui/Field";
 import { Button } from "@/ui/Button";
 import {
   MAX_COMMENT_LENGTH,
