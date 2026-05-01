@@ -13,3 +13,4 @@ README.md
 *.tsbuildinfo
 Dockerfile
 .dockerignore
+scritps/
