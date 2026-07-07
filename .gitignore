@@ -4,3 +4,7 @@ dist-ssr
 *.local
 test-diagrams/
 __pycache__/
+
+# openwiki secrets live in ~/.openwiki/.env (outside repo); never commit stray copies
+.openwiki/
+.env.openwiki
