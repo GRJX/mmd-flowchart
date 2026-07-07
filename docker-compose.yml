@@ -1,0 +1,10 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mmd-flowchart:latest
+    container_name: mmd-flowchart
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

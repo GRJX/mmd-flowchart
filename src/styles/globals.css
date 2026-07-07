@@ -58,7 +58,7 @@
   /* Per-type fill tints. Subtle so the shape & label still drive recognition;
    * the tint is a secondary cue (especially useful where shapes overlap, e.g.
    * Action vs Result both being rounded rectangles). */
-  --node-fill-start: #dcfce7;     /* green-100 */
+  --node-fill-start: #e2e8f0;     /* slate-200 */
   --node-fill-action: #dbeafe;    /* blue-100 */
   --node-fill-decision: #fef3c7;  /* amber-100 */
   --node-fill-result: #ccfbf1;    /* teal-100 */
