@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useDiagramStore } from "@/store/diagramStore";
 import { saveCurrentDiagram } from "@/lib/fs/fileOps";
-import { isVsCodeWebview, requestDocumentSave } from "@/lib/vscode/bridge";
+import { isEmbeddedHost, requestDocumentSave } from "@/lib/host/bridge";
 
 /**
  * Global keyboard shortcuts (FO §11). Attached once from App. Shortcuts are
@@ -34,9 +34,9 @@ export function useShortcuts() {
 
       if (key === "s" && !e.shiftKey && !e.altKey) {
         e.preventDefault();
-        // In VSCode the document is saved by VSCode itself; forward the
+        // When embedded, the host IDE saves the document; forward the
         // intent instead of writing to disk ourselves.
-        if (isVsCodeWebview()) requestDocumentSave();
+        if (isEmbeddedHost()) requestDocumentSave();
         else void saveCurrentDiagram();
         return;
       }

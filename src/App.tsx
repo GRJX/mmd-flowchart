@@ -8,7 +8,7 @@ import { Sidebar } from "@/sidebar/Sidebar";
 import { NewDiagramDialog } from "@/sidebar/NewDiagramDialog";
 import { Toasts } from "@/shell/Toasts";
 import { restoreRootFolder } from "@/lib/fs/fileOps";
-import { initVsCodeBridge, isVsCodeWebview } from "@/lib/vscode/bridge";
+import { initHostBridge, isEmbeddedHost } from "@/lib/host/bridge";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { useExternalChangeWatch } from "@/hooks/useExternalChangeWatch";
 import { useShortcuts } from "@/hooks/useShortcuts";
@@ -16,9 +16,9 @@ import { useTheme } from "@/hooks/useTheme";
 
 export function App() {
   useEffect(() => {
-    // In VSCode the extension host pushes the document into the webview;
-    // in the browser we restore the previously opened folder.
-    if (isVsCodeWebview()) initVsCodeBridge();
+    // In a host IDE (VSCode/IntelliJ) the host pushes the document into
+    // the webview; in the browser we restore the previously opened folder.
+    if (isEmbeddedHost()) initHostBridge();
     else void restoreRootFolder();
   }, []);
 
@@ -37,18 +37,18 @@ function InnerApp() {
   useAutoSave();
   useShortcuts();
   useExternalChangeWatch();
-  // Single-document mode inside VSCode: the Explorer is the file tree, so
-  // the sidebar and new-diagram dialog have no role there.
-  const vscodeMode = isVsCodeWebview();
+  // Single-document mode inside a host IDE: its explorer is the file
+  // tree, so the sidebar and new-diagram dialog have no role there.
+  const embedded = isEmbeddedHost();
   return (
     <>
       <AppShell
         toolbar={<Toolbar />}
-        sidebar={vscodeMode ? null : <Sidebar />}
+        sidebar={embedded ? null : <Sidebar />}
         canvas={<Canvas />}
         rightPanel={<RightPanel />}
       />
-      {!vscodeMode && <NewDiagramDialog />}
+      {!embedded && <NewDiagramDialog />}
       <Toasts />
     </>
   );

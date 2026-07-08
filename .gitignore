@@ -6,6 +6,12 @@ dist-ssr
 # VSCode extension build output
 vscode-extension/media/webview/
 *.vsix
+
+# IntelliJ plugin build output
+intellij-plugin/build/
+intellij-plugin/.gradle/
+intellij-plugin/.intellijPlatform/
+intellij-plugin/.idea/
 test-diagrams/
 __pycache__/
 

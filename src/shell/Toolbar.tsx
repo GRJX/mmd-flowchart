@@ -20,7 +20,7 @@ import { useDiagramStore } from "@/store/diagramStore";
 import { useFolderStore } from "@/store/folderStore";
 import { openRootFolder, saveCurrentDiagram } from "@/lib/fs/fileOps";
 import { exportDiagram } from "@/lib/export/exportDiagram";
-import { isVsCodeWebview } from "@/lib/vscode/bridge";
+import { isEmbeddedHost } from "@/lib/host/bridge";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +47,7 @@ export function Toolbar() {
   const root = useFolderStore((s) => s.root);
   const openNewDialog = useFolderStore((s) => s.openNewDiagramDialog);
 
-  const vscodeMode = isVsCodeWebview();
+  const embedded = isEmbeddedHost();
   const hasFile = filePath !== null;
   const readOnly = readOnlyReason !== null;
   const canSave = hasFile && !readOnly;
@@ -70,9 +70,9 @@ export function Toolbar() {
 
       <div className="mx-1 h-5 w-px bg-[var(--claude-border)]" />
 
-      {/* File lifecycle is VSCode's job in the extension: open/create via
-          the Explorer, save via VSCode's own save (settings/Ctrl+S). */}
-      {!vscodeMode && (
+      {/* File lifecycle is the host IDE's job when embedded: open/create
+          via its explorer, save via the IDE's own save (settings/Ctrl+S). */}
+      {!embedded && (
         <>
           <IconButton
             icon={<FolderOpen size={15} />}
@@ -120,7 +120,7 @@ export function Toolbar() {
         )}
       </div>
 
-      {!vscodeMode && (
+      {!embedded && (
         <SaveStatus
           hasFile={hasFile}
           isDirty={isDirty}

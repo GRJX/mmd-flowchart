@@ -7,17 +7,37 @@
     "mtime": 1783413009.1049035,
     "hash": "0210809858fefd1f6952afd02353e14b"
   },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/intellij-plugin/build.gradle.kts": {
+    "mtime": 1783494336.0397937,
+    "hash": "e0599f534bd024c677ed447b944f0a99"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/intellij-plugin/settings.gradle.kts": {
+    "mtime": 1783495256.5162082,
+    "hash": "5f6d536fc7bddc45130926fb5d033661"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/intellij-plugin/src/main/kotlin/nl/jelle/mmdflowchart/WebviewAssets.kt": {
+    "mtime": 1783494387.262241,
+    "hash": "29ae3c4f7192a1d7611a5b3320e97bb9"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/intellij-plugin/src/main/kotlin/nl/jelle/mmdflowchart/MmdFileEditor.kt": {
+    "mtime": 1783494376.1984162,
+    "hash": "99e98a2e3c17e7ae1fa28bf7e0e68b58"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/intellij-plugin/src/main/kotlin/nl/jelle/mmdflowchart/MmdFileEditorProvider.kt": {
+    "mtime": 1783494355.1072013,
+    "hash": "ece85efefd332530bcf016ac7ec67fdb"
+  },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/vscode-extension/media/webview/assets/index.js": {
-    "mtime": 1783492190.0761793,
-    "hash": "43d919c7d53004ae8744f857f27b4ad0"
+    "mtime": 1783494422.1674542,
+    "hash": "d14d8f2ab066ef8b99044552a788ec3f"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/vscode-extension/src/extension.ts": {
-    "mtime": 1783492148.7435074,
-    "hash": "dca2efdb8769ad2f4bb004bbc4f4c38e"
+    "mtime": 1783494308.2273288,
+    "hash": "e6bfae0155c2af360fcf3476e75103a4"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/App.tsx": {
-    "mtime": 1783433141.9845006,
-    "hash": "91962e7d760df87059d8a28da6c5944a"
+    "mtime": 1783494262.3647752,
+    "hash": "9f3003a01be66675de72bb4667273726"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/main.tsx": {
     "mtime": 1783413009.0425417,
@@ -88,8 +108,8 @@
     "hash": "e0a3b673bdb11d25b424c6b87890e56f"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/shell/Toolbar.tsx": {
-    "mtime": 1783433171.2016454,
-    "hash": "843208fa3bf2d1fe6146412b8439fce9"
+    "mtime": 1783494269.0463803,
+    "hash": "7f439021bf4d605c138fbc7cc77ed305"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/shell/AppShell.tsx": {
     "mtime": 1783433151.6784308,
@@ -120,16 +140,16 @@
     "hash": "3428c5995cec3a6a85408c56491ae437"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/hooks/useShortcuts.ts": {
-    "mtime": 1783433123.9123302,
-    "hash": "df8d62cf5861e41e64bfb3cc4eb718c7"
+    "mtime": 1783494293.1752462,
+    "hash": "ca7fa4fe2b89ea22a61f222294731f75"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/hooks/useAutoSave.ts": {
-    "mtime": 1783433121.8710713,
-    "hash": "d37c37c8ca6edb493c28838395bfa1d5"
+    "mtime": 1783494288.92612,
+    "hash": "14cca962cce212ef0c4f19484521a69d"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/hooks/useExternalChangeWatch.ts": {
-    "mtime": 1783433124.9371293,
-    "hash": "3ae8536c8af88e7068c043b2f09372b0"
+    "mtime": 1783494297.8729527,
+    "hash": "0977c76707b55397df0c2b17c3e713ef"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/hooks/useTheme.ts": {
     "mtime": 1783413009.0385737,
@@ -142,6 +162,14 @@
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/utils.ts": {
     "mtime": 1783413009.042417,
     "hash": "164b935de4c05b337a7e372cf20cbfd0"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/host/bridge.ts": {
+    "mtime": 1783494237.9870183,
+    "hash": "ac4d8fb1be0e4cad8d536d33710693a1"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/host/protocol.ts": {
+    "mtime": 1783494213.6376436,
+    "hash": "5c148b9765dc148c0e67f45d4ee06f81"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/mermaid/detect.ts": {
     "mtime": 1783413009.0416808,
@@ -160,8 +188,8 @@
     "hash": "eb1b6b0a226b41d5eac9ad464cf73646"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/export/exportDiagram.ts": {
-    "mtime": 1783433175.5618813,
-    "hash": "a0ad10978c3d2083254afaf9c5689971"
+    "mtime": 1783494302.1139603,
+    "hash": "98e14d360d6885893e83da4c563df08e"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/fs/handleStore.ts": {
     "mtime": 1783413009.039812,
@@ -180,16 +208,8 @@
     "hash": "ba0c1eb71d8b6a966b3e2b0fde44ce20"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/fs/backend.ts": {
-    "mtime": 1783433000.3236043,
-    "hash": "56176e5a5f6248836232fa7de836d048"
-  },
-  "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/vscode/bridge.ts": {
-    "mtime": 1783432979.8896415,
-    "hash": "ec7a090440f80d1afe0cbcb88c80e8ac"
-  },
-  "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/vscode/protocol.ts": {
-    "mtime": 1783432960.7197547,
-    "hash": "a632eed1b6a94acc3a0ea5c06f7e764b"
+    "mtime": 1783494304.6530159,
+    "hash": "6c0f37449dd69aef2446925cc83845a1"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/store/toastStore.ts": {
     "mtime": 1783413009.0459635,
@@ -227,12 +247,16 @@
     "mtime": 1783413005.7776802,
     "hash": "176e8ce9b068b8210449261e9591013c"
   },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/intellij-plugin/README.md": {
+    "mtime": 1783494412.7859397,
+    "hash": "b7b52b0914b6e56f02ac8b16ff7a9f84"
+  },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/vscode-extension/README.md": {
-    "mtime": 1783492179.6205747,
-    "hash": "a4f31e141f1f6051e196982860ae081d"
+    "mtime": 1783493174.032377,
+    "hash": "f2c36213e491fbff88fe4d10ba13723b"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/vscode-extension/media/webview/index.html": {
-    "mtime": 1783492190.0761008,
+    "mtime": 1783494422.1674073,
     "hash": "5b14204675ec184b786f7dc3e45d0d2e"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/openwiki/workflows.md": {

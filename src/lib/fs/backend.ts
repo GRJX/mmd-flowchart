@@ -4,9 +4,9 @@
  * `browserBackend.ts`). The app works with slash-separated relative paths
  * and the handle-free tree below; only the backend touches real handles.
  *
- * Inside VSCode this layer is not used at all — the extension host owns
- * the document and the file tree (VSCode explorer); see
- * `src/lib/vscode/bridge.ts`.
+ * Inside a host IDE (VSCode/IntelliJ) this layer is not used at all — the
+ * host owns the document and the file tree (the IDE's explorer); see
+ * `src/lib/host/bridge.ts`.
  */
 
 import { createBrowserBackend } from "./browserBackend";

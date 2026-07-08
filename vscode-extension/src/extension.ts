@@ -14,12 +14,12 @@
  * Echo suppression: the change event caused by our own WorkspaceEdit is
  * consumed once and not echoed back (the webview state already matches).
  *
- * Message types live in ../../src/lib/vscode/protocol.ts (shared with the
- * webview app).
+ * Message types live in ../../src/lib/host/protocol.ts (shared with the
+ * webview app and mirrored by the IntelliJ plugin).
  */
 
 import * as vscode from "vscode";
-import type { HostToWebview, WebviewToHost } from "../../src/lib/vscode/protocol";
+import type { HostToWebview, WebviewToHost } from "../../src/lib/host/protocol";
 
 const VIEW_TYPE = "mmdFlowchart.editor";
 

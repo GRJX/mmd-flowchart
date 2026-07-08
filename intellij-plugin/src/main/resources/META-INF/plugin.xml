@@ -1,0 +1,18 @@
+<idea-plugin>
+    <id>nl.jelle.mmd-flowchart</id>
+    <name>MMD Flowchart Editor</name>
+    <vendor>Jelle</vendor>
+    <description><![CDATA[
+        WYSIWYG editor voor Mermaid-flowcharts (<code>.mmd</code>).
+        Open een .mmd-bestand en kies het tabblad <b>MMD Flowchart</b>
+        naast de teksteditor om het diagram visueel te bewerken. De IDE
+        blijft eigenaar van het bestand: opslaan, dirty-status en
+        tekst-undo werken zoals je gewend bent.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileEditorProvider implementation="nl.jelle.mmdflowchart.MmdFileEditorProvider"/>
+    </extensions>
+</idea-plugin>

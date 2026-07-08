@@ -12,5 +12,5 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "../src/lib/vscode/protocol.ts"]
+  "include": ["src/**/*.ts", "../src/lib/host/protocol.ts"]
 }
