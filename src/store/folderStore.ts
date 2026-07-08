@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { TreeFolder } from "@/lib/fs/fsAccess";
+import type { TreeFolder } from "@/lib/fs/backend";
 
 /**
  * Folder and file-tree state. Kept separate from the diagram store because

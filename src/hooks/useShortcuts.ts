@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useDiagramStore } from "@/store/diagramStore";
 import { saveCurrentDiagram } from "@/lib/fs/fileOps";
+import { isVsCodeWebview, requestDocumentSave } from "@/lib/vscode/bridge";
 
 /**
  * Global keyboard shortcuts (FO §11). Attached once from App. Shortcuts are
@@ -33,7 +34,10 @@ export function useShortcuts() {
 
       if (key === "s" && !e.shiftKey && !e.altKey) {
         e.preventDefault();
-        void saveCurrentDiagram();
+        // In VSCode the document is saved by VSCode itself; forward the
+        // intent instead of writing to disk ourselves.
+        if (isVsCodeWebview()) requestDocumentSave();
+        else void saveCurrentDiagram();
         return;
       }
       if (inInput(e.target)) return;

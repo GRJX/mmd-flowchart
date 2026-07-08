@@ -4,6 +4,7 @@ import {
   getViewportForBounds,
   type ReactFlowInstance,
 } from "@xyflow/react";
+import { isVsCodeWebview, saveExportViaHost } from "@/lib/vscode/bridge";
 
 /**
  * Export the current diagram as PNG or SVG using xyflow's built-in viewport
@@ -81,7 +82,11 @@ export async function exportDiagram({
       kind === "png"
         ? await toPng(viewportEl, options)
         : await toSvg(viewportEl, options);
-    downloadDataUrl(dataUrl, `${stripExtension(fileName)}.${kind}`);
+    const outName = `${stripExtension(fileName)}.${kind}`;
+    // In VSCode the host offers a native save dialog; in the browser we
+    // trigger a plain <a download> click.
+    if (isVsCodeWebview()) saveExportViaHost(outName, dataUrl);
+    else downloadDataUrl(dataUrl, outName);
   } finally {
     restoreStyles();
   }

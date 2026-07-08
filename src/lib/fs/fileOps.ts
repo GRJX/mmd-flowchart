@@ -1,15 +1,5 @@
-import {
-  buildTree,
-  ensureReadWrite,
-  findFileByPath,
-  isFileSystemAccessSupported,
-  pickRootFolder,
-  readFile,
-  writeFile,
-  type TreeFile,
-  type TreeFolder,
-} from "@/lib/fs/fsAccess";
-import { loadRootHandle, saveRootHandle } from "@/lib/fs/handleStore";
+import { getFsBackend } from "@/lib/fs/backend";
+import type { TreeFile, TreeFolder } from "@/lib/fs/backend";
 import { parseMmd } from "@/lib/mermaid/parse";
 import { serializeMmd } from "@/lib/mermaid/serialize";
 import { detectDiagramKind } from "@/lib/mermaid/detect";
@@ -23,82 +13,71 @@ import { useFolderStore } from "@/store/folderStore";
 import { showToast } from "@/store/toastStore";
 
 /**
- * High-level file operations that wire the FS wrapper into the two stores.
- * Components stay thin — they call into here and let the stores drive the
- * UI.
+ * High-level file operations that wire the platform backend into the two
+ * stores. Components stay thin — they call into here and let the stores
+ * drive the UI. All paths are slash-separated and relative to the root;
+ * only the backend (browser File System Access or VSCode host) knows how
+ * to resolve them to actual files.
  */
 
 export async function openRootFolder(): Promise<void> {
   const folder = useFolderStore.getState();
-
-  if (!isFileSystemAccessSupported()) {
-    folder.setStatus({ kind: "unsupported-browser" });
-    return;
-  }
+  const backend = getFsBackend();
 
   folder.setStatus({ kind: "loading" });
-  const handle = await pickRootFolder();
-  if (!handle) {
-    folder.setStatus(folder.root ? { kind: "ready" } : { kind: "empty" });
-    return;
-  }
-  const granted = await ensureReadWrite(handle);
-  if (!granted) {
-    folder.setStatus({ kind: "permission-denied" });
-    return;
+  const picked = await backend.pickRoot();
+  switch (picked) {
+    case "unavailable":
+      folder.setStatus({ kind: "unsupported-browser" });
+      return;
+    case "cancelled":
+      folder.setStatus(folder.root ? { kind: "ready" } : { kind: "empty" });
+      return;
+    case "denied":
+      folder.setStatus({ kind: "permission-denied" });
+      return;
+    case "ok":
+      break;
   }
 
   try {
-    const tree = await buildTree(handle);
-    await saveRootHandle(handle);
+    const tree = await backend.buildTree();
+    if (!tree) {
+      folder.setStatus({ kind: "empty" });
+      return;
+    }
     folder.setRoot(tree);
     folder.setStatus({ kind: "ready" });
   } catch (err) {
     folder.setStatus({
       kind: "error",
-      message: (err as Error).message ?? "Onbekende fout bij het openen van de map.",
+      message:
+        (err as Error).message ?? "Onbekende fout bij het openen van de map.",
     });
   }
 }
 
 export async function restoreRootFolder(): Promise<void> {
   const folder = useFolderStore.getState();
+  const backend = getFsBackend();
 
-  if (!isFileSystemAccessSupported()) {
+  if (!backend.isSupported()) {
     folder.setStatus({ kind: "unsupported-browser" });
     return;
   }
 
-  let handle: FileSystemDirectoryHandle | null = null;
-  try {
-    handle = await loadRootHandle();
-  } catch {
-    handle = null;
-  }
-  if (!handle) {
-    folder.setStatus({ kind: "empty" });
-    return;
-  }
-
-  const h = handle as FileSystemDirectoryHandle & {
-    queryPermission?: (opts: {
-      mode: "read" | "readwrite";
-    }) => Promise<PermissionState>;
-  };
-  const state = h.queryPermission
-    ? await h.queryPermission({ mode: "readwrite" })
-    : "granted";
-
-  // We can't prompt without a user gesture. If access isn't already
-  // granted, stay in empty state and let the user click Open Folder again
-  // (which triggers requestPermission inside a gesture).
-  if (state !== "granted") {
+  const restored = await backend.restoreRoot();
+  if (!restored) {
     folder.setStatus({ kind: "empty" });
     return;
   }
 
   try {
-    const tree = await buildTree(handle);
+    const tree = await backend.buildTree();
+    if (!tree) {
+      folder.setStatus({ kind: "empty" });
+      return;
+    }
     folder.setRoot(tree);
     folder.setStatus({ kind: "ready" });
   } catch {
@@ -108,31 +87,45 @@ export async function restoreRootFolder(): Promise<void> {
 
 export async function refreshTree(): Promise<void> {
   const folder = useFolderStore.getState();
-  const root = folder.root;
-  if (!root) return;
-  const tree = await buildTree(root.handle);
-  folder.setRoot(tree);
+  if (!folder.root) return;
+  const tree = await getFsBackend().buildTree();
+  if (tree) folder.setRoot(tree);
 }
 
 export async function openFile(path: string): Promise<void> {
-  const folderState = useFolderStore.getState();
-  const diagramStore = useDiagramStore.getState();
-  const root = folderState.root;
+  const root = useFolderStore.getState().root;
   if (!root) return;
 
   const file = findFileByPath(root, path);
   if (!file) return;
 
-  const { content, lastModified } = await readFile(file.handle);
+  const { content, lastModified } = await getFsBackend().readFile(path);
+  loadDiagramContent({ path, fileName: file.name, content, lastModified });
+}
+
+/**
+ * Detect, parse, and load raw `.mmd` content into the diagram store,
+ * applying the read-only guards (unsupported type, block limit). Shared
+ * between the browser flow (`openFile`) and the VSCode document bridge,
+ * which receives content pushes instead of reading from disk.
+ */
+export function loadDiagramContent(args: {
+  path: string;
+  fileName: string;
+  content: string;
+  lastModified: number;
+}): void {
+  const { path, fileName, content, lastModified } = args;
+  const diagramStore = useDiagramStore.getState();
   const loadInto = (diagram: Diagram, readOnlyReason: ReadOnlyReason | null) => {
     diagramStore.loadDiagram({
       filePath: path,
-      fileName: file.name,
+      fileName,
       diagram,
       readOnlyReason,
       lastSavedAt: lastModified,
     });
-    folderState.setCurrentFilePath(path);
+    useFolderStore.getState().setCurrentFilePath(path);
   };
 
   const kind = detectDiagramKind(content);
@@ -203,8 +196,8 @@ export async function createNewDiagram(args: {
     return { ok: false, reason: "exists" };
   }
 
+  const path = args.folderPath ? `${args.folderPath}/${fileName}` : fileName;
   try {
-    const handle = await parent.handle.getFileHandle(fileName, { create: true });
     const starterDiagram = {
       blocks: {
         S: {
@@ -224,10 +217,11 @@ export async function createNewDiagram(args: {
       connections: {},
     };
     const content = serializeMmd(starterDiagram);
-    const lastModified = await writeFile(handle, content);
+    const lastModified = await getFsBackend().writeFile(path, content, {
+      create: true,
+    });
 
     await refreshTree();
-    const path = args.folderPath ? `${args.folderPath}/${fileName}` : fileName;
     if (args.folderPath) {
       useFolderStore.getState().expand(args.folderPath);
     }
@@ -246,6 +240,12 @@ export async function createNewDiagram(args: {
   } catch {
     return { ok: false, reason: "write-failed" };
   }
+}
+
+function findFileByPath(root: TreeFolder, path: string): TreeFile | null {
+  if (!path) return null;
+  const found = findNodeByPath(root, path);
+  return found && found.node.kind === "file" ? found.node : null;
 }
 
 function findFolderByPath(root: TreeFolder, path: string): TreeFolder | null {
@@ -300,9 +300,7 @@ export type MoveNodeFailure =
   | "move-failed";
 
 /**
- * Move a file or folder to another folder inside the same root. Uses
- * copy + delete under the hood since `FileSystemHandle.move` isn't
- * universally available for directories yet.
+ * Move a file or folder to another folder inside the same root.
  *
  * `targetFolderPath` is the path of the destination folder, empty string
  * meaning the root.
@@ -349,24 +347,18 @@ export async function moveNode(
     );
   }
 
+  const newPath = targetFolderPath
+    ? `${targetFolderPath}/${source.name}`
+    : source.name;
+
   try {
-    if (source.kind === "file") {
-      await copyFile(source.handle, target.handle, source.name);
-      await oldParent.handle.removeEntry(source.name);
-    } else {
-      await copyFolder(source.handle, target.handle, source.name);
-      await oldParent.handle.removeEntry(source.name, { recursive: true });
-    }
+    await getFsBackend().moveNode(sourcePath, newPath);
   } catch (err) {
     return fail(
       "move-failed",
       `Verplaatsen mislukt: ${(err as Error).message ?? "onbekende fout"}`,
     );
   }
-
-  const newPath = targetFolderPath
-    ? `${targetFolderPath}/${source.name}`
-    : source.name;
 
   await refreshTree();
 
@@ -399,9 +391,7 @@ export type NodeOpFailure =
   | "write-failed"
   | "delete-failed";
 
-/** Rename a file or folder in place. Uses copy + delete for the same
- *  reason as `moveNode` — `FileSystemHandle.move` isn't universally
- *  available for directories. */
+/** Rename a file or folder in place. */
 export async function renameNode(
   path: string,
   newName: string,
@@ -442,14 +432,9 @@ export async function renameNode(
     return { ok: false, reason: "name-conflict" };
   }
 
+  const newPath = parent.path ? `${parent.path}/${finalName}` : finalName;
   try {
-    if (node.kind === "file") {
-      await copyFile(node.handle, parent.handle, finalName);
-      await parent.handle.removeEntry(node.name);
-    } else {
-      await copyFolder(node.handle, parent.handle, finalName);
-      await parent.handle.removeEntry(node.name, { recursive: true });
-    }
+    await getFsBackend().moveNode(path, newPath);
   } catch (err) {
     showToast({
       kind: "error",
@@ -458,7 +443,6 @@ export async function renameNode(
     return { ok: false, reason: "write-failed" };
   }
 
-  const newPath = parent.path ? `${parent.path}/${finalName}` : finalName;
   await refreshTree();
 
   // Re-point the editor if the open file (or its folder) was renamed.
@@ -488,10 +472,12 @@ export async function deleteNode(
 
   const found = findNodeByPath(root, path);
   if (!found) return { ok: false, reason: "not-found" };
-  const { node, parent } = found;
+  const { node } = found;
 
   try {
-    await parent.handle.removeEntry(node.name, { recursive: node.kind === "folder" });
+    await getFsBackend().deleteNode(path, {
+      recursive: node.kind === "folder",
+    });
   } catch (err) {
     showToast({
       kind: "error",
@@ -545,8 +531,9 @@ export async function createSubfolder(
     return { ok: false, reason: "name-conflict" };
   }
 
+  const path = parentPath ? `${parentPath}/${cleanName}` : cleanName;
   try {
-    await parent.handle.getDirectoryHandle(cleanName, { create: true });
+    await getFsBackend().createFolder(path);
   } catch (err) {
     showToast({
       kind: "error",
@@ -556,44 +543,8 @@ export async function createSubfolder(
   }
 
   await refreshTree();
-  const path = parentPath ? `${parentPath}/${cleanName}` : cleanName;
   useFolderStore.getState().expand(parentPath || path);
   return { ok: true, path };
-}
-
-async function copyFile(
-  source: FileSystemFileHandle,
-  targetParent: FileSystemDirectoryHandle,
-  name: string,
-): Promise<void> {
-  const file = await source.getFile();
-  const dest = await targetParent.getFileHandle(name, { create: true });
-  const writable = await dest.createWritable();
-  await writable.write(await file.arrayBuffer());
-  await writable.close();
-}
-
-async function copyFolder(
-  source: FileSystemDirectoryHandle,
-  targetParent: FileSystemDirectoryHandle,
-  name: string,
-): Promise<void> {
-  const destFolder = await targetParent.getDirectoryHandle(name, {
-    create: true,
-  });
-  for await (const [childName, entry] of source as unknown as AsyncIterable<
-    [string, FileSystemHandle]
-  >) {
-    if (entry.kind === "file") {
-      await copyFile(entry as FileSystemFileHandle, destFolder, childName);
-    } else {
-      await copyFolder(
-        entry as FileSystemDirectoryHandle,
-        destFolder,
-        childName,
-      );
-    }
-  }
 }
 
 const EXTERNAL_CHANGE_TOLERANCE_MS = 100;
@@ -614,7 +565,7 @@ export async function saveCurrentDiagram(options?: {
   // Check for external changes before writing — unless the caller explicitly
   // forces an overwrite (user confirmed "Overschrijven" in the toast).
   if (!options?.force) {
-    const serverModified = await peekLastModified(file.handle);
+    const serverModified = await getFsBackend().statMtime(path);
     const known = diagramStore.lastSavedAt;
     if (
       known !== null &&
@@ -642,7 +593,7 @@ export async function saveCurrentDiagram(options?: {
 
   const content = serializeMmd(diagramStore.diagram);
   try {
-    const lastModified = await writeFile(file.handle, content);
+    const lastModified = await getFsBackend().writeFile(path, content);
     diagramStore.markSaved(lastModified);
     return true;
   } catch (err) {
@@ -654,14 +605,9 @@ export async function saveCurrentDiagram(options?: {
   }
 }
 
-async function peekLastModified(handle: FileSystemFileHandle): Promise<number> {
-  const file = await handle.getFile();
-  return file.lastModified;
-}
-
 /** Check the currently-open file's on-disk timestamp and surface a toast if
  *  it has changed since we last saved. Called on window refocus / visibility
- *  changes. */
+ *  changes. Browser-only — VSCode owns external-change detection. */
 export async function checkForExternalChange(): Promise<void> {
   const folderState = useFolderStore.getState();
   const diagramStore = useDiagramStore.getState();
@@ -671,7 +617,7 @@ export async function checkForExternalChange(): Promise<void> {
   const file = findFileByPath(root, path);
   if (!file) return;
 
-  const serverModified = await peekLastModified(file.handle);
+  const serverModified = await getFsBackend().statMtime(path);
   const known = diagramStore.lastSavedAt;
   if (known === null) return;
   if (serverModified <= known + EXTERNAL_CHANGE_TOLERANCE_MS) return;

@@ -1,6 +1,7 @@
 /**
- * File System Access API wrapper. The editor is browser-only, so all disk
- * I/O goes through this module. Callers never touch the raw handles.
+ * File System Access API wrapper — internal to `browserBackend`. Nothing
+ * above the backend layer touches the raw handles; the app works with the
+ * handle-free tree from `protocol.ts`.
  *
  * A "tree node" mirrors the on-disk layout: folders contain children
  * (folders + `.mmd` files), files carry their handle plus basic metadata.
@@ -135,24 +136,6 @@ export async function writeFile(
   await writable.close();
   const file = await handle.getFile();
   return file.lastModified;
-}
-
-export function findFileByPath(
-  root: TreeFolder,
-  path: string,
-): TreeFile | null {
-  if (!path) return null;
-  const parts = path.split("/");
-  let node: TreeNode = root;
-  for (let i = 0; i < parts.length; i++) {
-    if (node.kind !== "folder") return null;
-    const next: TreeNode | undefined = node.children.find(
-      (c) => c.name === parts[i],
-    );
-    if (!next) return null;
-    node = next;
-  }
-  return node.kind === "file" ? node : null;
 }
 
 export function isFileSystemAccessSupported(): boolean {

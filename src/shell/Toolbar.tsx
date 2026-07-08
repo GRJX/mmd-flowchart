@@ -20,6 +20,7 @@ import { useDiagramStore } from "@/store/diagramStore";
 import { useFolderStore } from "@/store/folderStore";
 import { openRootFolder, saveCurrentDiagram } from "@/lib/fs/fileOps";
 import { exportDiagram } from "@/lib/export/exportDiagram";
+import { isVsCodeWebview } from "@/lib/vscode/bridge";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +47,7 @@ export function Toolbar() {
   const root = useFolderStore((s) => s.root);
   const openNewDialog = useFolderStore((s) => s.openNewDiagramDialog);
 
+  const vscodeMode = isVsCodeWebview();
   const hasFile = filePath !== null;
   const readOnly = readOnlyReason !== null;
   const canSave = hasFile && !readOnly;
@@ -68,23 +70,29 @@ export function Toolbar() {
 
       <div className="mx-1 h-5 w-px bg-[var(--claude-border)]" />
 
-      <IconButton
-        icon={<FolderOpen size={15} />}
-        onClick={openRootFolder}
-        title="Open folder"
-      />
-      <IconButton
-        icon={<Save size={15} />}
-        onClick={() => void saveCurrentDiagram()}
-        disabled={!canSave || !isDirty}
-        title="Opslaan (Ctrl/Cmd+S)"
-      />
-      <IconButton
-        icon={<FilePlus size={15} />}
-        onClick={() => openNewDialog("")}
-        disabled={!root}
-        title="Nieuw diagram"
-      />
+      {/* File lifecycle is VSCode's job in the extension: open/create via
+          the Explorer, save via VSCode's own save (settings/Ctrl+S). */}
+      {!vscodeMode && (
+        <>
+          <IconButton
+            icon={<FolderOpen size={15} />}
+            onClick={openRootFolder}
+            title="Open folder"
+          />
+          <IconButton
+            icon={<Save size={15} />}
+            onClick={() => void saveCurrentDiagram()}
+            disabled={!canSave || !isDirty}
+            title="Opslaan (Ctrl/Cmd+S)"
+          />
+          <IconButton
+            icon={<FilePlus size={15} />}
+            onClick={() => openNewDialog("")}
+            disabled={!root}
+            title="Nieuw diagram"
+          />
+        </>
+      )}
       <ExportMenu disabled={!hasFile} resolved={resolved} />
 
       <div className="min-w-0 flex-1 truncate px-2 text-[var(--claude-text-secondary)]">
@@ -112,12 +120,14 @@ export function Toolbar() {
         )}
       </div>
 
-      <SaveStatus
-        hasFile={hasFile}
-        isDirty={isDirty}
-        lastSavedAt={lastSavedAt}
-        readOnly={readOnly}
-      />
+      {!vscodeMode && (
+        <SaveStatus
+          hasFile={hasFile}
+          isDirty={isDirty}
+          lastSavedAt={lastSavedAt}
+          readOnly={readOnly}
+        />
+      )}
 
       <div className="mx-1 h-5 w-px bg-[var(--claude-border)]" />
 

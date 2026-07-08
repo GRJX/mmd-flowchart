@@ -3,7 +3,9 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   toolbar: ReactNode;
-  sidebar: ReactNode;
+  /** Pass null to omit the sidebar column entirely (VSCode mode — the
+   *  Explorer is the file tree). */
+  sidebar: ReactNode | null;
   canvas: ReactNode;
   rightPanel: ReactNode;
   className?: string;
@@ -28,19 +30,24 @@ export function AppShell({
         className,
       )}
       style={{
-        gridTemplateColumns: "260px minmax(0, 1fr) 320px",
+        gridTemplateColumns:
+          sidebar !== null
+            ? "260px minmax(0, 1fr) 320px"
+            : "minmax(0, 1fr) 320px",
         gridTemplateRows: "48px minmax(0, 1fr)",
       }}
     >
       <div
-        className="col-span-3 flex items-center border-b border-[var(--claude-border)] bg-[var(--claude-surface)]"
+        className="flex items-center border-b border-[var(--claude-border)] bg-[var(--claude-surface)]"
         style={{ gridColumn: "1 / -1" }}
       >
         {toolbar}
       </div>
-      <aside className="overflow-hidden border-r border-[var(--claude-border)] bg-[var(--claude-surface)]">
-        {sidebar}
-      </aside>
+      {sidebar !== null && (
+        <aside className="overflow-hidden border-r border-[var(--claude-border)] bg-[var(--claude-surface)]">
+          {sidebar}
+        </aside>
+      )}
       <main className="relative overflow-hidden">{canvas}</main>
       <aside className="overflow-hidden border-l border-[var(--claude-border)] bg-[var(--claude-surface)]">
         {rightPanel}

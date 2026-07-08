@@ -1,0 +1,78 @@
+{
+  "name": "mmd-flowchart",
+  "displayName": "MMD Flowchart Editor",
+  "description": "WYSIWYG editor voor Mermaid-flowcharts (.mmd) — blokken slepen, verbinden en opslaan als leesbare Mermaid-tekst.",
+  "version": "0.1.0",
+  "publisher": "jelle",
+  "private": true,
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GRJX/mmd-flowchart.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "mmdFlowchart.editor",
+        "displayName": "MMD Flowchart",
+        "selector": [
+          {
+            "filenamePattern": "*.mmd"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "commands": [
+      {
+        "command": "mmdFlowchart.openWith",
+        "title": "Open in MMD Flowchart Editor"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "mmdFlowchart.openWith",
+          "when": "resourceExtname == .mmd",
+          "group": "navigation@10"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "mmdFlowchart.openWith",
+          "when": "resourceExtname == .mmd",
+          "group": "1_open"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "mmdFlowchart.openWith",
+          "when": "resourceExtname == .mmd"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "bundle": "esbuild src/extension.ts --bundle --external:vscode --platform=node --target=node18 --format=cjs --outfile=dist/extension.js",
+    "build": "npm run check && npm run bundle",
+    "watch": "npm run bundle -- --watch",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.17",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.3"
+  }
+}

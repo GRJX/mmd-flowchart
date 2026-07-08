@@ -7,7 +7,7 @@ import {
   openFile,
   renameNode,
 } from "@/lib/fs/fileOps";
-import type { TreeFolder, TreeNode } from "@/lib/fs/fsAccess";
+import type { TreeFolder, TreeNode } from "@/lib/fs/backend";
 import { cn } from "@/lib/utils";
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
 import { ConfirmDialog } from "./ConfirmDialog";

@@ -1,11 +1,23 @@
 {
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/vite.vscode.config.ts": {
+    "mtime": 1783416705.7315865,
+    "hash": "4d9f959dc9df0ae7260645c545e91d87"
+  },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/vite.config.ts": {
     "mtime": 1783413009.1049035,
     "hash": "0210809858fefd1f6952afd02353e14b"
   },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/vscode-extension/media/webview/assets/index.js": {
+    "mtime": 1783492190.0761793,
+    "hash": "43d919c7d53004ae8744f857f27b4ad0"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/vscode-extension/src/extension.ts": {
+    "mtime": 1783492148.7435074,
+    "hash": "dca2efdb8769ad2f4bb004bbc4f4c38e"
+  },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/App.tsx": {
-    "mtime": 1783413009.0330484,
-    "hash": "800bedc8f90d1eaa37a07078b634ab71"
+    "mtime": 1783433141.9845006,
+    "hash": "91962e7d760df87059d8a28da6c5944a"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/main.tsx": {
     "mtime": 1783413009.0425417,
@@ -16,8 +28,8 @@
     "hash": "b3a760103cdbc58cd4a761a1e3fcb4ab"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/sidebar/FileTree.tsx": {
-    "mtime": 1783413009.0446925,
-    "hash": "92dd616afc733de19cce1dd012676b5b"
+    "mtime": 1783416673.0700753,
+    "hash": "5dcae2a76a3be9177aea92e0786dd4f3"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/sidebar/NewDiagramDialog.tsx": {
     "mtime": 1783413009.0449069,
@@ -76,12 +88,12 @@
     "hash": "e0a3b673bdb11d25b424c6b87890e56f"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/shell/Toolbar.tsx": {
-    "mtime": 1783413009.0440645,
-    "hash": "1f1047dc913ba2a8af80fc891aaf5764"
+    "mtime": 1783433171.2016454,
+    "hash": "843208fa3bf2d1fe6146412b8439fce9"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/shell/AppShell.tsx": {
-    "mtime": 1783413009.0436933,
-    "hash": "584f7aab2d12e7f1ea74e03134dd1fe0"
+    "mtime": 1783433151.6784308,
+    "hash": "9ef09b80b23812cd0cd70209b556455a"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/canvas/violations.ts": {
     "mtime": 1783413009.0375376,
@@ -108,16 +120,16 @@
     "hash": "3428c5995cec3a6a85408c56491ae437"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/hooks/useShortcuts.ts": {
-    "mtime": 1783413009.0384498,
-    "hash": "04044fac4817a52c79bac069928a015d"
+    "mtime": 1783433123.9123302,
+    "hash": "df8d62cf5861e41e64bfb3cc4eb718c7"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/hooks/useAutoSave.ts": {
-    "mtime": 1783413009.0381768,
-    "hash": "0d26aa9ba0dadeb20c94fe5b4c00c7ae"
+    "mtime": 1783433121.8710713,
+    "hash": "d37c37c8ca6edb493c28838395bfa1d5"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/hooks/useExternalChangeWatch.ts": {
-    "mtime": 1783413009.038313,
-    "hash": "9f7ee5ec87dacd8eab8931218a30e3d6"
+    "mtime": 1783433124.9371293,
+    "hash": "3ae8536c8af88e7068c043b2f09372b0"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/hooks/useTheme.ts": {
     "mtime": 1783413009.0385737,
@@ -148,20 +160,36 @@
     "hash": "eb1b6b0a226b41d5eac9ad464cf73646"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/export/exportDiagram.ts": {
-    "mtime": 1783413009.0390346,
-    "hash": "ad4c485e22e5c5976c179af866f3c6d4"
+    "mtime": 1783433175.5618813,
+    "hash": "a0ad10978c3d2083254afaf9c5689971"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/fs/handleStore.ts": {
     "mtime": 1783413009.039812,
     "hash": "291d715c33e998aa65429c0126740d6e"
   },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/fs/browserBackend.ts": {
+    "mtime": 1783433014.2830174,
+    "hash": "4224c735ce145518cf6de9bfb2c428ea"
+  },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/fs/fileOps.ts": {
-    "mtime": 1783413009.0394754,
-    "hash": "cd8cf05fa8ec9311cb16795e8982040c"
+    "mtime": 1783433055.6700175,
+    "hash": "6595c04394e3f30bf4b1bc92bcac515c"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/fs/fsAccess.ts": {
-    "mtime": 1783413009.0396776,
-    "hash": "d11a4f729720235f16db5f6275c62752"
+    "mtime": 1783416659.8823912,
+    "hash": "ba0c1eb71d8b6a966b3e2b0fde44ce20"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/fs/backend.ts": {
+    "mtime": 1783433000.3236043,
+    "hash": "56176e5a5f6248836232fa7de836d048"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/vscode/bridge.ts": {
+    "mtime": 1783432979.8896415,
+    "hash": "ec7a090440f80d1afe0cbcb88c80e8ac"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/src/lib/vscode/protocol.ts": {
+    "mtime": 1783432960.7197547,
+    "hash": "a632eed1b6a94acc3a0ea5c06f7e764b"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/store/toastStore.ts": {
     "mtime": 1783413009.0459635,
@@ -172,8 +200,8 @@
     "hash": "a68fe50b66c5a761a9627d4f19a4d1c2"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/src/store/folderStore.ts": {
-    "mtime": 1783413009.045831,
-    "hash": "d85d8e50ad82663d31484d0578b73119"
+    "mtime": 1783416653.8544834,
+    "hash": "957e28b69ad8e21b6b91467228a036c3"
   },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/index.html": {
     "mtime": 1783413009.0789306,
@@ -187,6 +215,10 @@
     "mtime": 1783413081.589153,
     "hash": "9f26a4f1f86addf172ac5333c4b9b1a0"
   },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/AGENTS.md": {
+    "mtime": 1783416281.8887694,
+    "hash": "dd6e369073a419a91d90b203ad9bc9ee"
+  },
   "/Users/jelle/Documents/GitHub/mmd-flowchart/docs/FO.md": {
     "mtime": 1783413005.7774277,
     "hash": "9f47f7ba9da79bf5e5854c7cc7435819"
@@ -194,5 +226,37 @@
   "/Users/jelle/Documents/GitHub/mmd-flowchart/docs/USERFLOWS.md": {
     "mtime": 1783413005.7776802,
     "hash": "176e8ce9b068b8210449261e9591013c"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/vscode-extension/README.md": {
+    "mtime": 1783492179.6205747,
+    "hash": "a4f31e141f1f6051e196982860ae081d"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/vscode-extension/media/webview/index.html": {
+    "mtime": 1783492190.0761008,
+    "hash": "5b14204675ec184b786f7dc3e45d0d2e"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/openwiki/workflows.md": {
+    "mtime": 1783416258.107555,
+    "hash": "4fc31f8bdd87a6ec5a072e22ebf03612"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/openwiki/operations.md": {
+    "mtime": 1783416278.1592174,
+    "hash": "7ddebb87cd779a44f0c95bc2f2943412"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/openwiki/quickstart.md": {
+    "mtime": 1783416315.0783427,
+    "hash": "7e1480354d20d5511a23f81080e55d68"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/openwiki/architecture/overview.md": {
+    "mtime": 1783416156.4125373,
+    "hash": "b26507cd8470f2766619371a7583c861"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/openwiki/architecture/file-system.md": {
+    "mtime": 1783416225.9109213,
+    "hash": "8ab480e56de5ffc58ac4f2264066e31d"
+  },
+  "/Users/jelle/Documents/GitHub/mmd-flowchart/openwiki/architecture/mmd-format.md": {
+    "mtime": 1783416194.3992832,
+    "hash": "b8e06f6b96b5d5701b68b4650cbda476"
   }
 }
