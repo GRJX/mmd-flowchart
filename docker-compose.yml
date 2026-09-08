@@ -5,6 +5,10 @@ services:
       dockerfile: Dockerfile
     image: mmd-flowchart:latest
     container_name: mmd-flowchart
+    deploy:
+      resources:
+        limits:
+          memory: 64M
     # ports:
     #   - "8080:8080"
     restart: unless-stopped
