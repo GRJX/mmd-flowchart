@@ -4,3 +4,10 @@ dist-ssr
 *.local
 test-diagrams/
 __pycache__/
+*.tsbuildinfo
+*.vsix
+packages/*/webview/
+packages/vscode/out/
+packages/intellij/build/
+packages/intellij/.gradle/
+packages/intellij/.intellijPlatform/

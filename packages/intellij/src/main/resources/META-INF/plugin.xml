@@ -1,0 +1,12 @@
+<idea-plugin>
+    <id>nl.dictu.mmd-flowchart</id>
+    <name>MMD Flowchart</name>
+    <vendor>DICTU</vendor>
+    <description>Visuele editor voor Mermaid-flowcharts (.mmd).</description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileEditorProvider implementation="nl.dictu.mmdflowchart.MmdFileEditorProvider"/>
+    </extensions>
+</idea-plugin>

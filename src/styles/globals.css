@@ -175,6 +175,9 @@ html, body, #root {
 }
 
 body {
+  /* VS Code geeft webviews standaard padding; die halen we weg. */
+  margin: 0;
+  padding: 0;
   background: var(--claude-bg);
   color: var(--claude-text-primary);
 }

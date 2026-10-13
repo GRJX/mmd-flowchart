@@ -8,14 +8,10 @@ Alle interacties beschreven als stapsgewijze flows in Mermaid-syntax.
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B[Klik op 'New Diagram' in toolbar]
-    B --> C["Dialoogvenster verschijnt:<br>Voer bestandsnaam in"]
-    C --> D{"Bestandsnaam<br>ingevoerd?"}
-    D -- Nee --> C
-    D -- Ja --> E[Klik 'Create' of druk Enter]
-    E --> F[".mmd bestand aangemaakt<br>in geselecteerde map"]
-    F --> G["Diagram geladen in canvas<br>met één Start-blok"]
-    G --> H([Klaar — diagram is bewerkbaar])
+    A([Start]) --> B["Maak in de IDE een nieuw bestand<br>naam.mmd"]
+    B --> C["Open het bestand in de editor<br>VS Code: preview-knop rechtsboven<br>IntelliJ: tab MMD Flowchart"]
+    C --> D["Leeg bestand: diagram start<br>met één Start-blok"]
+    D --> E([Klaar — diagram is bewerkbaar])
 ```
 
 ---
@@ -87,7 +83,7 @@ flowchart TD
     G --> H{"Verbindingen waarbij<br>bron én doel gedupliceerd zijn?"}
     H -- Ja --> I["Verbindingen mee-gekopieerd<br>met nieuwe endpoints en kind behouden"]
     H -- Nee --> J["Verbindingen overslaan"]
-    I --> K["Selectie verspringt naar nieuwe blokken<br>Undo-entry aangemaakt<br>Auto-save gestart"]
+    I --> K["Selectie verspringt naar nieuwe blokken<br>Undo-entry aangemaakt<br>Wijziging naar de IDE"]
     J --> K
     K --> L([Klaar — verder slepen of opnieuw dupliceren])
 ```
@@ -113,7 +109,7 @@ flowchart TD
     K --> J
     J --> L{Meer blokken?}
     L -- Ja --> I
-    L -- Nee --> M["Eén undo-entry weggezet<br>isDirty = true<br>Auto-save start"]
+    L -- Nee --> M["Eén undo-entry weggezet<br>isDirty = true<br>Wijziging naar de IDE"]
     M --> N([Klaar — diagram is uitgelijnd])
 ```
 
@@ -136,7 +132,7 @@ flowchart TD
     H -- Nee --> J["pasteCount += 1<br>offset = 24 px × pasteCount"]
     J --> K["Nieuwe blokken aangemaakt<br>op originele positie + offset<br>nieuwe id's en comment-id's"]
     K --> L["Interne verbindingen mee-geplakt<br>met nieuwe endpoints"]
-    L --> M["Selectie verspringt naar geplakte blokken<br>Undo-entry aangemaakt<br>Auto-save gestart"]
+    L --> M["Selectie verspringt naar geplakte blokken<br>Undo-entry aangemaakt<br>Wijziging naar de IDE"]
     M --> N{"Nogmaals plakken?"}
     N -- Ja --> G
     N -- Nee --> O([Klaar])
@@ -200,7 +196,7 @@ flowchart TD
     G -- Ja --> H["Kind bepaald door handle:<br>rechts of links = Y · onder = N"]
     H --> I["Verbinding aangemaakt<br>met de zijdes van bron en doel<br>opgeslagen in metadata"]
     G -- Nee --> J["Verbinding aangemaakt<br>als default-type"]
-    I --> K["Undo-entry aangemaakt<br>Auto-save gestart"]
+    I --> K["Undo-entry aangemaakt<br>Wijziging naar de IDE"]
     J --> K
     K --> L([Klaar])
 ```
@@ -231,70 +227,34 @@ flowchart TD
 
 ---
 
-## 6. Diagram opslaan
+## 6. Wijzigingen en opslaan
+
+De editor slaat zelf niets op. Elke wijziging gaat als tekst naar het document in de IDE; de IDE slaat op.
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B{"Hoe slaat de<br>gebruiker op?"}
-    B -- "Handmatig:<br>Ctrl+S of Save-knop" --> C{"Bestand extern<br>gewijzigd?"}
-    C -- Ja --> D["Dialoog:<br>Overschrijven of herladen?"]
-    D --> E{Keuze}
-    E -- Overschrijven --> F["Diagram weggeschreven<br>naar schijf"]
-    E -- Herladen --> G["Bestand opnieuw ingeladen<br>Wijzigingen gaan verloren"]
-    C -- Nee --> F
-    B -- "Auto-save:<br>2 sec. na laatste wijziging" --> H{"Diagram geldig<br>om op te slaan?"}
-    F --> H
-    H -- "Nee —<br>geen Start-blok of<br>meer dan één Start-blok" --> I[Foutmelding getoond]
-    H -- Ja --> J["isDirty = false<br>Timestamp bijgewerkt"]
-    J --> K([Klaar])
+    A([Wijziging in de editor]) --> B["Na 300 ms: diagram als tekst<br>naar het document in de IDE"]
+    B --> C["Document staat op 'gewijzigd'<br>in de IDE"]
+    C --> D{"Opslaan via de IDE<br>Ctrl/Cmd+S of autosave"}
+    D --> E([Bestand op schijf bijgewerkt])
 ```
 
 ---
 
-## 7. Map openen en bestand selecteren
+## 7. Bestand openen
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B["Klik 'Open Folder'<br>in toolbar of sidebar"]
-    B --> C["Browser toont<br>mappenkiezer"]
-    C --> D{"Gebruiker kiest<br>een map?"}
-    D -- Annuleer --> E([Geen actie])
-    D -- "Map gekozen" --> F["Browser vraagt toestemming<br>voor de map"]
-    F --> G{"Toestemming<br>verleend?"}
-    G -- Nee --> E
-    G -- Ja --> H["Map-handle opgeslagen<br>in IndexedDB"]
-    H --> I["Bestandsstructuur geladen<br>in sidebar"]
-    I --> J[Klik op een .mmd bestand]
-    J --> K{"Bestand extern<br>gewijzigd?"}
-    K -- Ja --> L["Melding: bestand is gewijzigd<br>Meest recente versie wordt geladen"]
-    K -- Nee --> M{"Bestand ondersteund<br>en ≤ 200 blokken?"}
-    L --> M
-    M -- Nee --> N["Diagram geopend<br>in read-only modus"]
-    M -- Ja --> O["Diagram geopend<br>in canvas"]
-    O --> P([Klaar — diagram bewerkbaar])
-    N --> Q([Klaar — alleen lezen])
+    A([Start]) --> B["Open een .mmd-bestand<br>in de IDE"]
+    B --> C["Kies de visuele editor<br>VS Code: preview-knop rechtsboven<br>IntelliJ: tab MMD Flowchart"]
+    C --> D{"Bestand ondersteund<br>en ≤ 200 blokken?"}
+    D -- Nee --> E["Diagram geopend<br>in read-only modus"]
+    D -- Ja --> F["Diagram geopend<br>in canvas"]
+    F --> G([Klaar — diagram bewerkbaar])
+    E --> H([Klaar — alleen lezen])
 ```
 
----
-
-## 7b. Bestand of map verslepen in sidebar
-
-Bestanden en mappen kunnen direct naar een andere locatie in de tree gesleept worden. De verplaatsing gebeurt onder water via copy-in-doelmap + delete-uit-bronmap zodat dit ook werkt voor hele mapboomen.
-
-```mermaid
-flowchart TD
-    A([Start]) --> B["Pak een rij in de sidebar<br>(bestand of map)"]
-    B --> C{Drop op?}
-    C -- Doelmap-rij --> D{"Valide?<br>(niet op zichzelf,<br>geen descendant,<br>naam nog vrij)"}
-    C -- Lege ruimte in tree --> E[Verplaats naar root]
-    D -- Nee --> F(["Geen actie —<br>drop genegeerd"])
-    D -- Ja --> G["Content gekopieerd in doelmap<br>Bron verwijderd<br>Doelmap wordt uitgeklapt"]
-    E --> G
-    G --> H{"Open bestand in<br>(of binnen) verplaatst item?"}
-    H -- Ja --> I["Editor volgt:<br>filePath herschreven<br>auto-save schrijft naar nieuwe locatie"]
-    H -- Nee --> J([Klaar])
-    I --> J
-```
+Hernoemen, verplaatsen en verwijderen van bestanden gaat via de bestandsverkenner van de IDE.
 
 ---
 
@@ -307,7 +267,7 @@ flowchart TD
     C --> D{Hoe verwijderen?}
     D -- "Delete of Backspace" --> E[Verbinding verwijderd]
     D -- "Verwijder-knop<br>in right panel" --> E
-    E --> F["Undo-entry aangemaakt<br>Auto-save gestart"]
+    E --> F["Undo-entry aangemaakt<br>Wijziging naar de IDE"]
     F --> G([Klaar])
 ```
 
@@ -374,23 +334,9 @@ flowchart TD
 
 ---
 
-## 12. Thema wisselen
+## 12. Thema
 
-De themaknop toont het huidige voorkeur-icoon (**zon** = light, **maan** = dark, **monitor** = system) en cyclet bij elke klik door de drie varianten: light → dark → system → light. De voorkeur wordt in localStorage bewaard; in system-modus volgt de editor live de OS-instelling.
-
-```mermaid
-flowchart TD
-    A([Start]) --> B{Huidig icoon?}
-    B -- "Zon (light)" --> C[Klik]
-    C --> D["Overgang naar dark<br>Icoon wordt maan"]
-    B -- "Maan (dark)" --> E[Klik]
-    E --> F["Overgang naar system<br>Icoon wordt monitor<br>Editor volgt nu OS"]
-    B -- "Monitor (system)" --> G[Klik]
-    G --> H["Overgang naar light<br>Icoon wordt zon"]
-    D --> I([Klaar])
-    F --> I
-    H --> I
-```
+De editor volgt het licht/donker-thema van de IDE. Wisselt het thema in de IDE, dan wisselt de editor mee.
 
 ---
 
@@ -405,8 +351,8 @@ flowchart TD
     C --> D{Kies formaat}
     D -- PNG --> E["Bitmap, achtergrond wit/donker<br>afhankelijk van thema,<br>2x pixel-ratio"]
     D -- SVG --> F["Vector, transparante achtergrond"]
-    E --> G["Bestand gedownload:<br>diagramnaam.png"]
-    F --> H["Bestand gedownload:<br>diagramnaam.svg"]
+    E --> G["IDE vraagt waar op te slaan<br>diagramnaam.png"]
+    F --> H["IDE vraagt waar op te slaan<br>diagramnaam.svg"]
     G --> I([Klaar])
     H --> I
     D -- "Klik buiten menu of Escape" --> J(["Menu gesloten —<br>geen actie"])
@@ -414,69 +360,14 @@ flowchart TD
 
 ---
 
-## 14. Bestandscontextmenu (rechtermuisknop in sidebar)
+## 14. Wijziging buiten de editor
 
-Verplaatsen gebeurt niet via het menu maar via drag-and-drop (zie flow 7b).
-
-```mermaid
-flowchart TD
-    A([Start]) --> B{"Rechtsklik op…"}
-
-    B -- Bestand --> C{"Kies actie"}
-    C -- Hernoemen --> D["Inline tekstveld in de tree<br>basenaam geselecteerd"]
-    D --> E{Bevestigen?}
-    E -- Enter --> F["Bestand hernoemd<br>open bestand volgt mee"]
-    E -- "Escape of blur" --> G([Geen actie])
-    C -- Verwijderen --> K["Bevestigingsdialoog"]
-    K --> L{Gebruiker kiest}
-    L -- Annuleer --> G
-    L -- Bevestig --> M["Bestand verwijderd<br>Editor sluit als dit het open bestand was"]
-
-    B -- Map --> N{"Kies actie"}
-    N -- "Nieuw diagram hier…" --> O["NewDiagramDialog opent met<br>targetFolder = deze map"]
-    N -- "Nieuwe map hier…" --> P["NewSubfolderDialog opent"]
-    P --> Q["Submap aangemaakt<br>doelmap uitgeklapt"]
-    N -- Hernoemen --> D
-    N -- Verwijderen --> R["Bevestigingsdialoog<br>(recursief)"]
-    R --> S{Gebruiker kiest}
-    S -- Annuleer --> G
-    S -- Bevestig --> T["Map + inhoud verwijderd<br>Editor sluit indien nodig"]
-
-    B -- "Lege tree-achtergrond" --> U{"Kies actie"}
-    U -- "Nieuw diagram hier…" --> O
-    U -- "Nieuwe map hier…" --> P
-
-    F --> V([Klaar])
-    M --> V
-    O --> V
-    Q --> V
-    T --> V
-```
-
----
-
-## 15. Externe-wijziging-detectie
-
-De editor vergelijkt de `lastModified` van het open bestand met wat lokaal als laatst-opgeslagen bekend is. Checks gebeuren op twee momenten: vlak vóór een write en bij tab-refocus / visibility-change.
+Het bestand kan ook buiten de visuele editor veranderen: in de teksteditor, door git of door undo van de IDE. De IDE meldt dat aan de editor.
 
 ```mermaid
 flowchart TD
-    A([Trigger]) --> B{"Welk moment?"}
-    B -- "Save (auto of Cmd+S)" --> C["Lees lastModified op schijf"]
-    C --> D{"Nieuwer dan<br>lastSavedAt?"}
-    D -- Nee --> E[Schrijf naar schijf]
-    D -- Ja --> F["Sticky toast:<br>'Bestand is extern gewijzigd…'<br>acties: Overschrijven · Herladen"]
-    F --> G{Keuze}
-    G -- Overschrijven --> H["saveCurrentDiagram({force: true})<br>write gaat door"]
-    G -- Herladen --> I["openFile(path)<br>disk-versie geladen<br>lokale wijzigingen verloren"]
-    G -- "Toast sluiten" --> J([Geen actie])
-
-    B -- "Tab refocus / visibility" --> K["Lees lastModified op schijf"]
-    K --> L{"Nieuwer?"}
-    L -- Nee --> M([Klaar])
-    L -- Ja --> N["Sticky toast:<br>'Dit bestand is extern gewijzigd.'<br>actie: Herladen"]
-    N --> O{Keuze}
-    O -- Herladen --> I
-    O -- "Toast sluiten" --> J
+    A([Document in de IDE gewijzigd]) --> B{"Is de tekst gelijk aan<br>wat de editor al heeft?"}
+    B -- "Ja (eigen wijziging)" --> C([Geen actie])
+    B -- Nee --> D["Editor laadt de nieuwe tekst<br>undo-geschiedenis begint opnieuw"]
+    D --> E([Klaar])
 ```
-
