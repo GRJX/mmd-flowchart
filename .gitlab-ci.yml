@@ -1,6 +1,10 @@
 # Bouwt de editor, verpakt hem als VS Code-extensie (.vsix) en IntelliJ-plugin (.zip)
 # en publiceert beide bij een tag (bv. v1.2.0) in de GitLab Package Registry.
 
+default:
+  tags:
+    - linux-agent
+
 stages:
   - build
   - package
