@@ -4,6 +4,7 @@ import {
   getViewportForBounds,
   type ReactFlowInstance,
 } from "@xyflow/react";
+import { isInIde, sendToHost } from "@/lib/host/host";
 
 /**
  * Export the current diagram as PNG or SVG using xyflow's built-in viewport
@@ -81,7 +82,13 @@ export async function exportDiagram({
       kind === "png"
         ? await toPng(viewportEl, options)
         : await toSvg(viewportEl, options);
-    downloadDataUrl(dataUrl, `${stripExtension(fileName)}.${kind}`);
+    const exportName = `${stripExtension(fileName)}.${kind}`;
+    // In de IDE slaat de IDE het bestand op; downloaden werkt daar niet.
+    if (isInIde()) {
+      sendToHost({ type: "export", fileName: exportName, base64: toBase64(dataUrl) });
+    } else {
+      downloadDataUrl(dataUrl, exportName);
+    }
   } finally {
     restoreStyles();
   }
@@ -141,4 +148,17 @@ function downloadDataUrl(dataUrl: string, fileName: string): void {
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+/** PNG-data-URL's zijn al base64; SVG-data-URL's zijn URL-encoded tekst. */
+function toBase64(dataUrl: string): string {
+  const comma = dataUrl.indexOf(",");
+  const header = dataUrl.substring(0, comma);
+  const data = dataUrl.substring(comma + 1);
+  if (header.endsWith(";base64")) return data;
+
+  const bytes = new TextEncoder().encode(decodeURIComponent(data));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
 }

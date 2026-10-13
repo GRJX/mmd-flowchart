@@ -6,7 +6,7 @@
 2. [Bloktypen](#2-bloktypen)
 3. [Verbindingen](#3-verbindingen)
 4. [Bestandsformaat (.mmd)](#4-bestandsformaat-mmd)
-5. [Bestandsbeheer](#5-bestandsbeheer)
+5. [Bestanden in de IDE](#5-bestanden-in-de-ide)
 6. [Canvas-interacties](#6-canvas-interacties)
 7. [Quick-add & radiaalmenu](#7-quick-add--radiaalmenu)
 8. [Right panel](#8-right-panel)
@@ -21,9 +21,9 @@
 
 ## 1. Doel & scope
 
-De MMD Flowchart Editor is een browser-gebaseerde editor voor het visueel opstellen van flowcharts. Diagrammen worden opgeslagen als `.mmd`-bestanden (Mermaid-syntax), aangevuld met embedded metadata (positie, commentaar, datafields). Het doel is het efficiënt ontwerpen van functionele flows voor test- en specificatiedoeleinden.
+De MMD Flowchart Editor is een editor voor het visueel opstellen van flowcharts. Diagrammen worden opgeslagen als `.mmd`-bestanden (Mermaid-syntax), aangevuld met embedded metadata (positie, commentaar, datafields). Het doel is het efficiënt ontwerpen van functionele flows voor test- en specificatiedoeleinden.
 
-De editor werkt volledig lokaal in de browser — er is geen server of account nodig. Opslag gaat rechtstreeks naar de schijf via de File System Access API.
+De editor draait als extensie in **VS Code** en **IntelliJ**. Hij toont één `.mmd`-bestand; openen, opslaan en bestandsbeheer doet de IDE. Er is geen server of account nodig.
 
 **Buiten scope:**
 - Samenwerking / multi-user editing
@@ -260,70 +260,30 @@ Verbindingen worden weggeschreven via een depth-first traversal vanaf het Start-
 
 ---
 
-## 5. Bestandsbeheer
+## 5. Bestanden in de IDE
 
-### Map openen
+### Openen
 
-- De gebruiker opent een lokale map via de **Open Folder**-knop of de knop in de lege sidebar.
-- De browser vraagt eenmalig toestemming voor de map (File System Access API).
-- De map-handle wordt opgeslagen in IndexedDB en hersteld bij de volgende sessie.
-
-### Bestandsstructuur in sidebar
-
-- Mappen worden boven bestanden getoond (beide alfabetisch gesorteerd).
-- Mappen zijn uitklapbaar; de status wordt bewaard zolang de sidebar open is.
-- Alleen `.mmd`-bestanden worden getoond
-
-### Bestand openen
-
-- Klik op een bestand in de sidebar om het diagram te laden.
-- Bij het openen wordt gecontroleerd of het bestand extern gewijzigd is (timestamp-vergelijking).
+- VS Code: open een `.mmd`-bestand en kies **Open With… → MMD Flowchart**.
+- IntelliJ: open een `.mmd`-bestand en kies de tab **MMD Flowchart** naast de teksteditor.
+- Een leeg bestand opent met één Start-blok.
 - Niet-flowchart-diagrammen (sequence, state, classDef, etc.) worden in read-only modus geopend.
 - Diagrammen met meer dan 200 blokken worden in read-only modus geopend.
 
-### Opslaan
+### Wijzigen en opslaan
 
-- **Auto-save:** 2 seconden na de laatste wijziging wordt automatisch opgeslagen (zonder melding).
-- **Handmatig:** via de **Save**-knop of `Ctrl/Cmd+S`.
-- Elke save controleert eerst of het bestand op schijf nieuwer is dan `lastSavedAt`. Zo ja, wordt de write geannuleerd en toont de editor een sticky toast met **Overschrijven** (forceren) en **Herladen** (lokale wijzigingen weggooien, disk-versie inladen).
-- Bij tab-focus / visibility-change checkt de editor dezelfde timestamp en toont een Herladen-toast wanneer het bestand extern gewijzigd is.
-- Opslaan mislukt als het diagram geen geldig Start-blok heeft.
+- Elke wijziging in de editor gaat na 300 ms als nieuwe tekst naar het document in de IDE.
+- Het document is daarna "gewijzigd" in de IDE; **opslaan doet de IDE** (`Ctrl/Cmd+S` of de autosave-instelling van de IDE).
+- Wordt het bestand buiten de editor gewijzigd (teksteditor, git, undo van de IDE), dan laadt de editor de nieuwe tekst opnieuw in. De undo-geschiedenis van de editor begint dan opnieuw.
+- De tekst- en de visuele editor kunnen tegelijk open staan en blijven gelijk.
 
-### Nieuw diagram
+### Nieuw diagram, hernoemen, verplaatsen, verwijderen
 
-- De **New Diagram**-knop opent een dialoogvenster voor de bestandsnaam.
-- Het diagram wordt aangemaakt in de geselecteerde map (of root-map) met een leeg Start-blok.
+- Via de bestandsverkenner van de IDE (bv. *New File → `naam.mmd`*). De editor heeft hier geen eigen functies voor.
 
-### Bestandscontextmenu (rechtermuisknop in sidebar)
+### Thema
 
-**Op een bestand:**
-- Hernoemen (inline — basenaam geselecteerd, Enter = bevestig, Escape = annuleer)
-- Verwijderen (met bevestigingsdialoog)
-
-**Op een map:**
-- Nieuw diagram hier…
-- Nieuwe map hier…
-- Hernoemen
-- Verwijderen (recursief, met bevestigingsdialoog)
-
-**Op de lege tree-achtergrond (rechtsklik buiten een rij):**
-- Nieuw diagram hier… (= root)
-- Nieuwe map hier… (= root)
-
-Verplaatsen gebeurt via drag-and-drop, niet via het menu.
-
-### Drag-and-drop in sidebar
-
-Bestanden en mappen kunnen direct in de tree gesleept worden naar een andere map:
-
-- Sleep een rij (bestand of map) en drop op een doelmap, of op de lege ruimte onder de tree om naar de root te verplaatsen.
-- De doelmap licht op tijdens een hover.
-- Na drop wordt de doelmap automatisch uitgeklapt zodat het item direct zichtbaar is.
-- De editor volgt de verplaatsing: als het open bestand (of een bestand binnen de verplaatste map) meeverhuist, wordt het pad in de editor automatisch bijgewerkt — auto-save blijft schrijven naar de nieuwe locatie.
-
-**Geblokkeerd:**
-- Drop op zichzelf of op een eigen submap (folder-in-descendant).
-- Drop waarbij in de doelmap al een item met dezelfde naam bestaat (name-conflict).
+- De editor volgt het licht/donker-thema van de IDE.
 
 ---
 
@@ -407,7 +367,7 @@ Twee patronen, allebei beschikbaar afhankelijk van de werkstroom:
 
 **Direct dupliceren (`Ctrl/Cmd+D`)** — kopieert de selectie meteen één positie naast het origineel.
 
-**Kopiëren en plakken (`Ctrl/Cmd+C` → `Ctrl/Cmd+V`)** — neemt een **snapshot** van de selectie in een in-memory klembord. Elke `Ctrl/Cmd+V` plakt opnieuw — handig om hetzelfde patroon meerdere keren neer te zetten. Het klembord overleeft alleen binnen het huidige bestand: het wordt gewist bij **bestand wisselen**, **map sluiten** of een **page-refresh**.
+**Kopiëren en plakken (`Ctrl/Cmd+C` → `Ctrl/Cmd+V`)** — neemt een **snapshot** van de selectie in een in-memory klembord. Elke `Ctrl/Cmd+V` plakt opnieuw — handig om hetzelfde patroon meerdere keren neer te zetten. Het klembord overleeft alleen binnen het huidige bestand: het wordt gewist bij het opnieuw laden van het bestand of het sluiten van de editor.
 
 Gemeenschappelijke regels voor beide patronen:
 
@@ -529,22 +489,16 @@ De toolbar bevat de volgende elementen (van links naar rechts):
 
 | Element | Functie |
 |---|---|
-| **Open Folder** | Open een lokale map |
-| **Save** | Handmatig opslaan (`Ctrl/Cmd+S`) |
-| **New Diagram** | Nieuw `.mmd`-bestand aanmaken |
 | **Export** | Dropdown: exporteren als PNG of SVG |
-| *(spacer)* | — |
+| **Bestandsnaam** | Naam van het open bestand, met een **read-only**-label indien van toepassing |
 | **Fit to screen** | Zoom aanpassen zodat alle blokken zichtbaar zijn |
 | **Zoom Out** | Zoom verminderen |
 | **Zoom %** | Huidig zoomniveau; dubbelklik reset naar 100% |
 | **Zoom In** | Zoom vergroten |
 | **Undo** | Laatste actie terugdraaien (`Ctrl/Cmd+Z`) |
 | **Redo** | Teruggedraaide actie opnieuw uitvoeren (`Ctrl/Cmd+Y`) |
-| **Thema** | Cyclet door **licht** → **donker** → **systeem**. Het icoon laat de huidige voorkeur zien (zon / maan / monitor). |
 
-Alle knoppen behalve **Open Folder**, **New Diagram** en **Thema** zijn uitgeschakeld zolang er geen diagram open is.
-
-**New Diagram** zit alleen in de toolbar — het zit niet dubbel in de sidebar-header, die houdt enkel de mapnaam + bestandsaantal.
+Opslaan, nieuw bestand en thema zitten niet in de toolbar; dat regelt de IDE (zie §5).
 
 ---
 
@@ -554,12 +508,12 @@ Alle knoppen behalve **Open Folder**, **New Diagram** en **Thema** zijn uitgesch
 
 - Maakt een bitmap van het huidige diagram.
 - Achtergrondkleur: wit (light-modus) of `#111111` (dark-modus).
-- Bestandsnaam: `{diagramnaam}.png`.
+- Bestandsnaam: `{diagramnaam}.png`; de IDE vraagt waar het bestand opgeslagen wordt.
 
 ### SVG
 
 - Maakt een vectorafbeelding van het huidige diagram.
-- Bestandsnaam: `{diagramnaam}.svg`.
+- Bestandsnaam: `{diagramnaam}.svg`; de IDE vraagt waar het bestand opgeslagen wordt.
 
 Beide exports gebruiken xyflow's ingebouwde `getNodesBounds` + `getViewportForBounds` om de capture-regio exact op het diagram af te stemmen (32px padding). De transform wordt als clone-only `style.transform` aan `html-to-image` meegegeven — er wordt dus niets op het live DOM gemuteerd voor de snapshot. Dit voorkomt zowel lege ruimte in de SVG als afgesneden blokken in de PNG, ongeacht het huidige zoom-/pan-niveau op het canvas.
 
@@ -574,7 +528,7 @@ De export toont de vormen en lijnen exact zoals op het canvas: de diamond-binnen
 | `Ctrl/Cmd+Z` | Undo |
 | `Ctrl/Cmd+Y` | Redo |
 | `Ctrl/Cmd+Shift+Z` | Redo (alternatief) |
-| `Ctrl/Cmd+S` | Handmatig opslaan |
+| `Ctrl/Cmd+S` | Opslaan (afgehandeld door de IDE) |
 | `Ctrl/Cmd+Shift+F` | Fit to screen |
 | `Ctrl/Cmd+A` | Alles selecteren |
 | `Ctrl/Cmd+D` | Geselecteerde blokken dupliceren (inclusief interne verbindingen) |
@@ -602,23 +556,12 @@ Sneltoetsen worden genegeerd wanneer de focus in een tekstveld of textarea zit.
 
 ### Meldingen (tijdelijk, 4 seconden, via toast-systeem)
 
-Toasts stacken rechtsonder. Elke toast heeft optioneel een of meer actie-knoppen (bv. Herladen, Overschrijven); sticky toasts (zonder auto-dismiss) worden gebruikt voor confirmation-achtige flows zoals externe-wijziging-conflict.
+Toasts stacken rechtsonder.
 
 | Situatie | Melding |
 |---|---|
 | Niet-ondersteund diagramtype | "Diagramtype {X} wordt niet ondersteund. Geopend in alleen-lezen." |
 | Diagram te groot | "Dit diagram heeft N blokken (limiet 200). Geopend in alleen-lezen." |
-| Opslaan mislukt | "Opslaan mislukt: {fout}" |
-| Extern gewijzigd (op save) | Sticky: "Het bestand is extern gewijzigd…" met acties **Overschrijven** / **Herladen** |
-| Extern gewijzigd (op refocus) | Sticky: "Dit bestand is extern gewijzigd." met actie **Herladen** |
-| Verplaatsen geblokkeerd | "Kan map niet in zichzelf verplaatsen." / "…naar een eigen submap." / "Er bestaat al een item met deze naam." |
-| Hernoemen/verwijderen/submap mislukt | Specifieke fout-melding |
-
-### Opslaan geblokkeerd
-
-Het opslaan mislukt (met foutmelding) wanneer:
-- Er geen Start-blok aanwezig is.
-- Er meer dan één Start-blok aanwezig is.
 
 ---
 

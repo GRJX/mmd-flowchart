@@ -2,25 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { useReactFlow, useStore as useReactFlowStore } from "@xyflow/react";
 import {
   Download,
-  FilePlus,
-  FolderOpen,
   Grid3x3,
   LayoutGrid,
   Maximize,
   Minus,
-  Monitor,
-  Moon,
   Plus,
   Redo2,
-  Save,
-  Sun,
   Undo2,
 } from "lucide-react";
 import { useDiagramStore } from "@/store/diagramStore";
-import { useFolderStore } from "@/store/folderStore";
-import { openRootFolder, saveCurrentDiagram } from "@/lib/fs/fileOps";
 import { exportDiagram } from "@/lib/export/exportDiagram";
-import { useTheme } from "@/hooks/useTheme";
+import { currentTheme } from "@/lib/host/theme";
 import { cn } from "@/lib/utils";
 
 const FIT_PADDING = 0.2;
@@ -31,8 +23,6 @@ const ZOOM_MAX = 4;
 export function Toolbar() {
   const fileName = useDiagramStore((s) => s.fileName);
   const filePath = useDiagramStore((s) => s.filePath);
-  const isDirty = useDiagramStore((s) => s.isDirty);
-  const lastSavedAt = useDiagramStore((s) => s.lastSavedAt);
   const readOnlyReason = useDiagramStore((s) => s.readOnlyReason);
   const canUndo = useDiagramStore((s) => s.undoStack.length > 0);
   const canRedo = useDiagramStore((s) => s.redoStack.length > 0);
@@ -43,16 +33,11 @@ export function Toolbar() {
   const toggleMacroGrid = useDiagramStore((s) => s.toggleMacroGrid);
   const hasStart = useDiagramStore((s) => Boolean(s.diagram.blocks["S"]));
 
-  const root = useFolderStore((s) => s.root);
-  const openNewDialog = useFolderStore((s) => s.openNewDiagramDialog);
-
   const hasFile = filePath !== null;
   const readOnly = readOnlyReason !== null;
-  const canSave = hasFile && !readOnly;
 
   const flow = useReactFlow();
   const zoom = useReactFlowStore((s) => s.transform[2]);
-  const { resolved, preference, cycle } = useTheme();
 
   const onFit = () =>
     void flow.fitView({ padding: FIT_PADDING, duration: FIT_DURATION_MS });
@@ -68,37 +53,12 @@ export function Toolbar() {
 
       <div className="mx-1 h-5 w-px bg-[var(--claude-border)]" />
 
-      <IconButton
-        icon={<FolderOpen size={15} />}
-        onClick={openRootFolder}
-        title="Open folder"
-      />
-      <IconButton
-        icon={<Save size={15} />}
-        onClick={() => void saveCurrentDiagram()}
-        disabled={!canSave || !isDirty}
-        title="Opslaan (Ctrl/Cmd+S)"
-      />
-      <IconButton
-        icon={<FilePlus size={15} />}
-        onClick={() => openNewDialog("")}
-        disabled={!root}
-        title="Nieuw diagram"
-      />
-      <ExportMenu disabled={!hasFile} resolved={resolved} />
+      <ExportMenu disabled={!hasFile} />
 
       <div className="min-w-0 flex-1 truncate px-2 text-[var(--claude-text-secondary)]">
         {fileName ? (
           <span title={fileName}>
             <span className="text-[var(--claude-text-primary)]">{fileName}</span>
-            {isDirty && (
-              <span
-                className="ml-1 text-[var(--claude-accent)]"
-                title="Niet-opgeslagen wijzigingen"
-              >
-                •
-              </span>
-            )}
             {readOnly && (
               <span className="ml-2 rounded bg-[var(--claude-bg)] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--claude-text-tertiary)]">
                 read-only
@@ -111,13 +71,6 @@ export function Toolbar() {
           </span>
         )}
       </div>
-
-      <SaveStatus
-        hasFile={hasFile}
-        isDirty={isDirty}
-        lastSavedAt={lastSavedAt}
-        readOnly={readOnly}
-      />
 
       <div className="mx-1 h-5 w-px bg-[var(--claude-border)]" />
 
@@ -185,23 +138,6 @@ export function Toolbar() {
         disabled={!canRedo}
         title="Redo (Ctrl/Cmd+Y)"
       />
-
-      <div className="mx-1 h-5 w-px bg-[var(--claude-border)]" />
-
-      <button
-        type="button"
-        onClick={cycle}
-        className="flex h-7 w-7 items-center justify-center rounded text-[var(--claude-text-secondary)] hover:bg-[var(--claude-surface-hover)]"
-        title={`Thema: ${preference} (klik om te wisselen)`}
-      >
-        {preference === "system" ? (
-          <Monitor size={15} />
-        ) : preference === "dark" ? (
-          <Moon size={15} />
-        ) : (
-          <Sun size={15} />
-        )}
-      </button>
     </div>
   );
 }
@@ -240,13 +176,7 @@ function IconButton({
   );
 }
 
-function ExportMenu({
-  disabled,
-  resolved,
-}: {
-  disabled: boolean;
-  resolved: "light" | "dark";
-}) {
+function ExportMenu({ disabled }: { disabled: boolean }) {
   const [open, setOpen] = useState(false);
   const flow = useReactFlow();
   const fileName = useDiagramStore((s) => s.fileName);
@@ -272,7 +202,7 @@ function ExportMenu({
     setOpen(false);
     if (!fileName) return;
     try {
-      await exportDiagram({ flow, fileName, kind, theme: resolved });
+      await exportDiagram({ flow, fileName, kind, theme: currentTheme() });
     } catch (err) {
       console.error(err);
     }
@@ -305,40 +235,5 @@ function ExportMenu({
         </div>
       )}
     </div>
-  );
-}
-
-function SaveStatus({
-  hasFile,
-  isDirty,
-  lastSavedAt,
-  readOnly,
-}: {
-  hasFile: boolean;
-  isDirty: boolean;
-  lastSavedAt: number | null;
-  readOnly: boolean;
-}) {
-  if (!hasFile) return null;
-  if (readOnly)
-    return (
-      <span className="text-xs text-[var(--claude-text-tertiary)]">
-        alleen-lezen
-      </span>
-    );
-  if (!lastSavedAt && !isDirty) return null;
-  if (isDirty)
-    return (
-      <span className="text-xs text-[var(--claude-text-tertiary)]">
-        Wijzigingen worden opgeslagen…
-      </span>
-    );
-  return (
-    <span
-      className="text-xs text-[var(--claude-text-tertiary)]"
-      title={new Date(lastSavedAt!).toLocaleString()}
-    >
-      Opgeslagen
-    </span>
   );
 }

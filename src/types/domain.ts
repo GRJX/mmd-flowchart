@@ -73,7 +73,7 @@ export const MAX_DATAFIELD_LENGTH = 2000;
 export const MAX_EDGE_LABEL_LENGTH = 50;
 export const GRID_SIZE = 8;
 export const UNDO_STACK_LIMIT = 100;
-export const AUTOSAVE_DEBOUNCE_MS = 2000;
+export const HOST_SYNC_DEBOUNCE_MS = 300;
 
 /**
  * Macro-grid (FO §6 — Align). De Align-knop snapt elk blok naar het centrum

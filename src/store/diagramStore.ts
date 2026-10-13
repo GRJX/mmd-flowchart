@@ -100,9 +100,6 @@ export interface DiagramState {
   }) => void;
   clear: () => void;
   markSaved: (ts: number) => void;
-  /** Update filePath/fileName without touching the diagram (used after a
-   *  move in the file tree). */
-  retargetOpenFile: (newPath: string) => void;
 
   /** ---- Selection ---- */
   setSelection: (sel: Selection) => void;
@@ -267,11 +264,6 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
     toggleMacroGrid: () => set({ macroGridVisible: !get().macroGridVisible }),
 
     markSaved: (ts) => set({ isDirty: false, lastSavedAt: ts }),
-
-    retargetOpenFile: (newPath) => {
-      const name = newPath.split("/").pop() ?? newPath;
-      set({ filePath: newPath, fileName: name });
-    },
 
     setSelection: (sel) => set({ selection: sel }),
     selectBlock: (id, additive) => {

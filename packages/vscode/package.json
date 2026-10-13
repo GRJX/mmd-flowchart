@@ -1,0 +1,39 @@
+{
+  "name": "mmd-flowchart",
+  "displayName": "MMD Flowchart",
+  "description": "Visuele editor voor Mermaid-flowcharts (.mmd).",
+  "version": "0.1.0",
+  "publisher": "dictu",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "mmdFlowchart.editor",
+        "displayName": "MMD Flowchart",
+        "selector": [
+          {
+            "filenamePattern": "*.mmd"
+          }
+        ],
+        "priority": "option"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "package": "npm run compile && vsce package --skip-license"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.0",
+    "typescript": "^5.6.3"
+  }
+}

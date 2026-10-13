@@ -1,10 +1,9 @@
 import { useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useDiagramStore } from "@/store/diagramStore";
-import { saveCurrentDiagram } from "@/lib/fs/fileOps";
 
 /**
- * Global keyboard shortcuts (FO §11). Attached once from App. Shortcuts are
+ * Global keyboard shortcuts (FO §11). Saving (Ctrl/Cmd+S) is left to the IDE. Attached once from App. Shortcuts are
  * ignored when focus is inside an input/textarea/contentEditable element so
  * typing in the right panel or inline labels keeps working normally.
  */
@@ -31,11 +30,6 @@ export function useShortcuts() {
 
       const key = e.key.toLowerCase();
 
-      if (key === "s" && !e.shiftKey && !e.altKey) {
-        e.preventDefault();
-        void saveCurrentDiagram();
-        return;
-      }
       if (inInput(e.target)) return;
 
       if (key === "z" && !e.shiftKey) {

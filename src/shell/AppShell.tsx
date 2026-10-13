@@ -3,20 +3,18 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   toolbar: ReactNode;
-  sidebar: ReactNode;
   canvas: ReactNode;
   rightPanel: ReactNode;
   className?: string;
 }
 
 /**
- * Fixed application shell (FO §8): a toolbar on top, sidebar on the left,
- * canvas in the middle, right panel on the right. The shell itself is
+ * Fixed application shell (FO §8): a toolbar on top, the canvas in the
+ * middle and the right panel on the right. Files are managed by the IDE. The shell itself is
  * stable — content slots get swapped based on selection and view state.
  */
 export function AppShell({
   toolbar,
-  sidebar,
   canvas,
   rightPanel,
   className,
@@ -28,19 +26,16 @@ export function AppShell({
         className,
       )}
       style={{
-        gridTemplateColumns: "260px minmax(0, 1fr) 320px",
+        gridTemplateColumns: "minmax(0, 1fr) 320px",
         gridTemplateRows: "48px minmax(0, 1fr)",
       }}
     >
       <div
-        className="col-span-3 flex items-center border-b border-[var(--claude-border)] bg-[var(--claude-surface)]"
+        className="col-span-2 flex items-center border-b border-[var(--claude-border)] bg-[var(--claude-surface)]"
         style={{ gridColumn: "1 / -1" }}
       >
         {toolbar}
       </div>
-      <aside className="overflow-hidden border-r border-[var(--claude-border)] bg-[var(--claude-surface)]">
-        {sidebar}
-      </aside>
       <main className="relative overflow-hidden">{canvas}</main>
       <aside className="overflow-hidden border-l border-[var(--claude-border)] bg-[var(--claude-surface)]">
         {rightPanel}
