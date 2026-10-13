@@ -264,7 +264,7 @@ Verbindingen worden weggeschreven via een depth-first traversal vanaf het Start-
 
 ### Openen
 
-- VS Code: open een `.mmd`-bestand en kies **Open With… → MMD Flowchart**.
+- VS Code: open een `.mmd`-bestand en klik rechtsboven op de preview-knop; de flowchart opent naast de tekst. In de flowchart staat rechtsboven een knop terug naar de tekst.
 - IntelliJ: open een `.mmd`-bestand en kies de tab **MMD Flowchart** naast de teksteditor.
 - Een leeg bestand opent met één Start-blok.
 - Niet-flowchart-diagrammen (sequence, state, classDef, etc.) worden in read-only modus geopend.

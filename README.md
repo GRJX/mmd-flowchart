@@ -8,7 +8,7 @@ Visuele editor voor Mermaid-flowcharts (`.mmd`), als extensie voor **VS Code** e
 
 Download de nieuwste versie uit de **Package Registry** van dit project (*Deploy → Package Registry → mmd-flowchart*).
 
-- **VS Code:** *Extensions → ⋯ → Install from VSIX…* en kies `mmd-flowchart-<versie>.vsix`. Open een `.mmd`-bestand via *Open With… → MMD Flowchart*.
+- **VS Code:** *Extensions → ⋯ → Install from VSIX…* en kies `mmd-flowchart-<versie>.vsix`. Open een `.mmd`-bestand en klik rechtsboven op de preview-knop (of rechtsklik in de verkenner → *Open Flowchart naast de tekst*).
 - **IntelliJ:** *Settings → Plugins → ⚙ → Install Plugin from Disk…* en kies `mmd-flowchart-<versie>.zip`. Open een `.mmd`-bestand en kies de tab **MMD Flowchart**.
 
 ## Ontwikkelen

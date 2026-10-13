@@ -24,7 +24,52 @@
         ],
         "priority": "option"
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "mmdFlowchart.openPreview",
+        "title": "Open preview naast de tekst",
+        "icon": "$(open-preview)",
+        "category": "MMD Flowchart"
+      },
+      {
+        "command": "mmdFlowchart.openText",
+        "title": "Open als tekst",
+        "icon": "$(go-to-file)",
+        "category": "MMD Flowchart"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "mmdFlowchart.openPreview",
+          "when": "resourceExtname == .mmd && activeCustomEditorId != mmdFlowchart.editor",
+          "group": "navigation"
+        },
+        {
+          "command": "mmdFlowchart.openText",
+          "when": "activeCustomEditorId == mmdFlowchart.editor",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "mmdFlowchart.openPreview",
+          "when": "resourceExtname == .mmd",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "mmdFlowchart.openPreview",
+          "when": "resourceExtname == .mmd"
+        },
+        {
+          "command": "mmdFlowchart.openText",
+          "when": "activeCustomEditorId == mmdFlowchart.editor"
+        }
+      ]
+    }
   },
   "scripts": {
     "compile": "tsc -p .",

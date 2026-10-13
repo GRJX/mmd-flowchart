@@ -8,7 +8,26 @@ export function activate(context: vscode.ExtensionContext) {
       "mmdFlowchart.editor",
       new MmdEditorProvider(context.extensionUri),
     ),
+    // Knoppen rechtsboven in de editor, net als bij de Markdown-preview.
+    vscode.commands.registerCommand("mmdFlowchart.openPreview", (uri?: vscode.Uri) =>
+      openWith(uri, "mmdFlowchart.editor", vscode.ViewColumn.Beside),
+    ),
+    vscode.commands.registerCommand("mmdFlowchart.openText", (uri?: vscode.Uri) =>
+      openWith(uri, "default"),
+    ),
   );
+}
+
+/** Opent het bestand (uit het menu, of anders het actieve tabblad) met de gegeven editor. */
+function openWith(uri: vscode.Uri | undefined, editorId: string, column?: vscode.ViewColumn) {
+  const tabInput = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+  const target =
+    uri ??
+    (tabInput instanceof vscode.TabInputText || tabInput instanceof vscode.TabInputCustom
+      ? tabInput.uri
+      : undefined);
+  if (!target) return;
+  return vscode.commands.executeCommand("vscode.openWith", target, editorId, column);
 }
 
 /** Berichten van de editor; zie src/lib/host/host.ts in de root. */

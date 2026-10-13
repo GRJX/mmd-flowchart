@@ -9,7 +9,7 @@ Alle interacties beschreven als stapsgewijze flows in Mermaid-syntax.
 ```mermaid
 flowchart TD
     A([Start]) --> B["Maak in de IDE een nieuw bestand<br>naam.mmd"]
-    B --> C["Open het bestand in de editor<br>VS Code: Open With… → MMD Flowchart<br>IntelliJ: tab MMD Flowchart"]
+    B --> C["Open het bestand in de editor<br>VS Code: preview-knop rechtsboven<br>IntelliJ: tab MMD Flowchart"]
     C --> D["Leeg bestand: diagram start<br>met één Start-blok"]
     D --> E([Klaar — diagram is bewerkbaar])
 ```
@@ -246,7 +246,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     A([Start]) --> B["Open een .mmd-bestand<br>in de IDE"]
-    B --> C["Kies de visuele editor<br>VS Code: Open With… → MMD Flowchart<br>IntelliJ: tab MMD Flowchart"]
+    B --> C["Kies de visuele editor<br>VS Code: preview-knop rechtsboven<br>IntelliJ: tab MMD Flowchart"]
     C --> D{"Bestand ondersteund<br>en ≤ 200 blokken?"}
     D -- Nee --> E["Diagram geopend<br>in read-only modus"]
     D -- Ja --> F["Diagram geopend<br>in canvas"]
