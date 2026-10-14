@@ -11,7 +11,7 @@ stages:
   - publish
 
 variables:
-  NODE_IMAGE: node:20
+  NODE_IMAGE: node:22
   JDK_IMAGE: eclipse-temurin:21-jdk
   # Versie op een tag: "v1.2.0" -> "1.2.0". Zonder tag: een testversie.
   VERSION: 0.0.0-$CI_COMMIT_SHORT_SHA
@@ -37,7 +37,7 @@ package:vscode:
     - cp -R dist packages/vscode/webview
     - cd packages/vscode
     - npm ci
-    - npm version "$VERSION" --no-git-tag-version
+    - npm version "$VERSION" --no-git-tag-version --allow-same-version
     - npm run package
   artifacts:
     paths:
