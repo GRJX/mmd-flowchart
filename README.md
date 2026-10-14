@@ -13,7 +13,7 @@ Download de nieuwste versie uit de **Package Registry** van dit project (*Deploy
 
 ## Ontwikkelen
 
-Vereisten: Node 20 en JDK 21.
+Vereisten: Node 22 en JDK 21.
 
 ```bash
 npm install
